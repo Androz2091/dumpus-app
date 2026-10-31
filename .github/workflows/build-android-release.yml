@@ -3,10 +3,21 @@ name: Build and Release Android App
 on:
   release:
     types: [created]
+  # A release attaches the AAB and the APK, then sends the AAB to Google
+  # Play's production track for review, with the release's first paragraph as
+  # its notes, rolled out to everyone once approved. A manual run builds
+  # without publishing anything; with `submit`, it sends the AAB of
+  # package.json's version's release to Google Play instead.
   workflow_dispatch:
+    inputs:
+      submit:
+        description: Send this version's release AAB to Google Play instead of building
+        type: boolean
+        default: false
 
 jobs:
   release:
+    if: ${{ !inputs.submit }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -91,3 +102,75 @@ jobs:
           name: app-release-signed.apk
           path: ./android/app/build/outputs/apk/release/app-release-signed.apk
         if: github.event_name != 'release'
+
+      # Last, so a Google Play failure leaves the release's assets complete.
+      - name: Check for Google Play credentials
+        id: play
+        run: |
+          echo "ready=$READY" >> "$GITHUB_OUTPUT"
+          [ "$READY" = true ] || echo "::notice::PLAY_SERVICE_ACCOUNT_JSON isn't set, so the AAB isn't sent to Google Play."
+        env:
+          READY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+        if: github.event_name == 'release'
+
+      - name: Store notes from the release
+        run: node scripts/store-notes.cjs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          STORE_NOTES_DIR: ${{ runner.temp }}/store-notes
+        if: steps.play.outputs.ready == 'true'
+
+      - name: Send the AAB to Google Play
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.dumpus.app
+          releaseFiles: ./android/app/build/outputs/bundle/release/app-release-signed.aab
+          track: production
+          status: completed
+          whatsNewDirectory: ${{ runner.temp }}/store-notes/play
+        if: steps.play.outputs.ready == 'true'
+
+  submit:
+    if: ${{ inputs.submit }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Check for Google Play credentials
+        run: |
+          if [ "$READY" != true ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON isn't set: add the service account's JSON key as that secret first."
+            exit 1
+          fi
+        env:
+          READY: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' }}
+
+      - name: Download the release's AAB
+        run: gh release download "v$(node -p 'require("./package.json").version')" --pattern app-release-signed.aab --dir "$RUNNER_TEMP/aab"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+
+      - name: Store notes from the release
+        run: node scripts/store-notes.cjs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          STORE_NOTES_DIR: ${{ runner.temp }}/store-notes
+
+      - name: Send the AAB to Google Play
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.dumpus.app
+          releaseFiles: ${{ runner.temp }}/aab/app-release-signed.aab
+          track: production
+          status: completed
+          whatsNewDirectory: ${{ runner.temp }}/store-notes/play

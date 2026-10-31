@@ -4,14 +4,17 @@ name: iOS Deployment
 on:
   release:
     types: [created]
-  # A manual run builds and signs without uploading, to check the toolchain
-  # and the certificates before a release; `prod` uploads, as a release does.
+  # A release uploads the build and submits it for review, with the release's
+  # text as its notes. A manual run builds and signs without uploading, to
+  # check the toolchain and the certificates before a release; `prod` does
+  # what a release does; `submit` submits package.json's version, already
+  # uploaded.
   workflow_dispatch:
     inputs:
       lane:
         description: fastlane lane
         type: choice
-        options: [buildtest, prod]
+        options: [buildtest, prod, submit]
         default: buildtest
 
 jobs:
@@ -80,6 +83,15 @@ jobs:
           bundle install
         working-directory: ios/App/fastlane
 
+      - name: Store notes from the release
+        if: (inputs.lane || 'prod') != 'buildtest'
+        run: node scripts/store-notes.cjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          STORE_NOTES_DIR: ${{ runner.temp }}/store-notes
+
       - name: fastlane
         working-directory: ios/App
         run: |
@@ -88,6 +100,7 @@ jobs:
           bundle exec fastlane "$LANE" --verbose
         env:
           LANE: ${{ inputs.lane || 'prod' }}
+          STORE_NOTES_DIR: ${{ runner.temp }}/store-notes
           FASTLANE_VERBOSE: "1"
           MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
           APP_STORE_API_KEY: ${{ secrets.APP_STORE_API_KEY }}
