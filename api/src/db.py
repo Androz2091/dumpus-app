@@ -74,12 +74,9 @@ def update_step (package_status_id, package_id, step, session):
         package.updated_at = datetime.now()
         session.commit()
 
-# A package that isn't PROCESSED, errored or cancelled has a worker on it until
-# no step has been written to it for this long: its worker then died before it
-# could write its error, for eg. killed out of memory, or never started. A live
-# worker writes a step at least every 11 minutes: dumpus-processor is stopped at
-# 10 (`PROCESSOR_TIMEOUT_SECONDS` in `tasks.py`), and starting the task and the
-# slowest download in a month of production each took less.
+# A live worker writes a step at least every 11 minutes: dumpus-processor is
+# stopped at 10 (`PROCESSOR_TIMEOUT_SECONDS` in `tasks.py`), and starting the
+# task and the slowest download in a month of production each took less.
 ABANDONED_AFTER = timedelta(hours=1)
 
 def is_abandoned(package_status):

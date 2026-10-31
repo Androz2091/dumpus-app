@@ -140,7 +140,6 @@ def test_a_package_whose_worker_died_shows_an_error_and_can_be_sent_again(client
         return body['isErrored'], body['errorMessageCode'], body['processingQueuePosition']['standardQueueTotal']
 
     client.post('/process', json={'package_link': link})
-    # Its task was killed before it wrote a step, and an hour went by.
     postgres.execute("UPDATE package_process_status SET updated_at = updated_at - interval '61 minutes'")
     assert status() == (True, 'UNKNOWN_ERROR', 0)
 
