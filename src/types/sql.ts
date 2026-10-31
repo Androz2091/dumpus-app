@@ -35,8 +35,7 @@ export type Guild = {
   total_message_count: number;
   /**
    * The server's size the last time one of its channels was opened, null when
-   * the package doesn't say: missing from the databases processed before
-   * 0.3.0, see `countsGuildMembers`.
+   * the package doesn't say, see `countsGuildMembers`.
    */
   member_count?: number | null;
 };

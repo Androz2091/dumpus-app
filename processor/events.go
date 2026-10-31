@@ -477,8 +477,7 @@ func (r *lineReader) text(spec eventSpec, f *eventFields, field int) (uint32, bo
 	return 0, false
 }
 
-// count reads a field holding a count, which exports write as a string, for
-// eg. `"509"`.
+// Exports write counts as strings, for eg. `"509"`.
 func (r *lineReader) count(spec eventSpec, f *eventFields, field int) (int64, bool) {
 	v := f.values[field]
 	var s string
