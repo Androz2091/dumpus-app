@@ -13,6 +13,10 @@ import { getOptions } from "./settings";
 // the file after the language covering both, "no".
 const ALIASES: Record<string, string> = { nb: "no", nn: "no" };
 
+// `zh.json` is in Traditional characters, and under a bare "zh" browsers
+// draw some of them in their Simplified forms.
+const HTML_LANGS: Record<string, string> = { zh: "zh-Hant" };
+
 i18next
   .use(initReactI18next)
   .use(LanguageDetector)
@@ -38,6 +42,14 @@ i18next
       },
     },
   });
+
+// The language is known only in the browser, after the English prerender
+// hydrated, so `<html>` gets it here rather than from React.
+i18next.on("languageChanged", (language) => {
+  if (typeof document === "undefined") return;
+  document.documentElement.lang = HTML_LANGS[language] ?? language;
+  document.documentElement.dir = i18next.dir(language);
+});
 
 export function useTranslation(locale = i18next.language) {
   if (i18next.resolvedLanguage !== locale) i18next.changeLanguage(locale);

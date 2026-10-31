@@ -1,10 +1,10 @@
 "use client";
 
-import i18next from "i18next";
 import { CSSProperties } from "react";
 import { useCapacitor } from "~/capacitor/hooks";
 import { useScrollTop } from "~/hooks/use-layout";
 import useStoreInit from "~/hooks/use-store-init";
+import { fallbackLocale } from "~/i18n/settings";
 import { useAppStore } from "~/stores";
 import { monoFamily, sansFamily } from "../_fonts";
 import SafeArea from "./SafeArea";
@@ -16,8 +16,6 @@ export default function PageStructure({
 }: {
   children: React.ReactNode;
 }) {
-  const { language: locale = "en", dir = () => "ltr" } = i18next;
-
   useCapacitor();
   const init = useStoreInit();
   const theme = useAppStore(({ config }) => config.theme);
@@ -25,8 +23,9 @@ export default function PageStructure({
 
   return (
     <html
-      lang={locale}
-      dir={dir(locale)}
+      // The prerender's language: `~/i18n/client` sets the user's.
+      lang={fallbackLocale}
+      dir="ltr"
       data-theme={theme}
       className="h-full bg-gray-950 text-gray-400"
       style={

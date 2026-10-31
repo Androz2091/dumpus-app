@@ -31,6 +31,17 @@
 }
 
 /*
+  Korean breaks a line between any two syllables, splitting words, unless
+  told to break only at the spaces between them. In `base`, so that a
+  `break-all` utility still wins.
+*/
+@layer base {
+  :lang(ko) {
+    word-break: keep-all;
+  }
+}
+
+/*
   The metric-matched Arial that `next/font/google` generated for each font,
   shown until it loads. The fonts themselves are in `src/app/_fonts`.
 */
