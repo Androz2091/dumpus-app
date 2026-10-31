@@ -2,7 +2,7 @@
 
 import { Dialog, Transition } from "@headlessui/react";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import Button from "~/components/Button";
 import useToast from "~/hooks/use-toast";
@@ -19,12 +19,20 @@ export default function InAppPurchasesDialog() {
       ui.setShowInAppPurchasesDialog,
     ]),
   );
-  const [supported, products] = useAppStore(
-    useShallow(({ purchases }) => [purchases.supported, purchases.products]),
+  const [supported, products, retryFailedSetup] = useAppStore(
+    useShallow(({ purchases }) => [
+      purchases.supported,
+      purchases.products,
+      purchases.retryFailedSetup,
+    ]),
   );
   const hasProducts = products.length > 0;
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) retryFailedSetup();
+  }, [open, retryFailedSetup]);
 
   async function onPurchase() {
     setLoading(true);

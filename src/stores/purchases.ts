@@ -29,10 +29,13 @@ type State = {
 
 type Actions = {
   init: (props: { notify: (key: string) => void }) => Promise<void>;
+  retryFailedSetup: () => void;
   restorePurchases: () => Promise<void>;
 };
 
 export type PurchasesSlice = State & Actions;
+
+let setUpAgain: (() => void) | undefined;
 
 export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
   set,
@@ -55,9 +58,8 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
       return finish();
     }
 
-    try {
-      await import("cordova-plugin-purchase");
-      const { ProductType, Platform, store } = window.CdvPurchase;
+    async function setUp(store: CdvPurchase.Store) {
+      const { ErrorCode, ProductType, Platform } = window.CdvPurchase;
 
       // Order matters per the cordova-plugin-purchase v13 README:
       //   1. register products
@@ -119,9 +121,25 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
       });
 
       // The plugin reports a failed setup only here, and store.initialize()
-      // then never settles.
+      // then never settles: Google Play's adapter retries by waiting again on
+      // the setup that failed. A store sets up only once, so setting up
+      // again takes a new one.
       store.error((error) => {
         console.error("[purchases]", error.code, error.message);
+        if (
+          error.platform === Platform.GOOGLE_PLAY &&
+          error.code === ErrorCode.SETUP
+        ) {
+          setUpAgain = () => {
+            const { GooglePlay, Store } = window.CdvPurchase;
+            // The adapter allows one instance.
+            Reflect.deleteProperty(GooglePlay.Adapter, "_instance");
+            window.CdvPurchase.store = new Store();
+            setUp(window.CdvPurchase.store).catch((err) => {
+              console.error("[purchases] init failed:", err);
+            });
+          };
+        }
       });
 
       const errors = await store.initialize();
@@ -134,6 +152,11 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
           get().config.setPremium(false);
         }
       }
+    }
+
+    try {
+      await import("cordova-plugin-purchase");
+      await setUp(window.CdvPurchase.store);
     } catch (err) {
       // Surface init failures in the device console so the next time
       // someone reports "Payments not supported" we have a real reason
@@ -141,6 +164,11 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
       console.error("[purchases] init failed:", err);
     }
     finish();
+  },
+  retryFailedSetup: () => {
+    const retry = setUpAgain;
+    setUpAgain = undefined;
+    retry?.();
   },
   restorePurchases: async () => {
     set((state) => ({ purchases: { ...state.purchases, restoring: true } }));
