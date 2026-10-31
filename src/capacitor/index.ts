@@ -10,6 +10,13 @@ function handleBackButton(
   router: ReturnType<typeof useRouter>,
   canGoBack: boolean,
 ) {
+  // Headless UI marks an open dialog `aria-modal`, and Escape closes the top
+  // one through its own `onClose`.
+  if (document.querySelector('[role="dialog"][aria-modal="true"]')) {
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    return;
+  }
+
   const pathname = window.location.pathname.replace(/\/$/, "");
   // A details page sits under its tab's path, but it is a sub-page.
   const isTab =
