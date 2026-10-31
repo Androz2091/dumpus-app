@@ -104,6 +104,12 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
         await transaction.finish();
       });
 
+      // The plugin reports a failed setup only here, and store.initialize()
+      // then never settles.
+      store.error((error) => {
+        console.error("[purchases]", error.code, error.message);
+      });
+
       await store.initialize();
 
       set((state) => ({ purchases: { ...state.purchases, supported: true } }));
