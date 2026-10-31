@@ -187,6 +187,9 @@
     "channelOpenings": "channel openings",
     "guildJoins": "guild joins",
     "commands": "{{- value}} commands",
+    "callTime_one": "{{- duration}} in {{- value}} call",
+    "callTime_other": "{{- duration}} in {{- value}} calls",
+    "noCalls": "No calls in your DMs in this time range",
     "top": {
       "dms": "DMs",
       "guilds": "Guilds",
@@ -303,6 +306,7 @@
   "mostActiveDMs": "Most active DMs",
   "mostActiveServers": "Most active servers",
   "mostActiveChannels": "Most active channels",
+  "mostCalled": "Most called",
   "discordHours": "Your Discord hours",
   "activityTime": "Activity over time",
   "messageSentCount": "Message sent count",
