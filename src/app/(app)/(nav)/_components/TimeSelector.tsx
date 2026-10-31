@@ -1,7 +1,7 @@
 "use client";
 
-import clsx from "clsx";
 import { create } from "zustand";
+import Tabs from "~/components/Tabs";
 import { afterNextPaint } from "~/components/after-paint";
 import { useTranslation } from "~/i18n/client";
 import { timeRanges, useAppStore } from "~/stores";
@@ -48,26 +48,17 @@ export default function TimeSelector() {
 
   return (
     <div className="border-t border-gray-800 bg-gray-900 sm:border-none sm:bg-transparent">
-      <div className="flex items-center space-x-1 px-1 py-1 sm:space-x-0 sm:p-0 md:space-x-1">
-        {timeRanges.map((time) => (
-          <button
-            key={time}
-            type="button"
-            data-pending={time === pending ? "" : undefined}
-            onClick={() => {
-              if (time !== shown) selectRange(time);
-            }}
-            className={clsx(
-              "w-full pressable rounded-lg py-1 [--press-scale:0.94] sm:px-4 sm:whitespace-nowrap",
-              time === shown
-                ? "bg-gray-800 text-brand-300"
-                : "text-gray-400 hover:bg-gray-800 active:bg-gray-800",
-            )}
-          >
-            {t(`timeRanges.${time}`)}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        items={timeRanges.map((time) => ({
+          value: time,
+          label: t(`timeRanges.${time}`),
+        }))}
+        value={shown}
+        pending={pending}
+        onChange={selectRange}
+        className="space-x-1 px-1 py-1 sm:space-x-0 sm:p-0 md:space-x-1"
+        itemClassName="w-full sm:px-4 sm:whitespace-nowrap"
+      />
     </div>
   );
 }

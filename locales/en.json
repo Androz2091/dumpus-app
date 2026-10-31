@@ -320,6 +320,10 @@
   "messageSentCount": "Message sent count",
   "minutesOnDiscord": "Minutes spent on Discord over time",
   "minuteCount": "Minute count",
+  "graphViews": {
+    "period": "Per period",
+    "cumulative": "Cumulative"
+  },
   "share": {
     "title": "Share",
     "description": "Share your stats with your friends!",
