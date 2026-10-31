@@ -23,18 +23,26 @@ export function messagesPerDayHour(
   return data;
 }
 
+// The query cache hands back the same rows for the same query, and a page
+// reads one range's hours several times per render.
+const localHoursOf = new WeakMap<DayHourCount[], number[]>();
+
 /**
  * Message counts per hour of the day on this device's clock. The database
  * keeps them per UTC day and hour, so each is moved to the local hour of that
- * moment, which also puts summer and winter time right.
+ * moment, which also puts summer and winter time right. Computed once per
+ * rows, so the array returned is shared and must not be changed.
  */
 export function localHours(rows: DayHourCount[]) {
+  const cached = localHoursOf.get(rows);
+  if (cached) return cached;
   const hours = new Array<number>(24).fill(0);
   for (const { day, hour, count } of rows) {
     if (hour === null) continue;
     const at = Date.parse(`${day}T00:00:00Z`) + hour * HOUR_MS;
     hours[new Date(at).getHours()] += count;
   }
+  localHoursOf.set(rows, hours);
   return hours;
 }
 
