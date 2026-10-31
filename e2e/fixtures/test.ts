@@ -31,11 +31,6 @@ const HARMLESS: { text: RegExp; url: RegExp; reason: string }[] = [
     url: /^https:\/\/api\.dumpus\.app\/process\/[0-9a-f]{32}\/user\/\d+$/,
     reason: "The user lookup answers 500 for an account Discord can't find.",
   },
-  {
-    text: /status of 401\b/,
-    url: /^https:\/\/api\.dumpus\.app\/process\/demo\/user\/\d+$/,
-    reason: "The demo has no key, so the API refuses its user lookups.",
-  },
 ];
 
 export const test = base.extend<{ api: FakeApi }>({

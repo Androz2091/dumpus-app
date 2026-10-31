@@ -139,14 +139,19 @@ export default function usePackageAPI({
     UPNKey: string;
     userID: string;
   }) {
-    const response = await api({
-      path: `/process/${packageID}/user/${userID}`,
-      method: "GET",
-      headers: {
-        Accept: "text/plain",
-        Authorization: `Bearer ${UPNKey}`,
-      },
-    });
+    // The demo has no key, so the API always refuses its user lookups:
+    // answer its 401 here instead of asking.
+    const response =
+      packageID === "demo"
+        ? new Response(null, { status: 401 })
+        : await api({
+            path: `/process/${packageID}/user/${userID}`,
+            method: "GET",
+            headers: {
+              Accept: "text/plain",
+              Authorization: `Bearer ${UPNKey}`,
+            },
+          });
 
     const data: PackageAPIUserResponse =
       response.status === 401
