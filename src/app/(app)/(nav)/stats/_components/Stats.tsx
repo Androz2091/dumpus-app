@@ -76,10 +76,11 @@ export default function Stats() {
     package_is_partial
       ? null
       : {
-          value: formatNumber(appStarted(), { notation: "standard" }),
+          // A full package has every app opening, so none in the range is 0.
+          value: formatNumber(appStarted() ?? 0, { notation: "standard" }),
           title: t("stats.appStarts"),
           description: t("stats.appStartsPerDay", {
-            value: avgAppStartedPerDay(),
+            value: formatNumber(avgAppStartedPerDay() ?? 0),
           }),
           icon: CursorArrowRippleIcon,
         },

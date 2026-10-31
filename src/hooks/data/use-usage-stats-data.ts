@@ -2,7 +2,7 @@
 
 import { carriesEvent } from "./_availability";
 import { messagesPerDayHour, messageTotals, topLocalHour } from "./_hours";
-import { useDataSources } from "./_shared";
+import { avgAppOpensPerDay, useDataSources } from "./_shared";
 
 const DAY_SECONDS = 86_400;
 
@@ -89,17 +89,7 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
   }
 
   function getAvgAppStartedPerDay() {
-    const { data, hasError } = sql<{ average_daily_occurences: number }>`
-      SELECT ROUND(AVG(total_occurence)) as average_daily_occurences
-      FROM (
-        SELECT day, SUM(occurence_count) as total_occurence 
-        FROM activity
-        WHERE event_name = 'app_opened'
-        GROUP BY day
-      ) daily_counts;
-    `;
-
-    return hasError ? null : data[0].average_daily_occurences;
+    return avgAppOpensPerDay(sql, startDate, endDate);
   }
 
   function getAvgSessionDuration() {
