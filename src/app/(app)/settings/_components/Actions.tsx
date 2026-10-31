@@ -1,87 +1,37 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useShallow } from "zustand/react/shallow";
 import Button from "~/components/Button";
 import Section from "~/components/Section";
-import usePackageAPI from "~/hooks/use-package-api";
 import { useTranslation } from "~/i18n/client";
-import { useAppStore, useSelectedPackage } from "~/stores";
-import { queryClient } from "~/utils/react-query";
+import { useAppStore } from "~/stores";
 
 export default function Actions() {
   const { t } = useTranslation();
-  const router = useRouter();
-  const [deletePackage, restorePurchases] = useAppStore(
-    useShallow(({ config, purchases }) => [
-      config.deletePackage,
-      purchases.restorePurchases,
-    ]),
+  const restorePurchases = useAppStore(
+    ({ purchases }) => purchases.restorePurchases,
   );
-  const selectedPackage = useSelectedPackage();
-  const api = usePackageAPI({ baseURL: selectedPackage?.backendURL });
 
   const [loading, setLoading] = useState(false);
 
-  async function handler() {
-    setLoading(true);
-
-    const { package_id, UPNKey, id } = selectedPackage;
-
-    if (package_id !== "demo") {
-      await api.remove({
-        packageID: package_id,
-        UPNKey,
-      });
-    }
-
-    deletePackage({
-      id,
-      router,
-    });
-    setLoading(false);
-  }
-
-  // During reset
-  if (!selectedPackage) return null;
+  if (process.env.NEXT_PUBLIC_DEPLOY_ENV !== "mobile") return null;
 
   return (
     <Section title={t("settings.actions.title")}>
       <div className="grid grid-cols-1 gap-2 px-2 sm:grid-cols-2">
-        <Button asChild variant="brand">
-          <Link onClick={() => queryClient.clear()} href="/onboarding/access">
-            {t("settings.actions.addPackage")}
-          </Link>
+        <Button
+          variant="premium"
+          onClick={async () => {
+            setLoading(true);
+            await restorePurchases();
+            setLoading(false);
+          }}
+          disabled={loading}
+        >
+          {loading
+            ? t("settings.actions.restoring")
+            : t("settings.actions.restorePurchases")}
         </Button>
-        <Button asChild variant="danger">
-          <button
-            onClick={(e) => {
-              handler();
-            }}
-            disabled={loading}
-          >
-            {loading
-              ? t("settings.actions.deleting")
-              : t("settings.actions.delete")}
-          </button>
-        </Button>
-        {process.env.NEXT_PUBLIC_DEPLOY_ENV === "mobile" && (
-          <Button
-            variant="premium"
-            onClick={async () => {
-              setLoading(true);
-              await restorePurchases();
-              setLoading(false);
-            }}
-            disabled={loading}
-          >
-            {loading
-              ? t("settings.actions.restoring")
-              : t("settings.actions.restorePurchases")}
-          </Button>
-        )}
       </div>
     </Section>
   );

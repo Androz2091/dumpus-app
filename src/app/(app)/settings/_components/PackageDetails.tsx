@@ -2,19 +2,46 @@
 
 import { useTranslation } from "~/i18n/client";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import Button from "~/components/Button";
 import Section from "~/components/Section";
 import DetailCard from "~/components/data/DetailCard";
-import { useSelectedPackage } from "~/stores";
+import usePackageAPI from "~/hooks/use-package-api";
+import { useAppStore, useSelectedPackage } from "~/stores";
 import { formatDate } from "~/utils/format";
 import useCopy from "../_hooks/use-copy";
 
 export default function PackageDetails() {
   const { t } = useTranslation();
+  const router = useRouter();
   const selectedPackage = useSelectedPackage();
+  const deletePackage = useAppStore(({ config }) => config.deletePackage);
+  const api = usePackageAPI({ baseURL: selectedPackage?.backendURL });
   const copy = useCopy();
+  const [deleting, setDeleting] = useState(false);
 
   // During reset
   if (!selectedPackage) return null;
+
+  async function onDelete() {
+    setDeleting(true);
+
+    const { package_id, UPNKey, id } = selectedPackage;
+
+    if (package_id !== "demo") {
+      await api.remove({
+        packageID: package_id,
+        UPNKey,
+      });
+    }
+
+    deletePackage({
+      id,
+      router,
+    });
+    setDeleting(false);
+  }
 
   return (
     <Section title={t("settings.packageDetails.title")}>
@@ -64,6 +91,11 @@ export default function PackageDetails() {
           reverseTexts
           rightIcon={ClipboardDocumentIcon}
         />
+        <Button variant="danger" onClick={onDelete} disabled={deleting}>
+          {deleting
+            ? t("settings.actions.deleting")
+            : t("settings.actions.delete")}
+        </Button>
       </div>
     </Section>
   );
