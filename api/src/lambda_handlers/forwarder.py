@@ -1,7 +1,8 @@
 """SQS → ECS RunTask forwarder Lambda.
 
 Replaces the old SQS-triggered worker Lambda. For each incoming SQS record,
-fires off one Fargate task with the message body passed as container env
+fires off one Fargate task with the package's ids passed as container env
+overrides; the task takes the link from S3 itself, since AWS keeps the
 overrides. The Fargate task does the actual heavy work without the 15-min /
 3008 MB Lambda caps.
 
@@ -54,7 +55,6 @@ def handler(event, context):
                         'environment': [
                             {'name': 'PACKAGE_STATUS_ID', 'value': str(body['package_status_id'])},
                             {'name': 'PACKAGE_ID',        'value': body['package_id']},
-                            {'name': 'PACKAGE_LINK',      'value': body['link']},
                         ],
                     }],
                 },

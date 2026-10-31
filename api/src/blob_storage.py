@@ -6,6 +6,9 @@ download directly from S3 — bypassing API Gateway, which is slow and
 6MB-capped for binary responses.
 
 PACKAGE_DATA_BUCKET must be set; the /blob endpoint requires S3.
+
+The bucket also holds each package's link from the API to its worker, under
+`links/`.
 """
 import os
 
@@ -18,6 +21,10 @@ def _bucket():
 def _key(package_id: str) -> str:
     # Flat layout. Package IDs are MD5 hex digests, so no path-traversal risk.
     return f"packages/{package_id}.bin"
+
+
+def _link_key(package_status_id: int) -> str:
+    return f"links/{package_status_id}"
 
 
 def _client():
@@ -81,3 +88,19 @@ def exists(package_id: str) -> bool:
         if e.response.get("ResponseMetadata", {}).get("HTTPStatusCode") == 404:
             return False
         raise
+
+
+def put_link(package_status_id: int, link: str) -> None:
+    """The link holds the user's key, and AWS keeps a task's RunTask
+    overrides, so the worker takes the link from here."""
+    _client().put_object(Bucket=_bucket(), Key=_link_key(package_status_id), Body=link.encode())
+
+
+def take_link(package_status_id: int) -> str:
+    """Deleted as it's read, so the link can't be read back once the worker
+    has started."""
+    client = _client()
+    key = _link_key(package_status_id)
+    link = client.get_object(Bucket=_bucket(), Key=key)["Body"].read().decode()
+    client.delete_object(Bucket=_bucket(), Key=key)
+    return link

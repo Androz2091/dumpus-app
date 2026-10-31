@@ -53,6 +53,21 @@ resource "aws_s3_bucket_lifecycle_configuration" "package_data" {
       days_after_initiation = 1
     }
   }
+
+  # A link whose worker never started, for eg. RunTask failed twice, goes after
+  # a day: where two expirations overlap, S3 applies the shorter.
+  rule {
+    id     = "expire-links"
+    status = "Enabled"
+
+    filter {
+      prefix = "links/"
+    }
+
+    expiration {
+      days = 1
+    }
+  }
 }
 
 # CORS so the frontend (web.dumpus.app and dev) can fetch the presigned URL

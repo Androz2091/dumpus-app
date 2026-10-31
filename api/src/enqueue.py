@@ -13,13 +13,14 @@ def enqueue_package(package_status_id, package_id, link):
 
     if backend == 'sqs':
         import boto3
+        import blob_storage
+        blob_storage.put_link(package_status_id, link)
         sqs = boto3.client('sqs')
         sqs.send_message(
             QueueUrl=os.environ['SQS_QUEUE_URL'],
             MessageBody=json.dumps({
                 'package_status_id': package_status_id,
                 'package_id': package_id,
-                'link': link,
             }),
         )
         return
