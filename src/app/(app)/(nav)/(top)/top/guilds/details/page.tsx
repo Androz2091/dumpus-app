@@ -25,7 +25,7 @@ export default function Page() {
           header={
             <PageHeader
               title=""
-              discordLink={`https://discord.com/guilds/${id}`}
+              discordLink={`https://discord.com/channels/${id}`}
             />
           }
           stats={3}
@@ -57,7 +57,7 @@ function GuildDetails() {
 
   if (!guild) return <NotFoundState />;
 
-  const discordLink = `https://discord.com/guilds/${guild.guild_id}`;
+  const discordLink = `https://discord.com/channels/${guild.guild_id}`;
 
   return (
     <>
