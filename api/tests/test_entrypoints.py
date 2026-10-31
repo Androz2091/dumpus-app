@@ -120,7 +120,6 @@ def test_package_goes_from_api_gateway_through_sqs_and_ecs_to_the_worker(
     for name, value in (('PACKAGE_STATUS_ID', '1'), ('PACKAGE_ID', package)):
         monkeypatch.setenv(name, value)
     assert importlib.import_module('worker_main').main() == 0
-    # The link holds the user's key: once the worker has it, AWS doesn't.
     assert s3.list_objects_v2(Bucket=env.BUCKET, Prefix='links/')['KeyCount'] == 0
 
     assert postgres.steps(package) == ['LOCKED', 'DOWNLOADING', 'ANALYZING', 'PROCESSED']

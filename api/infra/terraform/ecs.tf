@@ -79,8 +79,7 @@ data "aws_iam_policy_document" "worker_task" {
     resources = ["${aws_s3_bucket.package_data.arn}/*"]
   }
 
-  # The API leaves each package's link under links/, and its worker reads it
-  # and deletes it on start (`take_link` in src/blob_storage.py).
+  # `take_link` in src/blob_storage.py.
   statement {
     sid       = "TakePackageLinks"
     actions   = ["s3:GetObject", "s3:DeleteObject"]

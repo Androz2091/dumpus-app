@@ -54,8 +54,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "package_data" {
     }
   }
 
-  # A link whose worker never started, for eg. RunTask failed twice, goes after
-  # a day: where two expirations overlap, S3 applies the shorter.
+  # A link whose worker never started goes after a day: where two expirations
+  # overlap, S3 applies the shorter.
   rule {
     id     = "expire-links"
     status = "Enabled"
