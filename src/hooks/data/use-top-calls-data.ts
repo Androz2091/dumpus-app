@@ -12,9 +12,8 @@ type Row = Pick<
 > & { call_count: number; call_minutes: number };
 
 /**
- * The people called the longest in the range. A call is a voice session in a
- * DM's channel: group DMs aren't in `dm_channels_data`, so their calls count
- * for nobody.
+ * A call is a voice session in a DM's channel: group DMs aren't in
+ * `dm_channels_data`, so their calls count for nobody.
  */
 export default function useTopCallsData() {
   const { sql, start, end } = useDataSources();
