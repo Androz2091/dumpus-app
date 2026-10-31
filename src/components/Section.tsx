@@ -6,11 +6,12 @@ import Spinner from "./Spinner";
 export type Props = {
   title: string;
   href?: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
   id?: string;
 };
 
-export default function Section({ title, href, children, id }: Props) {
+export default function Section({ title, href, action, children, id }: Props) {
   const { t } = useTranslation();
   return (
     <section id={id} className="desktop-container py-4 sm:py-8">
@@ -31,7 +32,7 @@ export default function Section({ title, href, children, id }: Props) {
             </LinkPending>
           </Link>
         ) : (
-          <div />
+          (action ?? <div />)
         )}
       </div>
       {children}
