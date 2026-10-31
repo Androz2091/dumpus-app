@@ -4,6 +4,7 @@ import PageHeader from "./_components/PageHeader";
 import Stats from "./_components/Stats";
 import SendingTimes from "./_components/SendingTimes";
 import DailySentMessages from "./_components/DailySentMessages";
+import TimeOnDiscord from "./_components/TimeOnDiscord";
 import SimplePieChart from "~/components/data/PieChart";
 import Section from "~/components/Section";
 import DetailCard from "~/components/data/DetailCard";
@@ -18,6 +19,7 @@ export default function Page() {
       <Stats />
       <SendingTimes />
       <DailySentMessages />
+      <TimeOnDiscord />
       <ExtraStats />
       {/*       
       <Section title="">
