@@ -39,8 +39,7 @@ export default function useMissingStatsData() {
 
   // Sessions record a day too, read only around the days left, which most
   // packages have few of. A session lasts a day at most, so the days it
-  // starts and ends on are all it covers. The dates are Unix seconds as text,
-  // which compare as numbers at 10 digits.
+  // starts and ends on are all it covers.
   const from = Date.parse(`${unrecorded[0]}T00:00:00Z`) / 1000;
   const to =
     Date.parse(`${unrecorded[unrecorded.length - 1]}T00:00:00Z`) / 1000 +
