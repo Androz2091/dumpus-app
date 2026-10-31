@@ -5,14 +5,10 @@ import { useDataSources } from "./_shared";
 
 const DAY_SECONDS = 86_400;
 
-/**
- * Minutes on Discord over the range, in the periods of the messages chart. A
- * session counts on the day it started.
- */
+/** A session counts on the day it started. */
 export default function useTimeOnDiscordData() {
   const { sql, start, end } = useDataSources();
-  // The last day counts whole, as it does for the activity's days. The dates
-  // are Unix seconds stored as text, which compare as numbers at 10 digits.
+  // The last day counts whole, as it does for the activity's days.
   const from = Date.parse(`${start}T00:00:00Z`) / 1000;
   const to = Date.parse(`${end}T00:00:00Z`) / 1000 + DAY_SECONDS;
 

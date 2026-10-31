@@ -12,8 +12,6 @@ export default function TimeOnDiscord() {
   const { package_is_partial } = useSelectedPackage();
   const rawData = useTimeOnDiscordData();
 
-  // Sessions come from the activity stream, which a partial package may lack:
-  // hidden like the other stats from it, rather than drawn at 0.
   if (package_is_partial) return null;
 
   const data = (rawData || []).map(({ value, label }) => ({
