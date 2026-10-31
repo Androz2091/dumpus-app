@@ -1,3 +1,4 @@
+import { Network } from "@capacitor/network";
 import { isCapacitorSupported } from "~/capacitor/utils";
 import type { CreateSlice } from ".";
 import { emitter } from "~/utils/emitter";
@@ -5,6 +6,19 @@ import { emitter } from "~/utils/emitter";
 const PRODUCT_SUPPORTER_KEY = "supporter";
 export const PRODUCT_KEYS = [PRODUCT_SUPPORTER_KEY] as const;
 export type ProductKey = (typeof PRODUCT_KEYS)[number];
+
+// Google Play stops listing a refunded purchase. On iOS a refresh is a
+// restore, which can ask for the Apple ID's password, so a refund there isn't
+// looked for.
+async function ownsSupporter(
+  store: CdvPurchase.Store,
+  googlePlay: CdvPurchase.Adapter,
+) {
+  // Play answers from a cache that it only syncs online.
+  if (!(await Network.getStatus()).connected) return undefined;
+  const error = await googlePlay.restorePurchases();
+  return error ? undefined : store.owned(PRODUCT_SUPPORTER_KEY);
+}
 
 type State = {
   initialized: boolean;
@@ -110,9 +124,16 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
         console.error("[purchases]", error.code, error.message);
       });
 
-      await store.initialize();
+      const errors = await store.initialize();
 
       set((state) => ({ purchases: { ...state.purchases, supported: true } }));
+
+      const googlePlay = store.getAdapter(Platform.GOOGLE_PLAY);
+      if (get().config.premium && googlePlay && errors.length === 0) {
+        if ((await ownsSupporter(store, googlePlay)) === false) {
+          get().config.setPremium(false);
+        }
+      }
     } catch (err) {
       // Surface init failures in the device console so the next time
       // someone reports "Payments not supported" we have a real reason
