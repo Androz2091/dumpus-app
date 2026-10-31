@@ -3,8 +3,29 @@
 import { App } from "@capacitor/app";
 import type { SafeAreaInsets } from "capacitor-plugin-safe-area";
 import type { useRouter } from "next/navigation";
-import { OS } from "~/constants";
+import { links, OS } from "~/constants";
 import { isCapacitorSupported } from "./utils";
+
+function handleBackButton(
+  router: ReturnType<typeof useRouter>,
+  canGoBack: boolean,
+) {
+  const pathname = window.location.pathname.replace(/\/$/, "");
+  // A details page sits under its tab's path, but it is a sub-page.
+  const isTab =
+    !pathname.includes("/details") &&
+    links.some((link) => !link.desktop && link.active(pathname));
+
+  if (pathname === "/overview") {
+    App.exitApp();
+  } else if (isTab) {
+    router.replace("/overview");
+  } else if (canGoBack) {
+    window.history.back();
+  } else {
+    App.exitApp();
+  }
+}
 
 async function handleSafeArea() {
   function setStyle(content: string) {
@@ -58,14 +79,9 @@ export async function initCapacitor({
   const { NavigationBar } =
     await import("@hugotomazi/capacitor-navigation-bar");
 
-  // TODO: fix in #50
-  // App.addListener("backButton", ({ canGoBack }) => {
-  //   if (canGoBack) {
-  //     window.history.back();
-  //   } else {
-  //     App.exitApp();
-  //   }
-  // });
+  App.addListener("backButton", ({ canGoBack }) =>
+    handleBackButton(router, canGoBack),
+  );
   if (OS === "android") {
     await StatusBar.setOverlaysWebView({ overlay: true });
     await NavigationBar.setTransparency({ isTransparent: true });
