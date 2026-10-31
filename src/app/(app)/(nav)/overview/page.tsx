@@ -7,12 +7,14 @@ import TopGuilds from "./_components/TopGuilds";
 import UsageStats from "./_components/UsageStats";
 import Profile from "./_components/Profile";
 import Share from "./_components/Share";
+import MissingStats from "../_components/MissingStats";
 
 export default function Page() {
   return (
     <>
       <PageHeader />
       <Profile />
+      <MissingStats />
       <Share />
       <UsageStats />
       <TopDMs />
