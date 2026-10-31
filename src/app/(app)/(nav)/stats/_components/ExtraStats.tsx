@@ -1,34 +1,13 @@
 "use client";
 
-// https://heroicons.com/
-
-import {
-  ArrowLeftOnRectangleIcon,
-  BanknotesIcon,
-  BellAlertIcon,
-  ClockIcon,
-  PhoneArrowDownLeftIcon,
-  UsersIcon,
-  ChatBubbleBottomCenterTextIcon,
-  CursorArrowRippleIcon,
-} from "@heroicons/react/24/solid";
-import DetailCard from "~/components/data/DetailCard";
-import SimplePieChart from "~/components/data/PieChart";
 import StatCard from "~/components/data/StatCard";
 import useUsageStatsData from "~/hooks/data/use-usage-stats-data";
 import { useTranslation } from "~/i18n/client";
 import { useSelectedPackage } from "~/stores";
-import type { Icon } from "~/types";
-import {
-  formatHour,
-  formatMoney,
-  formatNumber,
-  formatDuration,
-} from "~/utils/format";
+import { formatNumber, formatDuration } from "~/utils/format";
 
 export default function Stats() {
   const {
-    usePerOs,
     notificationClicked,
     captchaServed,
     emailReceived,
@@ -47,10 +26,6 @@ export default function Stats() {
   // Null is a count the export can't tell, see `carriesEvent`.
   const count = (n: number | null) =>
     n === null ? t("noData") : formatNumber(n, { notation: "standard" });
-
-  console.log(
-    (usePerOs() || []).map((os, i) => ({ value: os.count, label: os.os })),
-  );
 
   if (package_is_partial) return null;
 
