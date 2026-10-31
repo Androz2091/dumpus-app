@@ -36,8 +36,7 @@ export default function useDMData({ userID }: { userID: string }) {
     return hasError ? null : data[0];
   }
 
-  // The messages sent to the user on each day of the range, which the chart
-  // groups into bars and the count sums: one query for both.
+  // Both the chart and the count read these rows: one query for both.
   function dailyRows() {
     return sql.rows<{ day: string; count: number }>`
       SELECT a.day, SUM(a.occurence_count) AS count

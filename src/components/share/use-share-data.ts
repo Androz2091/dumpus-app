@@ -53,10 +53,7 @@ function bucketFor(
   return days <= 62 ? "day" : days <= 370 ? "week" : "month";
 }
 
-/**
- * The messages per bucket, summed from the messages per day and hour. Weeks
- * are numbered from `start`.
- */
+/** Weeks are numbered from `start`. */
 function bucketCounts(
   rows: DayHourCount[],
   start: string,

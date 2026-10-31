@@ -30,8 +30,8 @@ const localHoursOf = new WeakMap<DayHourCount[], number[]>();
 /**
  * Message counts per hour of the day on this device's clock. The database
  * keeps them per UTC day and hour, so each is moved to the local hour of that
- * moment, which also puts summer and winter time right. Computed once per
- * rows, so the array returned is shared and must not be changed.
+ * moment, which also puts summer and winter time right. The array returned
+ * is shared, so it must not be changed.
  */
 export function localHours(rows: DayHourCount[]) {
   const cached = localHoursOf.get(rows);

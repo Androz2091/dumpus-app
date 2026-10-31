@@ -19,9 +19,9 @@ import { useAppStore } from "~/stores";
 const loadShareSheet = () => import("~/components/share/ShareSheet");
 const ShareSheet = lazy(loadShareSheet);
 
-// The sheet's code, fetched once the page is idle. A lazy component suspends
-// on its first render even when its code is there, and React then reveals
-// what it waited for no sooner than 300 ms after showing the fallback.
+// A lazy component suspends on its first render even when its code is
+// there, and React then reveals what it waited for no sooner than 300 ms
+// after showing the fallback.
 let loadedShareSheet: ComponentType | null = null;
 function preloadShareSheet() {
   loadShareSheet().then(
@@ -37,13 +37,9 @@ const skeleton = (
   <div className="h-[60vh] max-h-[540px] animate-pulse rounded-xl bg-gray-800 motion-reduce:animate-none" />
 );
 
-/**
- * A skeleton that paints first, then the cards once rendered: in a
- * transition when the code is preloaded, else through the lazy component.
- * Picked when the sheet opens, so a load ending while it is open doesn't
- * remount it.
- */
 function SheetContent() {
+  // Read once, when the sheet opens, so a load ending while it's open
+  // doesn't remount it.
   const [Loaded] = useState(() => loadedShareSheet);
   if (Loaded) {
     return (
