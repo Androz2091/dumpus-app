@@ -9,6 +9,10 @@ import resourcesToBackend from "i18next-resources-to-backend";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { getOptions } from "./settings";
 
+// Browsers say Norwegian Bokmål ("nb") or Nynorsk ("nn"), and Crowdin names
+// the file after the language covering both, "no".
+const ALIASES: Record<string, string> = { nb: "no", nn: "no" };
+
 i18next
   .use(initReactI18next)
   .use(LanguageDetector)
@@ -22,7 +26,16 @@ i18next
     ...getOptions(),
     lng: undefined, // let detect the language on client side
     detection: {
-      order: ["localStorage", "navigator", "htmlTag"],
+      // Not "htmlTag": it reads the prerendered `lang="en"`, which then wins
+      // over a browser listing only region tags, as Safari does ("fr-FR").
+      order: ["localStorage", "navigator"],
+      // The files are named by language alone. Not `load: "languageOnly"`:
+      // it keeps "fr-FR" as the language, and `useTranslation` below then
+      // calls `changeLanguage` on every render.
+      convertDetectedLanguage: (code) => {
+        const language = code.split(/[-_]/)[0].toLowerCase();
+        return ALIASES[language] ?? language;
+      },
     },
   });
 
