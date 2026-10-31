@@ -198,6 +198,8 @@ export default function useLogic() {
 
   const error =
     process.data?.errorMessageCode ||
+    // The link couldn't be sent, or the answer wasn't JSON.
+    (process.status === "error" ? "UNKNOWN_ERROR" : null) ||
     status.data?.errorMessageCode ||
     data.data?.errorMessageCode ||
     // The download or its decryption failed.
