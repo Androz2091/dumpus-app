@@ -4,12 +4,16 @@ import { carriesEvent } from "./_availability";
 import { messagesPerDayHour, topLocalHour } from "./_hours";
 import { useDataSources } from "./_shared";
 
+const DAY_SECONDS = 86_400;
+
 export default function useUsageStatsData(forceLifetime?: boolean) {
   const { sql, timeRange, start, end, startLimit, endLimit } = useDataSources();
 
   const lifetime = forceLifetime || timeRange === "lifetime";
   const startDate = forceLifetime ? startLimit : start;
   const endDate = forceLifetime ? endLimit : end;
+  const from = Date.parse(`${startDate}T00:00:00Z`) / 1000;
+  const to = Date.parse(`${endDate}T00:00:00Z`) / 1000 + DAY_SECONDS;
 
   function getNetworkSize() {
     const { data, hasError } = sql<{ network_size: number }>`
@@ -120,9 +124,7 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     const { data, hasError } = sql<{ average_session_duration: number }>`
       SELECT AVG(duration_mins) as average_session_duration
       FROM sessions
-      WHERE started_date BETWEEN '${
-        new Date(startDate).getTime() / 1_000
-      }' AND '${new Date(endDate).getTime() / 1_000}'
+      WHERE started_date >= '${from}' AND started_date < '${to}'
     `;
 
     return hasError ? null : data[0].average_session_duration || 0;
@@ -132,9 +134,7 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     const { data, hasError } = sql<{ total_session_duration: number }>`
       SELECT SUM(duration_mins) as total_session_duration
       FROM sessions
-      WHERE started_date BETWEEN '${
-        new Date(startDate).getTime() / 1_000
-      }' AND '${new Date(endDate).getTime() / 1_000}'
+      WHERE started_date >= '${from}' AND started_date < '${to}'
     `;
 
     return hasError ? null : data[0].total_session_duration || 0;
@@ -144,9 +144,7 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     const { data, hasError } = sql<{ received_calls: number }>`
       SELECT count(*) as received_calls
       FROM voice_sessions
-      WHERE started_date BETWEEN '${
-        new Date(startDate).getTime() / 1_000
-      }' AND '${new Date(endDate).getTime() / 1_000}';
+      WHERE started_date >= '${from}' AND started_date < '${to}';
     `;
 
     return hasError ? null : data[0].received_calls;
@@ -156,9 +154,7 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     const { data, hasError } = sql<{ os: string; count: number }>`
       SELECT SUM(duration_mins) / 60 as count, device_os as os
       FROM sessions
-      WHERE started_date BETWEEN '${
-        new Date(startDate).getTime() / 1_000
-      }' AND '${new Date(endDate).getTime() / 1_000}'
+      WHERE started_date >= '${from}' AND started_date < '${to}'
       GROUP BY device_os;
     `;
 
@@ -183,9 +179,7 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     const { data, hasError } = sql<{ time_spent: number }>`
       SELECT SUM(duration_mins) as time_spent
       FROM voice_sessions
-      WHERE started_date BETWEEN '${
-        new Date(startDate).getTime() / 1_000
-      }' AND '${new Date(endDate).getTime() / 1_000}';
+      WHERE started_date >= '${from}' AND started_date < '${to}';
     `;
     return hasError ? null : (data[0].time_spent || 0) * 60 * 1000;
   }
