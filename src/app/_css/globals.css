@@ -4,6 +4,12 @@
 @config "../../../tailwind.config.ts";
 
 /*
+  Tailwind looks for class names in every file under the repo root, and
+  `landing/` is a separate site with its own styles.
+*/
+@source not "../../../landing";
+
+/*
   Tailwind 4 changed two defaults Tailwind 3 had: a border's colour is now
   `currentcolor` and a button's cursor the default one. These keep the
   Tailwind 3 look. The colours come from `tailwind.config.ts`, which Tailwind
