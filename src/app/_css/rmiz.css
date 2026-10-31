@@ -47,9 +47,11 @@
     inset: 10px 10px auto auto;
     cursor: zoom-in;
   }
+  /* The zoom's backdrop covers the whole screen, status bar included. */
   [data-rmiz-btn-unzoom] {
     position: absolute;
-    inset: 20px 20px auto auto;
+    inset: calc(20px + var(--safe-area-top-inset))
+      calc(20px + var(--safe-area-right-inset)) auto auto;
     cursor: zoom-out;
     z-index: 1;
   }
