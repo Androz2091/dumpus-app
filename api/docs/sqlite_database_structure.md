@@ -90,7 +90,7 @@ Here's the requested documentation in markdown format, providing a description f
 | Column                   | Description                                                                                   |
 |-------------------------|-----------------------------------------------------------------------------------------------|
 | package_id              | The unique identifier for the package.                                                       |
-| package_version         | The version of the package being processed (e.g., '0.1.0').                                 |
+| package_version         | The version of the database's format: '0.2.0' and later count 'channel_opened' in `activity` for the channels of `guild_channels_data`, '0.1.0' doesn't. |
 | package_owner_id        | The ID of the user who owns the package.                                                    |
 | package_owner_name      | The username of the package owner.                                                           |
 | package_owner_display_name | The display name of the package owner.                                                    |

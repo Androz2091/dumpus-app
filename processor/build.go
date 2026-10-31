@@ -81,7 +81,11 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 	m.Payments = pf.payments
 	m.VoiceSessions = buildVoiceSessions(act.voice, act.names)
 	m.Sessions = buildSessions(act.sessions, act.names)
-	m.Activity = append(m.Activity, activityRows(act)...)
+	pages := make(map[string]bool, len(m.GuildChannels))
+	for _, c := range m.GuildChannels {
+		pages[c.ChannelID] = true
+	}
+	m.Activity = append(m.Activity, activityRows(act, pages)...)
 
 	isPartial := !(stream != nil && act.usable) || !pf.serversIndexRead || !pf.messagesIndexRead || skipped
 	m.Package = PackageData{
@@ -97,7 +101,10 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 	return m
 }
 
-func activityRows(a *activityAgg) []Activity {
+// The app shows `channel_opened` counts only on a guild channel's page, and
+// keeping every channel opened would more than double a package's `activity`
+// rows.
+func activityRows(a *activityAgg, channelPages map[string]bool) []Activity {
 	var rows []Activity
 
 	n := a.names
@@ -142,6 +149,18 @@ func activityRows(a *activityAgg) []Activity {
 		rows = append(rows, Activity{
 			EventName: "app_opened", Day: dayString(k.day), OccurrenceCount: a.appOpened[k],
 			ExtraField1: n.ptr(k.os),
+		})
+	}
+
+	for _, k := range slices.SortedFunc(maps.Keys(a.channelOpened), func(x, y channelDayKey) int {
+		return cmp.Or(cmp.Compare(name(x.channel), name(y.channel)), cmp.Compare(x.day, y.day))
+	}) {
+		if !channelPages[name(k.channel)] {
+			continue
+		}
+		rows = append(rows, Activity{
+			EventName: "channel_opened", Day: dayString(k.day), OccurrenceCount: a.channelOpened[k],
+			ChannelID: n.ptr(k.channel),
 		})
 	}
 
