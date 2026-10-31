@@ -1,0 +1,68 @@
+name: deploy-landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "landing/**"
+      - ".github/workflows/deploy-landing.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC
+  contents: read
+
+# Serialize deploys: a queued one waits for the running one to finish, so
+# two pushes close together can't leave one build's pages with another's
+# assets.
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-1
+  SITE_BUCKET: dumpus-app-landing
+  CLOUDFRONT_DISTRIBUTION_ID: E3QLCNIH63M129
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: landing
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+          cache-dependency-path: landing/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build static site
+        run: pnpm run build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync dist/ "s3://${SITE_BUCKET}/" \
+            --delete \
+            --cache-control "public, max-age=3600"
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" \
+            --paths "/*" \
+            --query 'Invalidation.{Id:Id,Status:Status}'

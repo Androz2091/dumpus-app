@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 # Deploy dumpus-landing to AWS (S3 + CloudFront).
 # Requires: pnpm, awscli v2, AWS creds with access to the dumpus-app prod account.
+#
+# A push to `main` that touches `landing/` does the same through
+# `.github/workflows/deploy-landing.yml`; this is for a deploy by hand.
 
 set -euo pipefail
+
+# From the repo root, `dist/` and `pnpm install` would be the app's.
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 BUCKET="dumpus-app-landing"
 DISTRIBUTION_ID="E3QLCNIH63M129"
