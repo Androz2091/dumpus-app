@@ -8,20 +8,70 @@ import {
   TransitionChild,
 } from "@headlessui/react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState, type ComponentType } from "react";
 import { useShallow } from "zustand/react/shallow";
+import Deferred from "~/components/Deferred";
 import { useTranslation } from "~/i18n/client";
 import { useAppStore } from "~/stores";
 
-// The cards, their data and the renderer load and run only while the sheet
-// is open, never on a page load or a time range change.
-const ShareSheet = lazy(() => import("~/components/share/ShareSheet"));
+// The cards, their data and the renderer run only while the sheet is open,
+// never on a page load or a time range change.
+const loadShareSheet = () => import("~/components/share/ShareSheet");
+const ShareSheet = lazy(loadShareSheet);
+
+// A lazy component suspends on its first render even when its code is
+// there, and React then reveals what it waited for no sooner than 300 ms
+// after showing the fallback.
+let loadedShareSheet: ComponentType | null = null;
+function preloadShareSheet() {
+  loadShareSheet().then(
+    (module) => {
+      loadedShareSheet = module.default;
+    },
+    // Opening the sheet loads it again through `ShareSheet`.
+    () => {},
+  );
+}
+
+const skeleton = (
+  <div className="h-[60vh] max-h-[540px] animate-pulse rounded-xl bg-gray-800 motion-reduce:animate-none" />
+);
+
+function SheetContent() {
+  // Read once, when the sheet opens, so a load ending while it's open
+  // doesn't remount it.
+  const [Loaded] = useState(() => loadedShareSheet);
+  if (Loaded) {
+    return (
+      <Deferred fallback={skeleton}>
+        <Loaded />
+      </Deferred>
+    );
+  }
+  return (
+    <Suspense fallback={skeleton}>
+      <ShareSheet />
+    </Suspense>
+  );
+}
 
 export default function SharePopup() {
   const { t } = useTranslation();
   const [open, setOpen] = useAppStore(
     useShallow(({ ui }) => [ui.showSharePopup, ui.setShowSharePopup]),
   );
+
+  useEffect(() => {
+    // A timer where `requestIdleCallback` is missing, as in Safari.
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(preloadShareSheet, {
+        timeout: 5_000,
+      });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(preloadShareSheet, 2_000);
+    return () => window.clearTimeout(id);
+  }, []);
 
   return (
     <Transition show={open}>
@@ -70,13 +120,7 @@ export default function SharePopup() {
                   </button>
                 </div>
                 <div className="mt-4">
-                  <Suspense
-                    fallback={
-                      <div className="h-[60vh] max-h-[540px] animate-pulse rounded-xl bg-gray-800 motion-reduce:animate-none" />
-                    }
-                  >
-                    <ShareSheet />
-                  </Suspense>
+                  <SheetContent />
                 </div>
               </DialogPanel>
             </TransitionChild>

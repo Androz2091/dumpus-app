@@ -2,7 +2,9 @@
 
 import { useQueries } from "@tanstack/react-query";
 import CRC32 from "crc-32";
+import { useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
+import { messagesPerDayHour, type DayHourCount } from "~/hooks/data/_hours";
 import { useDataSources } from "~/hooks/data/_shared";
 import useSendingTimesData from "~/hooks/data/use-sending-times-data";
 import useTopDMsData from "~/hooks/data/use-top-dms-data";
@@ -49,6 +51,25 @@ function bucketFor(
 ): ShareData["messages"]["bucket"] {
   const days = (utcDay(end) - utcDay(start)) / DAY_MS;
   return days <= 62 ? "day" : days <= 370 ? "week" : "month";
+}
+
+/** Weeks are numbered from `start`. */
+function bucketCounts(
+  rows: DayHourCount[],
+  start: string,
+  bucket: ShareData["messages"]["bucket"],
+) {
+  const counts = new Map<string, number>();
+  for (const { day, count } of rows) {
+    const key =
+      bucket === "month"
+        ? day.slice(0, 7)
+        : bucket === "week"
+          ? String(Math.floor((utcDay(day) - utcDay(start)) / (7 * DAY_MS)))
+          : day;
+    counts.set(key, (counts.get(key) ?? 0) + count);
+  }
+  return Array.from(counts, ([key, count]) => ({ bucket: key, count }));
 }
 
 /** Every bucket of the range, the empty ones at 0. */
@@ -140,19 +161,16 @@ export default function useShareData() {
   });
 
   const bucket = bucketFor(start, end);
-  const seriesQuery = sql<{ bucket: string | number; count: number }>`
-    SELECT ${
-      bucket === "month"
-        ? "substr(day, 1, 7)"
-        : bucket === "week"
-          ? `CAST((julianday(day) - julianday('${start}')) / 7 AS INTEGER)`
-          : "day"
-    } AS bucket, SUM(occurence_count) AS count
-    FROM activity
-    WHERE event_name = 'message_sent'
-    AND day BETWEEN '${start}' AND '${end}'
-    GROUP BY bucket;
-  `;
+  // Summed from the messages per day and hour, which the overview's top hour
+  // already put in the query cache.
+  const dayHours = messagesPerDayHour(sql, start, end);
+  const series = useMemo(
+    () =>
+      dayHours
+        ? fillSeries(bucketCounts(dayHours, start, bucket), start, end, bucket)
+        : [],
+    [dayHours, start, end, bucket],
+  );
 
   function count(events: string) {
     const { data, hasError } = sql<{ count: number }>`
@@ -178,9 +196,7 @@ export default function useShareData() {
     messages: {
       total: usage.messageCount(),
       perDay: usage.avgMessageCountPerDay(),
-      series: seriesQuery.hasError
-        ? []
-        : fillSeries(seriesQuery.data, start, end, bucket),
+      series,
       bucket,
     },
     topDMs: dms.map((dm, i) => {

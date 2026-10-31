@@ -36,22 +36,26 @@ export default function useDMData({ userID }: { userID: string }) {
     return hasError ? null : data[0];
   }
 
+  // Both the chart and the count read these rows: one query for both.
+  function dailyRows() {
+    return sql.rows<{ day: string; count: number }>`
+      SELECT a.day, SUM(a.occurence_count) AS count
+      FROM activity a
+      WHERE a.event_name = 'message_sent'
+      AND a.associated_channel_id IN (
+        SELECT channel_id FROM dm_channels_data WHERE dm_user_id = '${userID}'
+      )
+      AND a.day BETWEEN '${start}' AND '${end}'
+      GROUP BY a.day;
+    `;
+  }
+
   function getMessagesCount() {
     if (!hasData) return null;
 
-    const { data, hasError } = sql<{ message_count: number }>`
-      SELECT
-          SUM(a.occurence_count) AS message_count
-      FROM activity a
-      JOIN dm_channels_data d ON a.associated_channel_id = d.channel_id
-      WHERE a.event_name = 'message_sent'
-      AND a.day BETWEEN '${start}' AND '${end}'
-      AND d.dm_user_id = '${userID}'
-      GROUP BY d.dm_user_id
-      LIMIT 1;
-    `;
+    const { data, hasError } = dailyRows();
 
-    return hasError ? null : data[0].message_count;
+    return hasError ? null : data.reduce((sum, { count }) => sum + count, 0);
   }
 
   /** On the device's clock, see `localHours`. */
@@ -73,16 +77,7 @@ export default function useDMData({ userID }: { userID: string }) {
   }
 
   function getDailySentMessages() {
-    const { data, hasError } = sql.rows<{ day: string; count: number }>`
-      SELECT a.day, SUM(a.occurence_count) AS count
-      FROM activity a
-      WHERE a.event_name = 'message_sent'
-      AND a.associated_channel_id IN (
-        SELECT channel_id FROM dm_channels_data WHERE dm_user_id = '${userID}'
-      )
-      AND a.day BETWEEN '${start}' AND '${end}'
-      GROUP BY a.day;
-    `;
+    const { data, hasError } = dailyRows();
 
     if (hasError) {
       return null;
