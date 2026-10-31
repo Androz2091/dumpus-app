@@ -311,6 +311,8 @@
   "discordHours": "Your Discord hours",
   "activityTime": "Activity over time",
   "messageSentCount": "Message sent count",
+  "minutesOnDiscord": "Minutes spent on Discord over time",
+  "minuteCount": "Minute count",
   "share": {
     "title": "Share",
     "description": "Share your stats with your friends!",
