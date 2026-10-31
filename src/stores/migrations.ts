@@ -1,7 +1,13 @@
-// @ts-nocheck
+import type { ConfigSlice, TimeRange } from "./config";
+
+// As an older app saved it, so not the current `Package` and `TimeRange`.
+type SavedConfig = {
+  packages: Record<string, unknown>[];
+  timeRange: string;
+};
 
 export const migrateConfig = (persistedState: unknown, version: number) => {
-  const { config } = persistedState;
+  const { config } = persistedState as { config: SavedConfig };
 
   if (version === 0) {
     for (const pkg of config.packages) {
@@ -16,20 +22,15 @@ export const migrateConfig = (persistedState: unknown, version: number) => {
     version++;
   }
   if (version === 2) {
-    config.timeRange = {
+    const timeRanges: Record<string, TimeRange> = {
       "4 weeks": "4weeks",
       "6 months": "6months",
       Year: "year",
       Lifetime: "lifetime",
-    }[config.timeRange];
+    };
+    config.timeRange = timeRanges[config.timeRange];
     version++;
   }
 
-  return persistedState as any;
-};
-
-export const migrateUsersCache = (persistedState: unknown, version: number) => {
-  const { usersCache } = persistedState;
-
-  return persistedState as any;
+  return persistedState as { config: ConfigSlice };
 };

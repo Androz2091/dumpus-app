@@ -8,7 +8,7 @@ import { createConfigSlice, type ConfigSlice } from "./config";
 import { createDatabaseSlice, type DatabaseSlice } from "./database";
 import { createUISlice, type UISlice } from "./ui";
 import { createUsersCacheSlice, type UsersCacheSlice } from "./users-cache";
-import { migrateConfig, migrateUsersCache } from "./migrations";
+import { migrateConfig } from "./migrations";
 import { useShallow } from "zustand/react/shallow";
 import { createPurchasesSlice, type PurchasesSlice } from "./purchases";
 
@@ -72,7 +72,6 @@ const usersCacheStorage = create(
       name: "users-cache",
       storage: createJSONStorage(() => localStorage),
       version: 0,
-      migrate: migrateUsersCache,
     },
   ),
 );
