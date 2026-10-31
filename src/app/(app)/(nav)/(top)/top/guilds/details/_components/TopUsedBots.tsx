@@ -68,8 +68,8 @@ export default function TopUsedBots({ bots }: { bots: Bot[] }) {
   return (
     <Section title={t("topUsedBot")}>
       <div className="grid grid-cols-2 gap-2 px-2">
-        {bots.slice(0, 4).map((bot, i) => (
-          <BotCard key={i} bot={bot} />
+        {bots.slice(0, 4).map((bot) => (
+          <BotCard key={bot.associated_user_id} bot={bot} />
         ))}
       </div>
     </Section>

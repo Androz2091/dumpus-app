@@ -122,9 +122,9 @@ export default function Stats() {
 
   return (
     <div className="desktop-container grid grid-cols-1 gap-2 px-2 py-4 sm:grid-cols-2 sm:py-8 md:grid-cols-3">
-      {data.map(({ value, title, description, icon: Icon }, i) => (
+      {data.map(({ value, title, description, icon: Icon }) => (
         <DetailCard
-          key={i}
+          key={title}
           leftSlot={<Icon className="h-8 w-8 text-gray-500" />}
           title={
             <>
