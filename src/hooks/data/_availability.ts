@@ -38,3 +38,14 @@ export function carriesEvent(
     NOT_IN_REPORTING.has(eventName)
   );
 }
+
+/**
+ * Whether the database counts `channel_opened`, so that no rows mean the
+ * channel was never opened: the processor counts it from `package_version`
+ * 0.2.0 on (0.1.0 before), and only in a package with an activity stream.
+ */
+export function countsChannelOpenings(sql: ReturnType<typeof useSQL>) {
+  const { data } = sql<PackageData>`SELECT * FROM package_data LIMIT 1;`;
+  const row = data?.[0];
+  return !!row?.activity_stream && row.package_version !== "0.1.0";
+}

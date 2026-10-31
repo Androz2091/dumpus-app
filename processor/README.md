@@ -26,7 +26,7 @@ Each limit sits far above the maxima measured on real exports. Past one, the pro
 | activity line | 32 MiB | about 2 MB | skipped, `too_long` |
 | entry read whole: `user.json`, an index, the payments, a `channel.json` | 256 MiB | under 10 MB | skipped, `too_large` |
 | bytes inflated in all | 100 times the zip, at least 64 MiB | under 20 times | entries skipped in a fixed order, `over_budget` |
-| relevant activity events | the inflate budget over 60 bytes, the shortest line that holds one | 0.001 per byte of zip | stream set aside, `too_many_events` |
+| relevant activity events | the inflate budget over 60 bytes, the shortest line that holds one | 0.0013 per byte of zip | stream set aside, `too_many_events` |
 
 ## As a library
 
@@ -50,6 +50,7 @@ Each limit sits far above the maxima measured on real exports. Past one, the pro
 - A row SQLite refuses is skipped and counted in `dropped_rows`, and rows come in another order, so rowids differ.
 - `package_data` has one more column, `activity_stream`: the stream read, `analytics` or `reporting`, or NULL when none was. `reporting` never carries some event types, for eg. `message_edited`, so their counts are unknown, not 0.
 - The worker wrote `oauth2_authorize_accepted` only beside a `bot_token_compromised`, `notification_clicked` beside a `dev_portal_page_viewed` of a `/docs/` page, and `voice_message_recorded` beside an `application_created`; the processor writes each whenever the stream has it.
+- `activity` also counts `channel_opened` per day for each channel of `guild_channels_data`, which the worker never read, and `package_version` is `0.2.0` instead of `0.1.0`, so that the app can tell a database without those counts.
 
 ## License
 

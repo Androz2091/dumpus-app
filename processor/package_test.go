@@ -154,6 +154,10 @@ var activityLines = lines(
 	event("voice_message_recorded", "timestamp", ts("2021-04-06T09:00:00.000Z")),
 	event("app_native_crash", "timestamp", ts("2021-04-06T09:00:00.000Z")),
 	event("app_crashed", "timestamp", ts("2021-04-06T09:30:00.000Z")),
+	event("channel_opened", "timestamp", ts("2021-04-06T08:30:00.000Z"), "channel_id", `"`+general+`"`, "guild_id", `"`+guildOne+`"`),
+	event("channel_opened", "timestamp", ts("2021-04-06T23:59:00.000Z"), "channel_id", `"`+general+`"`, "guild_id", `"`+guildOne+`"`),
+	event("channel_opened", "timestamp", ts("2021-04-06T09:00:00.000Z")),
+	event("channel_opened", "timestamp", ts("2021-04-06T09:00:00.000Z"), "channel_id", `"`+dmFriend+`"`),
 	event("some_unused_event", "timestamp", ts("2021-04-06T09:00:00.000Z")),
 	`{"no_event_type": true}`,
 )
@@ -259,6 +263,7 @@ var eventRows = []string{
 	"add_reaction|2021-04-06|0|1|" + general + "|NULL|NULL|thumbsup|0",
 	"app_opened|2021-04-06|0|2|NULL|NULL|NULL|Windows|NULL",
 	"app_opened|2021-04-07|0|1|NULL|NULL|NULL|Android|NULL",
+	"channel_opened|2021-04-06|0|2|" + general + "|NULL|NULL|NULL|NULL",
 	"email_opened|2021-04-06|0|1|NULL|NULL|NULL|NULL|NULL",
 	"app_crashed|2021-04-06|0|2|NULL|NULL|NULL|NULL|NULL",
 	"oauth2_authorize_accepted|2021-04-06|0|1|NULL|NULL|NULL|NULL|NULL",
@@ -283,7 +288,7 @@ func fullTables() map[string][]string {
 		"payments":       sorted("p1|2022-03-04|999|usd|Nitro", "p4|2022-12-31|4.5|eur|Boost"),
 		"sessions":       {"90|1617703200.0|1617708600.0|Windows"},
 		"voice_sessions": {voiceChan + "|" + guildOne + "|44|1617739260.0|1617741900.0"},
-		"package_data": {"pkg-test|0.1.0|" + ownerID + "|owner_user|Owner Name|https://cdn.discordapp.com/avatars/" +
+		"package_data": {"pkg-test|0.2.0|" + ownerID + "|owner_user|Owner Name|https://cdn.discordapp.com/avatars/" +
 			ownerID + "/a_ownerhash.gif|false|analytics"},
 	}
 }

@@ -17,6 +17,7 @@ const (
 	evApplicationCommandUsed
 	evAddReaction
 	evAppOpened
+	evChannelOpened
 	evDaily // counted per day, see dailyEvents
 )
 
@@ -56,6 +57,7 @@ var eventTypes = func() map[string]eventSpec {
 		"application_command_used": {kind: evApplicationCommandUsed},
 		"add_reaction":             {kind: evAddReaction},
 		"app_opened":               {kind: evAppOpened},
+		"channel_opened":           {kind: evChannelOpened},
 	}
 	for i, d := range dailyEvents {
 		for _, t := range d.types {
@@ -184,6 +186,10 @@ type (
 		os  uint32
 		day int64
 	}
+	channelDayKey struct {
+		channel uint32
+		day     int64
+	}
 	// sessionEvent and voiceEvent keep their position in the file, so that
 	// sorting by (timestamp, position) reproduces Python's stable sort.
 	sessionEvent struct {
@@ -241,28 +247,30 @@ type activityAgg struct {
 	// read counts the relevant events the parser took and failed those it
 	// left out over a problem; the events the reference skips silently are in
 	// neither.
-	read, failed int64
-	daily        map[dayKey]int64
-	guildJoined  map[guildHourKey]int64
-	appCommands  map[appCommandKey]int64
-	reactions    map[reactionKey]int64
-	appOpened    map[osDayKey]int64
-	sessions     []sessionEvent
-	voice        []voiceEvent
-	sessionParts [][]sessionEvent
-	voiceParts   [][]voiceEvent
-	names        *names // set once the stream is read, nil without events
-	issues       map[issueKey]int
+	read, failed  int64
+	daily         map[dayKey]int64
+	guildJoined   map[guildHourKey]int64
+	appCommands   map[appCommandKey]int64
+	reactions     map[reactionKey]int64
+	appOpened     map[osDayKey]int64
+	channelOpened map[channelDayKey]int64
+	sessions      []sessionEvent
+	voice         []voiceEvent
+	sessionParts  [][]sessionEvent
+	voiceParts    [][]voiceEvent
+	names         *names // set once the stream is read, nil without events
+	issues        map[issueKey]int
 }
 
 func newActivityAgg() *activityAgg {
 	return &activityAgg{
-		daily:       map[dayKey]int64{},
-		guildJoined: map[guildHourKey]int64{},
-		appCommands: map[appCommandKey]int64{},
-		reactions:   map[reactionKey]int64{},
-		appOpened:   map[osDayKey]int64{},
-		issues:      map[issueKey]int{},
+		daily:         map[dayKey]int64{},
+		guildJoined:   map[guildHourKey]int64{},
+		appCommands:   map[appCommandKey]int64{},
+		reactions:     map[reactionKey]int64{},
+		appOpened:     map[osDayKey]int64{},
+		channelOpened: map[channelDayKey]int64{},
+		issues:        map[issueKey]int{},
 	}
 }
 
@@ -294,6 +302,9 @@ func (a *activityAgg) merge(b *activityAgg) {
 	}
 	for k, n := range b.appOpened {
 		a.appOpened[k] += n
+	}
+	for k, n := range b.channelOpened {
+		a.channelOpened[k] += n
 	}
 	// Stored events are kept per chunk and joined once, at their final size.
 	if len(b.sessions) > 0 {
@@ -591,6 +602,23 @@ func (r *lineReader) event(spec eventSpec, f *eventFields, order uint64) outcome
 		if os != 0 {
 			a.appOpened[osDayKey{os: os, day: floorDiv(ts, secondsPerDay)}]++
 		}
+
+	case evChannelOpened:
+		if !f.has(fChannelID) {
+			return eventSkipped
+		}
+		ts, ok := r.timestamp(spec, f, fTimestamp)
+		if !ok {
+			return eventFailed
+		}
+		channel, ok := r.text(spec, f, fChannelID)
+		if !ok {
+			return eventFailed
+		}
+		if channel == 0 {
+			return eventSkipped
+		}
+		a.channelOpened[channelDayKey{channel: channel, day: floorDiv(ts, secondsPerDay)}]++
 
 	case evDaily:
 		ts, ok := r.timestamp(spec, f, fTimestamp)

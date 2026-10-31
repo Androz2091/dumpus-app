@@ -1,5 +1,6 @@
 "use client";
 
+import { countsChannelOpenings } from "~/hooks/data/_availability";
 import { groupDays } from "~/hooks/data/_chart";
 import { topLocalHour, type DayHourCount } from "~/hooks/data/_hours";
 import { useDataSources } from "~/hooks/data/_shared";
@@ -104,11 +105,18 @@ export default function useChannelData({ channelID }: { channelID: string }) {
     return hasError ? null : data[0].reaction_count;
   }
 
+  /** Null when the database can't tell, see `countsChannelOpenings`. */
   function getChannelOpenings() {
-    // TODO: implement query
-    const { data, hasError } = sql<{ opening_count: number }>``;
+    if (!countsChannelOpenings(sql)) return null;
 
-    return hasError ? null : data[0].opening_count;
+    const { data, hasError } = sql<{ opening_count: number | null }>`
+      SELECT SUM(occurence_count) AS opening_count
+      FROM activity
+      WHERE event_name = 'channel_opened'
+      AND associated_channel_id = '${channelID}'
+      AND day BETWEEN '${start}' AND '${end}';
+    `;
+    return hasError ? null : (data[0].opening_count ?? 0);
   }
 
   function getDailySentMessages() {
