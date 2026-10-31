@@ -1,7 +1,7 @@
 /**
  * Tailwind CSS 3.3 default colours, in hex. Tailwind 4 redefined them in
  * `oklch()`, a little brighter, which the chart cells can't append a hex
- * alpha to and html2canvas can't draw in the share image.
+ * alpha to.
  */
 export const palette = {
   slate: {

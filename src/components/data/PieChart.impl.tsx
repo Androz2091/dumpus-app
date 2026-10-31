@@ -51,7 +51,7 @@ export default function SimplePieChart({ data, className, legend }: Props) {
             cx="50%"
             cy="50%"
             innerRadius={50}
-            fill="#7dd3fc"
+            fill="var(--brand-300)"
           >
             {data.map((entry, i) => {
               const colorObject = COLORS[Math.abs(i) % COLORS_LENGTH];

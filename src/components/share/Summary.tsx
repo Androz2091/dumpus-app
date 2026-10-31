@@ -216,8 +216,10 @@ export const Summary = forwardRef<HTMLDivElement, { data: ShareData }>(
       <ShareCardFrame
         ref={ref}
         rangeLabel={t(`share.range.${data.range.id}` as const)}
-        background={`radial-gradient(100% 40% at 50% 0%, rgba(14,165,233,0.45) 0%, rgba(2,6,23,0) 80%), ${slate[950]}`}
-        texture={<Facets seed={data.seed ^ 31} color="#38bdf8" max={0.12} />}
+        background={`radial-gradient(100% 40% at 50% 0%, rgb(var(--brand-500-rgb) / 0.45) 0%, rgba(2,6,23,0) 80%), ${slate[950]}`}
+        texture={
+          <Facets seed={data.seed ^ 31} color="var(--brand-400)" max={0.12} />
+        }
       >
         <Header data={data} />
         <div className="mt-[72px] grid grid-cols-2 gap-[28px]">
@@ -251,11 +253,11 @@ export const SummarySquare = forwardRef<HTMLDivElement, { data: ShareData }>(
         ref={ref}
         square
         rangeLabel={t(`share.range.${data.range.id}` as const)}
-        background={`radial-gradient(90% 60% at 100% 0%, rgba(14,165,233,0.5) 0%, rgba(2,6,23,0) 70%), ${slate[950]}`}
+        background={`radial-gradient(90% 60% at 100% 0%, rgb(var(--brand-500-rgb) / 0.5) 0%, rgba(2,6,23,0) 70%), ${slate[950]}`}
         texture={
           <Facets
             seed={data.seed ^ 37}
-            color="#38bdf8"
+            color="var(--brand-400)"
             max={0.12}
             height={SQUARE.height}
           />

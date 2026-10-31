@@ -7,6 +7,7 @@ import {
 } from "~/utils/db-storage";
 import { createLogger } from "~/utils/logger";
 import { queryClient } from "~/utils/react-query";
+import { DEFAULT_THEME, type Theme } from "~/utils/themes";
 import { type CreateSlice } from ".";
 
 const logger = createLogger({ tag: "config" });
@@ -26,6 +27,7 @@ type Package = {
 type State = {
   premium: boolean;
   timeRange: TimeRange;
+  theme: Theme;
   goToOnboardingAccess: boolean;
   loadingData?: {
     packageLink: string;
@@ -39,6 +41,7 @@ type Actions = {
   reset: () => void;
   setPremium: (v: boolean) => void;
   setTimeRange: (v: TimeRange) => void;
+  setTheme: (v: Theme) => void;
   setGoToOnboardingAccess: (v: boolean) => void;
   setLoadingData: (v: State["loadingData"]) => void;
   setPackages: (v: Package[]) => void;
@@ -62,6 +65,7 @@ type Actions = {
 const initialState: State = {
   premium: false,
   timeRange: "lifetime",
+  theme: DEFAULT_THEME,
   goToOnboardingAccess: false,
   loadingData: undefined,
   packages: [],
@@ -80,12 +84,16 @@ export const createConfigSlice: CreateSlice<ConfigSlice> = (set, get) => ({
   },
   reset: () => {
     clearPackageBytes().catch((err) => logger.error(err));
-    set((state) => ({ config: { ...state.config, ...initialState } }));
+    // A preference, like the language, which a reset doesn't clear either.
+    set((state) => ({
+      config: { ...state.config, ...initialState, theme: state.config.theme },
+    }));
   },
   setPremium: (v) =>
     set((state) => ({ config: { ...state.config, premium: v } })),
   setTimeRange: (v) =>
     set((state) => ({ config: { ...state.config, timeRange: v } })),
+  setTheme: (v) => set((state) => ({ config: { ...state.config, theme: v } })),
   setGoToOnboardingAccess: (v) =>
     set((state) => ({ config: { ...state.config, goToOnboardingAccess: v } })),
   setLoadingData: (v) =>

@@ -59,9 +59,14 @@ export default forwardRef<HTMLDivElement, { data: ShareData }>(
       <ShareCardFrame
         ref={ref}
         rangeLabel={t(`share.range.${range.id}` as const)}
-        background={`radial-gradient(90% 55% at 20% 32%, rgba(14,165,233,0.55) 0%, rgba(2,6,23,0) 70%), ${slate[950]}`}
+        background={`radial-gradient(90% 55% at 20% 32%, rgb(var(--brand-500-rgb) / 0.55) 0%, rgba(2,6,23,0) 70%), ${slate[950]}`}
         texture={
-          <Facets seed={data.seed ^ 7} color="#38bdf8" max={0.1} fade="up" />
+          <Facets
+            seed={data.seed ^ 7}
+            color="var(--brand-400)"
+            max={0.1}
+            fade="up"
+          />
         }
       >
         <Eyebrow className="text-brand-300">
@@ -98,7 +103,9 @@ export default forwardRef<HTMLDivElement, { data: ShareData }>(
                   style={{
                     height: `${Math.max(3, (count / max) * 100)}%`,
                     background:
-                      i === peak ? palette.sky[300] : "rgba(56,189,248,0.32)",
+                      i === peak
+                        ? "var(--brand-300)"
+                        : "rgb(var(--brand-400-rgb) / 0.32)",
                   }}
                 />
               ))}
