@@ -1,9 +1,11 @@
 "use client";
 
 import { ChevronRightIcon, XCircleIcon } from "@heroicons/react/24/solid";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
+import Button from "~/components/Button";
 import Section from "~/components/Section";
 import { afterNextPaint } from "~/components/after-paint";
 import DetailCard from "~/components/data/DetailCard";
@@ -12,6 +14,7 @@ import useToast from "~/hooks/use-toast";
 import { useTranslation } from "~/i18n/client";
 import { useAppStore } from "~/stores";
 import { formatDate } from "~/utils/format";
+import { queryClient } from "~/utils/react-query";
 
 export default function PackageSwitch() {
   const { t } = useTranslation();
@@ -39,9 +42,8 @@ export default function PackageSwitch() {
     switching ? switching.from : selectedID,
   );
 
-  if (unselectedPackages.length === 0) {
-    return null;
-  }
+  // During reset
+  if (packages.length === 0) return null;
 
   return (
     <Section title={t("settings.packageSwitch.title")}>
@@ -90,6 +92,11 @@ export default function PackageSwitch() {
               disabled={switching !== null && switching.id !== id}
             />
           ))}
+        <Button asChild variant="brand">
+          <Link onClick={() => queryClient.clear()} href="/onboarding/access">
+            {t("settings.actions.addPackage")}
+          </Link>
+        </Button>
       </div>
     </Section>
   );
