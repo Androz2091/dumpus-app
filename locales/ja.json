@@ -1,0 +1,463 @@
+{
+  "seo": {
+    "title": "Dumpus | Discordの統計",
+    "description": "Discordアカウントの詳しい統計とインサイトをチェックしよう"
+  },
+  "global": {
+    "loading": {
+      "title": "読み込み中...",
+      "description": "しばらくお待ちください。"
+    }
+  },
+  "premium": {
+    "premium": "プレミアム",
+    "buy": "プレミアムを購入",
+    "success": "アーリーサポーターになりました",
+    "thanks": "応援ありがとうございます！",
+    "supportUs": "Dumpusを応援しよう！",
+    "earlySupporter": "アーリーサポーター",
+    "reduction": "60%オフ",
+    "oneTime": "買い切り",
+    "supporter": "サポーター",
+    "soon": "近日公開",
+    "notSupported": "決済に対応していません",
+    "maybeLater": "また今度",
+    "proceed": "続ける",
+    "unavailable": "利用不可",
+    "content": [
+      "Discordのサポーターロール",
+      "DMランキングを100位以上まで表示",
+      "新機能を先行利用"
+    ]
+  },
+  "onboarding": {
+    "routesLabels": {
+      "/": "はじめる",
+      "/intro/1": "わかった！",
+      "/intro/2": "いいね！",
+      "/intro/3": "パッケージを入手しよう！",
+      "/setup": "わかった！"
+    },
+    "shared": {
+      "previous": "戻る",
+      "trust": "このアプリは信頼できる？",
+      "trustContent": [
+        "Dumpusは100%オープンソースです。[GitHub](https://github.com/Androz2091/dumpus-app)でコードを読めるほか、自分のサーバーでホストすることもできます。",
+        "外部APIを一切使わず、ブラウザだけで動く[Webアプリ](https://ddpe.androz2091.fr)もあります（機能は少なめです）。",
+        "このアプリは、外部APIに読み取れるデータを保存せずに動作しています。ほかにご質問があれば、contact@dumpus.appまでお気軽にお問い合わせください。"
+      ],
+      "30DaysDelay": "メールが届くまで最大30日かかることがあります。気長にお待ちください！",
+      "getData": "データの入手方法は？",
+      "gotIt": "わかった！"
+    },
+    "/": {
+      "welcome": "Dumpusへようこそ",
+      "description": "$t(seo.description)",
+      "step": "ステップ{{n}}",
+      "steps": [
+        "概要",
+        "データをリクエスト",
+        "分析を開始"
+      ],
+      "selectFavoriteLanguage": "使用する言語を選択"
+    },
+    "slides": [
+      {
+        "title": "Dumpusのしくみ",
+        "description": "Discordは、アプリ上でのあなたの操作をすべて「データパッケージ」に記録しています。Dumpusはこのパッケージを分析して、アカウントの統計や情報を作成します。"
+      },
+      {
+        "title": "Dumpusは信頼できる？",
+        "description": "「データパッケージ」はとても機密性の高いデータです。だからこそ、誰でもコードを読んで、私たちがデータをどう扱っているか確認できます（100%オープンソース）。無料の処理サーバーも用意していますが、自分のサーバーを使えばデータを完全に管理できます。"
+      },
+      {
+        "title": "友達とシェアしよう！",
+        "description": "統計は眺めるだけでも楽しいですが、友達と比べるともっと楽しくなります。だから、統計を友達と簡単にシェアできるようにしました。"
+      }
+    ],
+    "setup": {
+      "title": "データパッケージの入手方法",
+      "description": "まずはOSを選択してください。",
+      "osDisplays": {
+        "android": "Android",
+        "ios": "iOS",
+        "desktop": "PC"
+      },
+      "steps": {
+        "settings": "Discordの設定を開く",
+        "privacy": "「プライバシー・安全」タブを開く",
+        "request": "「データをリクエスト」を押す"
+      }
+    },
+    "access": {
+      "title": "データパッケージを送信",
+      "description": "お好きな方法を選んでください。",
+      "method": "方法{{n}}",
+      "noPackageYet": "まだパッケージがない？",
+      "methods": {
+        "link": {
+          "title": "Discordのリンクを入力",
+          "description": "Discordから届いたメールに記載されています。**こちらからダウンロードできます**というボタンのリンクをコピーしてください。",
+          "discordLink": "Discordのリンク",
+          "advanced": "詳細設定",
+          "backendURL": "バックエンドURL",
+          "optional": "任意",
+          "backendURLHint": "自分でホストしているオープンソースサーバーのURL",
+          "notice": "続行すると、[プライバシーポリシー](https://dumpus.app/legal/privacy)と[利用規約](https://dumpus.app/legal/terms)に同意したものとみなされます。",
+          "explore": "見てみよう！",
+          "errors": {
+            "required": "必須項目です",
+            "url": "URLが正しくありません",
+            "startWith": "リンクは{{url}}で始まる必要があります",
+            "emptyKey": "UPNキーが空です",
+            "noBackend": "このURLで応答するDumpusバックエンドがありません"
+          }
+        },
+        "email": {
+          "title": "メールを転送（近日公開）",
+          "content": [
+            "Discordから届いたメールを**process@dumpus.app**に転送してください。準備ができたらリンクをお送りします。",
+            "またね！"
+          ]
+        },
+        "demo": {
+          "title": "デモ"
+        }
+      }
+    },
+    "loading": {
+      "queue": {
+        "title": "順番待ちに入りました！",
+        "why": "なぜ順番待ちがあるの？",
+        "whyContent": [
+          "Dumpusは無料のサービスなので、サーバーは一度に数件のパッケージしか分析できません。",
+          "そのため、誰もがサービスを使えるように順番待ちを設けています。",
+          "APIサーバーをセルフホストすれば、順番待ちなしで使えます。"
+        ],
+        "position": "現在の順番",
+        "waitingTime": "予想待ち時間",
+        "useBackend": "自分のバックエンドを使う"
+      },
+      "progress": {
+        "downloading": "ダウンロード中",
+        "analyzing": "分析中",
+        "processing": "処理中",
+        "importing": "インポート中",
+        "loading": {
+          "title": "データを読み込んでいます",
+          "description": "しばらくお待ちください..."
+        },
+        "loadingDemo": {
+          "title": "デモを読み込んでいます",
+          "description": "しばらくお待ちください..."
+        }
+      },
+      "error": "エラーが発生しました...",
+      "unknownPackageId": "不明なパッケージです。",
+      "unauthorized": "このパッケージのデータにアクセスする権限がありません。",
+      "invalidLink": "リンクが無効です。",
+      "unknownError": "不明なエラーが発生しました。",
+      "expiredLink": "リンクの有効期限が切れています。",
+      "missingUserData": "Discordのエクスポートにユーザーデータが含まれていません。もう一度データをリクエストするときは、「ユーザーデータ」にチェックを入れてください。",
+      "comeBackLater": "アプリを閉じて、あとで戻ってきても大丈夫です。"
+    }
+  },
+  "stats": {
+    "messages": "{{- value}}通",
+    "messagesSent": "送信メッセージ",
+    "messagesSentPerDay": "1日あたり約{{- value}}通です！",
+    "titleMessagesSentPerDay": "日別の送信メッセージ",
+    "totalMessagesSent": "送信メッセージの合計",
+    "joinedServers": "参加サーバー",
+    "newServers": "新しく参加したサーバー",
+    "joinedServersDesc": "まさにDiscordサーバーの探検家ですね！",
+    "knownUsers": "知り合いのユーザー",
+    "knownUsersDesc": "知り合いがたくさんいますね！",
+    "spentMoney": "支出",
+    "spentMoneyDesc_positive": "かなり使いましたね...！",
+    "spentMoneyDesc_empty": "節約家ですね！",
+    "appStarts": "アプリ起動",
+    "appStartsPerDay": "1日に約{{- value}}回Discordを開いています！",
+    "totalTimeSpent": "Discordで約{{- value}}過ごしました",
+    "avgSessionTime": "平均セッション時間",
+    "receivedCalls": "受けた通話",
+    "topHour": "ピーク時間",
+    "appStarted": "Discordアプリの起動",
+    "topChatHour": "チャットのピーク時間",
+    "reactionsAdded": "追加したリアクション",
+    "channelOpenings": "チャンネルを開いた回数",
+    "guildJoins": "サーバー参加",
+    "commands": "コマンド{{- value}}回",
+    "callTime_other": "通話{{- value}}回・合計{{- duration}}",
+    "noCalls": "この期間のDM通話はありません",
+    "top": {
+      "dms": "DM",
+      "guilds": "サーバー",
+      "channels": "チャンネル",
+      "loadMore": "もっと見る",
+      "premium": "ロックを解除してもっと見る"
+    },
+    "extra": {
+      "clickedNotifications": "クリックした通知",
+      "completedCaptcha": "完了したCAPTCHA",
+      "receivedEmail": "受信したメール",
+      "successfulLogin": "ログイン成功",
+      "avatarUpdates": "アバターの変更",
+      "crashes": "クラッシュ",
+      "authorizedOauth2": "OAuth2の承認",
+      "voiceMessagesRecorded": "ボイスメッセージ録音",
+      "reportedMessages": "報告したメッセージ",
+      "editedMessages": "編集したメッセージ",
+      "seenNitroAds": "見たNitro広告",
+      "spentInVoiceChannels": "ボイスチャンネル滞在"
+    }
+  },
+  "sendingTimeStats": {
+    "messagesSentPerDay": "1日の平均送信メッセージ",
+    "appOpeningsPerDay": "1日のDiscordアプリ起動回数"
+  },
+  "sentimentAnalysis": {
+    "title": "感情分析（実験的）",
+    "anger": "怒り",
+    "happiness": "幸せ",
+    "score": "現在のスコア：{{- value}}"
+  },
+  "settings": {
+    "title": "設定",
+    "toasts": {
+      "copyError": "クリップボードにコピーできません",
+      "copied": "クリップボードにコピーしました！"
+    },
+    "packageSwitch": {
+      "title": "パッケージを切り替え",
+      "description": "{{- date}}に生成"
+    },
+    "packageDetails": {
+      "title": "パッケージの詳細",
+      "UPNKey": "UPNキー",
+      "dateAdded": "追加日",
+      "packageID": "パッケージID",
+      "discordUser": "Discordユーザー",
+      "backendURL": "バックエンドURL"
+    },
+    "languages": {
+      "switch": "言語を切り替え",
+      "title": "言語",
+      "description": "{{- value}}言語に対応"
+    },
+    "theme": {
+      "title": "テーマ",
+      "blue": "ブルー",
+      "green": "グリーン",
+      "purple": "パープル",
+      "orange": "オレンジ"
+    },
+    "dangerZone": {
+      "title": "危険な操作",
+      "description": "このデバイスと私たちのサーバーからデータが削除されますが、Discordから届いたメールを使えばいつでも再びアクセスできます。アプリをお試しいただきありがとうございました。ぜひGitHubでフィードバックをお寄せください！",
+      "loading": "削除中...",
+      "quit": "終了してリセット"
+    },
+    "actions": {
+      "title": "操作",
+      "notEnoughStorage": {
+        "title": "新しいパッケージを追加できません",
+        "description": "アプリのストレージが不足しています"
+      },
+      "deleting": "削除中...",
+      "delete": "現在のパッケージを削除",
+      "restoring": "復元中...",
+      "restorePurchases": "購入を復元",
+      "addPackage": "新しいパッケージを追加"
+    },
+    "about": {
+      "title": "このアプリについて",
+      "version": "バージョン",
+      "website": "Webアプリ",
+      "community": "コミュニティ",
+      "contribute": "開発に参加",
+      "contributors": "プロジェクトの貢献者",
+      "credits": "クレジット"
+    }
+  },
+  "credits": {
+    "title": "クレジット",
+    "back": "設定に戻る",
+    "bugHunter": {
+      "title": "バグハンター",
+      "description": "アプリを安定させるうえで、とても大切な人たちです。"
+    },
+    "influencer": {
+      "title": "インフルエンサー",
+      "description": "アプリを広めるのに協力してくれた人たちです。"
+    },
+    "developer": {
+      "title": "開発者",
+      "description": "アプリのコードに直接貢献してくれた人たちです。"
+    },
+    "translator": {
+      "title": "翻訳者",
+      "description": "アプリを世界中で使えるようにしてくれた人たちです。"
+    },
+    "contributions": "貢献：{{- value}}"
+  },
+  "error": {
+    "error": "エラーが発生しました...",
+    "title": "予想外の事態です...解決方法はこちら：",
+    "retry": "再試行",
+    "report": "GitHubで報告",
+    "noInternet": "インターネットに接続されていません",
+    "noInternetDescription": "Dumpusアプリを使うにはインターネット接続が必要です。インターネットに再接続してください。"
+  },
+  "sheerNumbers": "数字で見る",
+  "mostActiveDMs": "よく話すDM",
+  "mostActiveServers": "よく話すサーバー",
+  "mostActiveChannels": "よく話すチャンネル",
+  "mostCalled": "よく通話する相手",
+  "discordHours": "Discordを使う時間帯",
+  "activityTime": "アクティビティの推移",
+  "messageSentCount": "送信メッセージ数",
+  "minutesOnDiscord": "Discordの利用時間（分）の推移",
+  "minuteCount": "利用時間（分）",
+  "graphViews": {
+    "period": "期間別",
+    "cumulative": "累計"
+  },
+  "share": {
+    "title": "シェア",
+    "description": "統計を友達とシェアしよう！",
+    "generating": "生成中...",
+    "download": "ダウンロード",
+    "recap": "まとめをシェア",
+    "recapDescription": "Twitter、Instagram、Reddit、Discordなどで友達とまとめをシェアしよう！ :)",
+    "popup": {
+      "title": "私のDiscordまとめはこちら！",
+      "description": "Dumpusで作成しました。あなたも試してみて！ https://dumpus.app"
+    },
+    "error": "エラーが発生しました...",
+    "close": "閉じる",
+    "previous": "前のカード",
+    "next": "次のカード",
+    "cardsLabel": "まとめカード",
+    "cards": {
+      "cover": "表紙",
+      "messages": "メッセージ",
+      "topDMs": "DMランキング",
+      "topServers": "サーバーランキング",
+      "peakHour": "ピーク時間",
+      "time": "Discordの利用時間",
+      "habits": "小さな習慣",
+      "summary": "サマリー",
+      "summarySquare": "サマリー（正方形）"
+    },
+    "range": {
+      "4weeks": "過去4週間",
+      "6months": "過去6か月",
+      "year": "過去1年",
+      "lifetime": "全期間"
+    },
+    "units": {
+      "hours": "{{- value}}時間",
+      "minutes": "{{- value}}分",
+      "hoursMinutes": "{{- hours}}時間{{- minutes}}分"
+    },
+    "cover": {
+      "eyebrow": "Discordまとめ · {{- range}}",
+      "years_other": "Discordの{{count}}年を<br/><accent>ふりかえろう。</accent>",
+      "lifetime": "あなたのDiscordを<br/><accent>ふりかえろう。</accent>",
+      "4weeks": "Discordの4週間を<br/><accent>ふりかえろう。</accent>",
+      "6months": "Discordの6か月を<br/><accent>ふりかえろう。</accent>",
+      "year": "Discordの1年を<br/><accent>ふりかえろう。</accent>"
+    },
+    "messages": {
+      "eyebrow": "送信メッセージ",
+      "unit_other": "メッセージ",
+      "perDay": "{{- since}}から<b>1日{{- value}}通</b>のペースです。",
+      "busiest": "最多：{{- period}}",
+      "weekOf": "{{- date}}の週"
+    },
+    "topDMs": {
+      "eyebrow": "よく話したDM",
+      "headline": "いつものメンバー",
+      "count_other": "{{- value}}通"
+    },
+    "topServers": {
+      "eyebrow": "よく使ったサーバー",
+      "headline": "いつもの居場所"
+    },
+    "peakHour": {
+      "eyebrow": "ピーク時間",
+      "caption": "いちばん活発な時間",
+      "nightOwl": "あなたは夜型",
+      "earlyBird": "あなたは朝型",
+      "daylight": "昼間に話すタイプ",
+      "evening": "夕方のおしゃべり好き",
+      "share": "送ったメッセージの<b>{{- share}}</b>が{{- from}}〜{{- to}}。"
+    },
+    "time": {
+      "eyebrow": "Discordの利用時間",
+      "unit_other": "時間",
+      "days_other": "<b>まる{{- value}}日分</b>です。",
+      "appOpens_other": "アプリ起動",
+      "voice": "ボイスチャンネル",
+      "avgSession": "平均セッション"
+    },
+    "habits": {
+      "eyebrow": "小さな習慣",
+      "headline": "ささやかな記録",
+      "reactions_other": "リアクション",
+      "edits_other": "編集したメッセージ",
+      "notifications_other": "クリックした通知",
+      "slashCommands_other": "スラッシュコマンド",
+      "voiceMessages_other": "ボイスメッセージ",
+      "captchas_other": "解いたCAPTCHA",
+      "logins_other": "ログイン",
+      "appsAuthorized_other": "承認したアプリ",
+      "missingTitle": "エクスポートにない項目",
+      "missing": "{{- list}}。Discordがこれらを含めていないため、Dumpusでは数えられません。"
+    },
+    "summary": {
+      "eyebrow": "{{- range}}のまとめ",
+      "messages": "送信メッセージ",
+      "messagesShort": "メッセージ",
+      "hours": "Discordの利用",
+      "peakHour": "ピーク時間",
+      "people": "DMの相手",
+      "servers": "話したサーバー",
+      "topDMs": "DMランキング",
+      "topServers": "サーバーランキング"
+    }
+  },
+  "exitingDemo": "終了中...",
+  "exitDemo": "デモを終了して始めよう！",
+  "members": "メンバー数：{{- value}}",
+  "nav": {
+    "overview": "概要",
+    "top": "ランキング",
+    "stats": "統計",
+    "settings": "設定"
+  },
+  "timeRanges": {
+    "4weeks": "4週間",
+    "6months": "6か月",
+    "year": "1年",
+    "lifetime": "全期間"
+  },
+  "topUsedBot": "よく使うボット",
+  "topChannels": "よく使うチャンネル",
+  "firstMessages": "最初のメッセージ",
+  "relatedGuild": "関連サーバー",
+  "more": "もっと見る",
+  "missingStats": {
+    "title": "一部の統計がありません",
+    "summary_other": "メッセージを送った日のうち{{- value}}日分のアクティビティがエクスポートにありません",
+    "details": "Discordの利用時間、通話、アプリ起動、リアクションなど、アクティビティにもとづく統計にはこの期間が含まれません。メッセージには影響ありません。",
+    "days_other": "メッセージ送信日：{{- value}}日"
+  },
+  "noData": "データなし",
+  "noDataTip": "別の期間を選ぶとデータを表示できます",
+  "notFound": {
+    "title": "見つかりません",
+    "description": "お探しのページは存在しません。"
+  }
+}
