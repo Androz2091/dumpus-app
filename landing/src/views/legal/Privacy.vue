@@ -1,12 +1,12 @@
 <template>
     <article
-        class="mx-auto prose max-w-3xl px-4 py-12 prose-invert sm:px-6 sm:py-16 prose-headings:font-extrabold prose-a:text-brand-300"
+        class="mx-auto prose max-w-3xl px-4 py-12 prose-invert sm:px-6 sm:py-16 prose-headings:font-bold prose-a:text-brand-300 prose-strong:font-medium"
     >
         <p>
             <strong>Last updated</strong><br />
             July 12th 2023
         </p>
-        <h1><strong>Privacy Policy</strong></h1>
+        <h1>Privacy Policy</h1>
         <p>
             Simon LEFORT, also known as &quot;Androz2091&quot; built the Dumpus app as an Open
             Source app. This SERVICE is provided by Simon LEFORT, also known as

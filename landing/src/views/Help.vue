@@ -1,7 +1,7 @@
 <template>
     <article class="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
         <p class="eyebrow">FAQ</p>
-        <h1 class="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-5xl">
+        <h1 class="mt-4 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
             Frequently Asked Questions
         </h1>
         <div class="mt-10 divide-y divide-gray-800 border-y border-gray-800">
@@ -43,7 +43,7 @@ your statistics.`,
     {
         question: 'Is the app completely free?',
         answer: `
-**TLDR; our app is free and has an optional premium version.**
+TLDR; our app is free and has an optional premium version.
 
 We share our entire source code on GitHub along with instructions on how to build the
 app yourself (for both classic and premium versions). You can technically build the app
@@ -60,7 +60,7 @@ As I said previously, we share our entire source code on GitHub. Any developer o
 should take the time to build their own API instance to make sure the data don't leave
 their devices.
 
-Netherless, even if you are using our free API server, we will **never** store or
+Netherless, even if you are using our free API server, we will never store or
 share your data on our servers. We took a lot of time to think about the best way to
 handle the packages, and we came up with a solution that does not allow admins to ever
 read the content of the packages.`,
@@ -75,7 +75,7 @@ Discord".`,
     {
         question: 'I found an old package and the link expired, can I import it?',
         answer: `
-**TLDR; yes, but it's very complicated.**
+TLDR; yes, but it's very complicated.
 
 Our app communicates with our API, that downloads your package from the link you
 entered and that does the analysis. As we want to prevent abuses and malicious

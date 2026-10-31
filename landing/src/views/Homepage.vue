@@ -21,9 +21,9 @@
                     height="88"
                     class="mx-auto size-20 rounded-[22%] shadow-[0_0_0_2px_rgba(255,255,255,0.12),0_20px_50px_rgba(14,165,233,0.25)] sm:size-22 lg:mx-0"
                 />
-                <p class="mt-8 eyebrow justify-center lg:justify-start">Stats for Discord · Free</p>
+                <p class="mt-8 eyebrow">Stats for Discord · Free</p>
                 <h1
-                    class="mt-4 text-5xl leading-[0.95] font-black tracking-[-0.035em] sm:text-6xl lg:text-7xl"
+                    class="mt-4 text-5xl leading-[0.95] font-bold tracking-[-0.035em] sm:text-6xl lg:text-7xl"
                 >
                     Your Discord, <span class="text-brand-200">unpacked.</span>
                 </h1>
@@ -39,7 +39,7 @@
                     Also for
                     <a
                         href="https://github.com/Androz2091/dumpus-app/releases/latest"
-                        class="font-semibold text-brand-300 hover:text-brand-200"
+                        class="font-medium text-brand-300 hover:text-brand-200"
                         >Windows and macOS</a
                     >.
                 </p>
@@ -65,7 +65,7 @@
     <section id="cards" class="py-16 sm:py-24">
         <div class="mx-auto max-w-6xl px-4 sm:px-6">
             <p class="eyebrow">New in 2.0</p>
-            <h2 class="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-5xl">
+            <h2 class="mt-4 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
                 Your recap, ready to share
             </h2>
             <p class="mt-5 max-w-2xl text-lg leading-relaxed text-gray-300">
@@ -123,7 +123,7 @@
     <section class="border-y border-gray-800/70 bg-gray-900/40 py-16 sm:py-24">
         <div class="mx-auto max-w-6xl px-4 sm:px-6">
             <p class="eyebrow">In the app</p>
-            <h2 class="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-5xl">
+            <h2 class="mt-4 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
                 Everything in your package
             </h2>
             <ul class="mt-12 grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-8 lg:grid-cols-4">
@@ -140,7 +140,7 @@
                             class="mx-auto h-auto w-full max-w-[280px]"
                         />
                     </picture>
-                    <p class="mt-4 font-semibold text-gray-200">{{ shot.caption }}</p>
+                    <p class="mt-4 font-medium text-gray-200">{{ shot.caption }}</p>
                 </li>
             </ul>
         </div>
@@ -148,7 +148,7 @@
 
     <section class="py-16 sm:py-24">
         <div class="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 class="text-4xl font-black tracking-[-0.03em] sm:text-5xl">
+            <h2 class="text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
                 What Dumpus finds in it
             </h2>
             <ul class="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
@@ -159,7 +159,7 @@
                         <Icon :name="feature.icon" class="size-6" />
                     </span>
                     <div>
-                        <h3 class="text-lg font-bold">{{ feature.title }}</h3>
+                        <h3 class="text-lg font-semibold">{{ feature.title }}</h3>
                         <p class="mt-1.5 leading-relaxed text-gray-400">{{ feature.text }}</p>
                     </div>
                 </li>
@@ -173,14 +173,14 @@
         >
             <div>
                 <p class="eyebrow">Privacy</p>
-                <h2 class="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-5xl">
+                <h2 class="mt-4 text-4xl font-bold tracking-[-0.03em] sm:text-5xl">
                     Your data stays yours
                 </h2>
                 <p class="mt-5 text-lg leading-relaxed text-gray-300">
                     Your data package says a lot about you. Here is what happens to it, and the code
                     that does it is open source.
                 </p>
-                <p class="mt-6 flex flex-wrap gap-x-6 gap-y-2 font-semibold text-brand-300">
+                <p class="mt-6 flex flex-wrap gap-x-6 gap-y-2 font-medium text-brand-300">
                     <router-link to="/legal/privacy" class="hover:text-brand-200"
                         >Privacy Policy</router-link
                     >
@@ -216,7 +216,7 @@
                     aria-hidden="true"
                     class="absolute inset-0 -z-10 size-full object-cover opacity-80"
                 />
-                <h2 class="text-4xl font-black tracking-[-0.03em] sm:text-5xl">Get your recap</h2>
+                <h2 class="text-4xl font-bold tracking-[-0.03em] sm:text-5xl">Get your recap</h2>
                 <p class="mx-auto mt-4 max-w-xl text-lg text-brand-100">
                     Free on iOS, Android and the web. Ask Discord for your data package, and Dumpus
                     does the rest.
