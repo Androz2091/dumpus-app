@@ -108,14 +108,6 @@ export default function InAppPurchasesDialog() {
                             {t("premium.soon")}
                           </div>
                         </div>
-                        <div className="mt-1 flex items-end justify-between">
-                          <div className="text-3xl font-semibold text-white">
-                            3.29$
-                          </div>
-                          <div className="text-gray-400">
-                            {t("premium.oneTime")}
-                          </div>
-                        </div>
                       </div>
                     </div>
                   ) : (
