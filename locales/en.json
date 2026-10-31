@@ -452,6 +452,14 @@
   "firstMessages": "Your first messages",
   "relatedGuild": "Related guild",
   "more": "More",
+  "missingStats": {
+    "title": "Some stats are missing",
+    "summary_one": "Your export has no activity on {{- value}} day you sent messages",
+    "summary_other": "Your export has no activity on {{- value}} days you sent messages",
+    "details": "Stats from your activity, like time on Discord, calls, app opens and reactions, leave out these periods. Messages aren't affected.",
+    "days_one": "{{- value}} day with messages",
+    "days_other": "{{- value}} days with messages"
+  },
   "noData": "No data available",
   "noDataTip": "Select another time range to view data",
   "notFound": {
