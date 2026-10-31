@@ -18,6 +18,9 @@ import { useSelectedPackage } from "~/stores";
 import type { Icon } from "~/types";
 import { formatMoney, formatNumber, formatDuration } from "~/utils/format";
 
+const minutesToMs = (minutes: number | null) =>
+  minutes === null ? null : minutes * 60_000;
+
 export default function Stats() {
   const {
     networkSize,
@@ -83,10 +86,10 @@ export default function Stats() {
     package_is_partial
       ? null
       : {
-          value: formatDuration((avgSessionDuration() || 0) * 60_000),
+          value: formatDuration(minutesToMs(avgSessionDuration())),
           title: t("stats.avgSessionTime"),
           description: t("stats.totalTimeSpent", {
-            value: formatDuration((totalSessionDuration() || 0) * 60_000, true),
+            value: formatDuration(minutesToMs(totalSessionDuration()), true),
           }),
           icon: ClockIcon,
         },

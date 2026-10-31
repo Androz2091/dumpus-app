@@ -71,7 +71,9 @@ export function formatDate(
 }
 
 export function formatDuration(n?: number | undefined | null, short?: boolean) {
-  if (!n) return fallback;
+  if (n === undefined || n === null) return fallback;
+  // Not "0ms": the durations shown are counted in minutes.
+  if (n === 0) return "0m";
 
   if (n < 1000) {
     return `${n}ms`;
