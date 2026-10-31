@@ -63,8 +63,46 @@ platform :ios do
           api_key: api_key,
           force: true, # Set to true to skip verification of HTML preview
           skip_metadata: true,# pass a specific value to the iTMSTransporter -itc_provider option
+          skip_screenshots: true,
           submit_for_review: false,
           precheck_include_in_app_purchases: false,
+          app_identifier: ENV["APP_STORE_APP_IDENTIFIER"],
+          team_id: ENV["APP_STORE_TEAM_ID"]
+        )
+        submit(api_key: api_key)
+    end
+    desc "Submit this version's latest build for review, released once Apple approves"
+    lane :submit do |options|
+        api_key = options[:api_key] || app_store_connect_api_key(
+            key_id: ENV["APP_STORE_KEY_ID"],
+            issuer_id: ENV["APP_STORE_KEY_ISSUER_ID"],
+            key_content: ENV["APP_STORE_API_KEY"],
+            in_house: false
+        )
+        # Ruby in a lane runs in ios/App/fastlane.
+        version = JSON.parse(File.read("../../../package.json"))["version"]
+        notes = File.read(File.join(ENV.fetch("STORE_NOTES_DIR"), "app-store.txt"))
+        app = Spaceship::ConnectAPI::App.find(ENV["APP_STORE_APP_IDENTIFIER"])
+        edit = app.get_edit_app_store_version(platform: Spaceship::ConnectAPI::Platform::IOS)
+        unless edit&.version_string == version
+          UI.user_error!("App Store Connect has no #{version} to submit: the prod lane uploads its build first")
+        end
+        # fastlane's "default" notes only reach the languages of metadata
+        # folders, which the repo doesn't keep: name each of the version's.
+        locales = edit.get_app_store_version_localizations.map(&:locale)
+        upload_to_app_store(
+          api_key: api_key,
+          app_version: version,
+          skip_binary_upload: true,
+          skip_screenshots: true,
+          release_notes: locales.to_h { |locale| [locale, notes] },
+          submit_for_review: true,
+          automatic_release: true,
+          force: true,
+          precheck_include_in_app_purchases: false,
+          # Exempt: HTTPS and the system's WebCrypto only. Info.plist says so
+          # from 2.0.1 on; a build from before needs the answer here.
+          submission_information: { export_compliance_uses_encryption: false },
           app_identifier: ENV["APP_STORE_APP_IDENTIFIER"],
           team_id: ENV["APP_STORE_TEAM_ID"]
         )

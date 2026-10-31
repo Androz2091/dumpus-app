@@ -24,7 +24,8 @@
 //   - Push (you control timing).
 //   - Tag (`gh release create vX.Y.Z` does that as a side effect).
 //   - Create the GitHub Release (that's what triggers the platform build
-//     workflows — leaving it manual keeps deploy timing in your hands).
+//     workflows, which submit the apps to the stores with the release's text
+//     as their notes — leaving it manual keeps deploy timing in your hands).
 
 const { execSync } = require("child_process");
 const fs = require("fs");
