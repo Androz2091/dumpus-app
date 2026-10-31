@@ -1,6 +1,7 @@
 "use client";
 
 import type { DmChannelsData } from "~/types/sql";
+import { countsReactions } from "./_availability";
 import { groupDays } from "./_chart";
 import { topLocalHour, type DayHourCount } from "./_hours";
 import { useDataSources } from "./_shared";
@@ -91,8 +92,9 @@ export default function useDMData({ userID }: { userID: string }) {
     return groupDays(start, end, data);
   }
 
+  /** Null when the database can't tell, see `countsReactions`. */
   function getReactionsCount() {
-    const { data, hasError } = sql<{ reaction_count: number }>`
+    const { data, hasError } = sql<{ reaction_count: number | null }>`
       SELECT SUM(a.occurence_count) AS reaction_count
       FROM activity a
       JOIN dm_channels_data d ON a.associated_channel_id = d.channel_id
@@ -101,7 +103,8 @@ export default function useDMData({ userID }: { userID: string }) {
       AND a.day BETWEEN '${start}' AND '${end}';
     `;
 
-    return hasError ? null : data[0].reaction_count;
+    if (hasError) return null;
+    return data[0].reaction_count ?? (countsReactions(sql) ? 0 : null);
   }
 
   function getSentimentScore() {

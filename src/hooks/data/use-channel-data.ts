@@ -1,6 +1,9 @@
 "use client";
 
-import { countsChannelOpenings } from "~/hooks/data/_availability";
+import {
+  countsChannelOpenings,
+  countsReactions,
+} from "~/hooks/data/_availability";
 import { groupDays } from "~/hooks/data/_chart";
 import { topLocalHour, type DayHourCount } from "~/hooks/data/_hours";
 import { useDataSources } from "~/hooks/data/_shared";
@@ -93,8 +96,9 @@ export default function useChannelData({ channelID }: { channelID: string }) {
     return topLocalHour(data);
   }
 
+  /** Null when the database can't tell, see `countsReactions`. */
   function getReactionsCount() {
-    const { data, hasError } = sql<{ reaction_count: number }>`
+    const { data, hasError } = sql<{ reaction_count: number | null }>`
       SELECT SUM(a.occurence_count) AS reaction_count
       FROM activity a
       WHERE a.event_name = 'add_reaction'
@@ -102,7 +106,8 @@ export default function useChannelData({ channelID }: { channelID: string }) {
       AND a.day BETWEEN '${start}' AND '${end}';
     `;
 
-    return hasError ? null : data[0].reaction_count;
+    if (hasError) return null;
+    return data[0].reaction_count ?? (countsReactions(sql) ? 0 : null);
   }
 
   /** Null when the database can't tell, see `countsChannelOpenings`. */
