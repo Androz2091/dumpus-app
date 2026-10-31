@@ -140,8 +140,10 @@ function ContributorCard({ contributor }: { contributor: Contributor }) {
 }
 
 export default function Contributors() {
+  const { t } = useTranslation();
+
   return (
-    <Section title="Contributors">
+    <Section title={t("settings.about.contributors")}>
       <div className="grid grid-cols-1 gap-2 px-2 sm:grid-cols-2">
         {contributors.map((contributor, i) => (
           <ContributorCard key={i} contributor={contributor} />

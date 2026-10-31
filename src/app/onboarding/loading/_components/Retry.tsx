@@ -3,9 +3,12 @@
 import { Transition } from "@headlessui/react";
 import Link from "next/link";
 import Button from "~/components/Button";
+import { useTranslation } from "~/i18n/client";
 import { queryClient } from "~/utils/react-query";
 
 export default function Retry({ show, url }: { show: boolean; url: string }) {
+  const { t } = useTranslation();
+
   return (
     <Transition
       show={show}
@@ -18,7 +21,7 @@ export default function Retry({ show, url }: { show: boolean; url: string }) {
     >
       <Button asChild>
         <Link href={url} onClick={() => queryClient.clear()}>
-          Retry
+          {t("error.retry")}
         </Link>
       </Button>
     </Transition>

@@ -24,6 +24,8 @@ function useCurrentLocale() {
 }
 
 function LocalesList({ close }: { close: () => void }) {
+  const { t } = useTranslation();
+
   return (
     <RadioGroup
       value={i18next.language}
@@ -32,7 +34,9 @@ function LocalesList({ close }: { close: () => void }) {
         close();
       }}
     >
-      <RadioGroup.Label className="sr-only">Locales</RadioGroup.Label>
+      <RadioGroup.Label className="sr-only">
+        {t("settings.languages.title")}
+      </RadioGroup.Label>
       <div className="space-y-2">
         {locales.map(({ code, display }) => (
           <RadioGroup.Option

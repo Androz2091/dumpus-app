@@ -5,12 +5,15 @@
 //   Squares2X2Icon,
 // } from "@heroicons/react/24/solid";
 import Header from "~/components/layout/Header";
+import { useTranslation } from "~/i18n/client";
 import TopSelector from "./TopSelector";
 
 export default function PageHeader() {
+  const { t } = useTranslation();
+
   return (
     <Header
-      title="Top"
+      title={t("nav.top")}
       transparent
       revealBackgroundOnScroll
       // leftSlot={
