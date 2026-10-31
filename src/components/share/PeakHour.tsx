@@ -3,7 +3,7 @@
 import { forwardRef, useMemo } from "react";
 import { Trans } from "react-i18next";
 import { palette } from "~/utils/palette";
-import ShareCardFrame, { Eyebrow, Headline, rng } from "./ShareCardFrame";
+import ShareCardFrame, { Eyebrow, Fit, Headline, rng } from "./ShareCardFrame";
 import { useShareFormat } from "./format";
 import type { ShareData } from "./types";
 
@@ -133,9 +133,13 @@ export default forwardRef<HTMLDivElement, { data: ShareData }>(
             })}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-[112px] leading-none font-black tracking-[-0.04em] whitespace-nowrap text-yellow-300">
-              {format.hour(peak)}
-            </div>
+            {/* Narrower than the gap between the 6 and 18 o'clock labels,
+                which a long hour like Korean's "오후 11시" would cover. */}
+            <Fit
+              text={format.hour(peak)}
+              max={112}
+              className="max-w-[288px] leading-none font-black tracking-[-0.04em] text-yellow-300"
+            />
             <div className="mt-[12px] text-[34px] font-semibold text-gray-400">
               {t("share.peakHour.caption")}
             </div>

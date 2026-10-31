@@ -80,7 +80,7 @@ export default function TopNav() {
                   )}
                 >
                   <link.icon className="mr-1 -ml-1 h-6 w-6" />
-                  <span className="">
+                  <span className="whitespace-nowrap">
                     {t(
                       `nav.${
                         link.name as "overview" | "stats" | "top" | "settings"

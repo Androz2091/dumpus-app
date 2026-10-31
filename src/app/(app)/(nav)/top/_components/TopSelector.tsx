@@ -71,7 +71,7 @@ export default function TopSelector({
             key={link.href}
             href={link.href}
             className={clsx(
-              "w-full pressable rounded-lg py-1 text-center [--press-scale:0.94] sm:px-4",
+              "w-full pressable rounded-lg py-1 text-center [--press-scale:0.94] sm:px-4 sm:whitespace-nowrap",
               link === litLink
                 ? "bg-gray-800 text-brand-300"
                 : "text-gray-400 hover:bg-gray-800 active:bg-gray-800",
