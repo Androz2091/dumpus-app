@@ -45,6 +45,11 @@ export default {
     : {
         webDir: "dist",
       }),
+  ios: {
+    // Without it, the web view is white in light mode until the page paints,
+    // a flash between the launch screen and the app. The app's gray-950.
+    backgroundColor: "#020617",
+  },
   plugins: {
     // On Android, Capacitor 8 pads the WebView by the system bars when the
     // WebView is older than 140, while the app already lays itself out

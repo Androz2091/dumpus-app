@@ -190,6 +190,9 @@ importers:
       '@capacitor/status-bar':
         specifier: ^8.0.4
         version: 8.0.4(@capacitor/core@8.6.0)
+      '@capawesome/capacitor-app-review':
+        specifier: ^8.1.0
+        version: 8.1.0(@capacitor/core@8.6.0)
       '@headlessui/react':
         specifier: ^2.2.10
         version: 2.2.10(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -989,6 +992,11 @@ packages:
 
   '@capacitor/synapse@1.0.4':
     resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
+
+  '@capawesome/capacitor-app-review@8.1.0':
+    resolution: {integrity: sha512-4dOHBEzVZY9p61V2WaiuqyvkyuPFlkZUOCsKjXlVlMuWHCFe6fUDrC6VAan3aE9vHGmkeHYgVI4L0WYUB07weA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@emnapi/core@1.10.0':
     resolution: {integrity: sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==}
@@ -5679,6 +5687,10 @@ snapshots:
       '@capacitor/core': 8.6.0
 
   '@capacitor/synapse@1.0.4': {}
+
+  '@capawesome/capacitor-app-review@8.1.0(@capacitor/core@8.6.0)':
+    dependencies:
+      '@capacitor/core': 8.6.0
 
   '@emnapi/core@1.10.0':
     dependencies:
