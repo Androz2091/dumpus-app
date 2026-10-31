@@ -15,6 +15,7 @@ import { SimpleIconsDiscord, SimpleIconsGithub } from "~/components/icons";
 import { BASE_URL, VERSION } from "~/constants";
 import useCopy from "../_hooks/use-copy";
 import { useTranslation } from "~/i18n/client";
+import RateApp from "./RateApp";
 
 function LeftIcon({ icon: Icon }: { icon: Icon }) {
   return <Icon className="h-8 w-8" />;
@@ -62,6 +63,7 @@ export default function About() {
           leftSlot={<LeftIcon icon={SimpleIconsGithub} />}
           rightIcon={ArrowTopRightOnSquareIcon}
         />
+        <RateApp />
         <DetailCard
           href="/credits"
           title={t("settings.about.credits")}

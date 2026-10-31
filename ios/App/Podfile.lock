@@ -15,6 +15,8 @@ PODS:
     - Capacitor
   - CapacitorStatusBar (8.0.4):
     - Capacitor
+  - CapawesomeCapacitorAppReview (8.1.0):
+    - Capacitor
   - CordovaPlugins (8.6.0):
     - CapacitorCordova
   - HugotomaziCapacitorNavigationBar (4.0.1):
@@ -30,6 +32,7 @@ DEPENDENCIES:
   - "CapacitorPluginSafeArea (from `../../node_modules/.pnpm/capacitor-plugin-safe-area@5.0.1_@capacitor+core@8.6.0/node_modules/capacitor-plugin-safe-area`)"
   - "CapacitorShare (from `../../node_modules/.pnpm/@capacitor+share@8.0.3_@capacitor+core@8.6.0/node_modules/@capacitor/share`)"
   - "CapacitorStatusBar (from `../../node_modules/.pnpm/@capacitor+status-bar@8.0.4_@capacitor+core@8.6.0/node_modules/@capacitor/status-bar`)"
+  - "CapawesomeCapacitorAppReview (from `../../node_modules/.pnpm/@capawesome+capacitor-app-review@8.1.0_@capacitor+core@8.6.0/node_modules/@capawesome/capacitor-app-review`)"
   - CordovaPlugins (from `../capacitor-cordova-ios-plugins`)
   - "HugotomaziCapacitorNavigationBar (from `../../node_modules/.pnpm/@hugotomazi+capacitor-navigation-bar@4.0.1_@capacitor+core@8.6.0/node_modules/@hugotomazi/capacitor-navigation-bar`)"
 
@@ -54,6 +57,8 @@ EXTERNAL SOURCES:
     :path: "../../node_modules/.pnpm/@capacitor+share@8.0.3_@capacitor+core@8.6.0/node_modules/@capacitor/share"
   CapacitorStatusBar:
     :path: "../../node_modules/.pnpm/@capacitor+status-bar@8.0.4_@capacitor+core@8.6.0/node_modules/@capacitor/status-bar"
+  CapawesomeCapacitorAppReview:
+    :path: "../../node_modules/.pnpm/@capawesome+capacitor-app-review@8.1.0_@capacitor+core@8.6.0/node_modules/@capawesome/capacitor-app-review"
   CordovaPlugins:
     :path: "../capacitor-cordova-ios-plugins"
   HugotomaziCapacitorNavigationBar:
@@ -68,10 +73,11 @@ SPEC CHECKSUMS:
   CapacitorPluginSafeArea: 874619c00586248f1694210e72038123d422c2d9
   CapacitorShare: 5b5e53347556bee89ae6163ed20b5b3c25fe75f1
   CapacitorStatusBar: ff844df1f126da6c4fbc4028272425fa3a91e7e3
+  CapawesomeCapacitorAppReview: 52fb67868b2ba0a09f2efac4d142299ebebf4052
   CordovaPlugins: 6682bcda8fbf3a327af913290c3537ba3b2d463a
   HugotomaziCapacitorNavigationBar: d56bded81461cc38cd071727126e7298002ff2b5
   IONFilesystemLib: 306469e4c563f61de82d7bca2bbfed9e64d1b2d2
 
-PODFILE CHECKSUM: 3476103cf5ea2283bf93ca61906f6f0871ce6062
+PODFILE CHECKSUM: d10d7ae0aa4043b49ad1860cd1f8f2953a95701f
 
 COCOAPODS: 1.17.0

@@ -16,6 +16,7 @@ def capacitor_pods
   pod 'CapacitorNetwork', :path => '../../node_modules/.pnpm/@capacitor+network@8.0.1_@capacitor+core@8.6.0/node_modules/@capacitor/network'
   pod 'CapacitorShare', :path => '../../node_modules/.pnpm/@capacitor+share@8.0.3_@capacitor+core@8.6.0/node_modules/@capacitor/share'
   pod 'CapacitorStatusBar', :path => '../../node_modules/.pnpm/@capacitor+status-bar@8.0.4_@capacitor+core@8.6.0/node_modules/@capacitor/status-bar'
+  pod 'CapawesomeCapacitorAppReview', :path => '../../node_modules/.pnpm/@capawesome+capacitor-app-review@8.1.0_@capacitor+core@8.6.0/node_modules/@capawesome/capacitor-app-review'
   pod 'HugotomaziCapacitorNavigationBar', :path => '../../node_modules/.pnpm/@hugotomazi+capacitor-navigation-bar@4.0.1_@capacitor+core@8.6.0/node_modules/@hugotomazi/capacitor-navigation-bar'
   pod 'CapacitorPluginSafeArea', :path => '../../node_modules/.pnpm/capacitor-plugin-safe-area@5.0.1_@capacitor+core@8.6.0/node_modules/capacitor-plugin-safe-area'
   pod 'CordovaPlugins', :path => '../capacitor-cordova-ios-plugins'

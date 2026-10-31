@@ -17,6 +17,9 @@ project(':capacitor-share').projectDir = new File('../node_modules/.pnpm/@capaci
 include ':capacitor-status-bar'
 project(':capacitor-status-bar').projectDir = new File('../node_modules/.pnpm/@capacitor+status-bar@8.0.4_@capacitor+core@8.6.0/node_modules/@capacitor/status-bar/android')
 
+include ':capawesome-capacitor-app-review'
+project(':capawesome-capacitor-app-review').projectDir = new File('../node_modules/.pnpm/@capawesome+capacitor-app-review@8.1.0_@capacitor+core@8.6.0/node_modules/@capawesome/capacitor-app-review/android')
+
 include ':hugotomazi-capacitor-navigation-bar'
 project(':hugotomazi-capacitor-navigation-bar').projectDir = new File('../node_modules/.pnpm/@hugotomazi+capacitor-navigation-bar@4.0.1_@capacitor+core@8.6.0/node_modules/@hugotomazi/capacitor-navigation-bar/android')
 
