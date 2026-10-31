@@ -11,6 +11,7 @@ import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import clsx from "clsx";
 import { useTranslation } from "~/i18n/client";
 import RenderMarkdown from "~/components/RenderMarkdown";
+import packageAPI from "~/hooks/use-package-api";
 
 function useSchema() {
   const { t } = useTranslation();
@@ -73,7 +74,13 @@ export default function LinkForm() {
     },
   });
 
-  function onSubmit({ discordLink, backendURL }: Schema) {
+  async function onSubmit({ discordLink, backendURL }: Schema) {
+    if (backendURL && !(await packageAPI({ baseURL: backendURL }).isAlive())) {
+      form.setError("backendURL", {
+        message: t("onboarding.access.methods.link.errors.noBackend"),
+      });
+      return;
+    }
     router.push(
       `/onboarding/loading/?packageLink=${encodeURIComponent(
         discordLink,
@@ -168,7 +175,11 @@ export default function LinkForm() {
             />
           </p>
         </div>
-        <Button type="submit" className="w-full">
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={form.formState.isSubmitting}
+        >
           {t("onboarding.access.methods.link.explore")}
         </Button>
       </form>

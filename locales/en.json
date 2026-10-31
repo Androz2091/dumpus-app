@@ -109,7 +109,8 @@
             "required": "Required",
             "url": "Invalid URL",
             "startWith": "Link must start with {{url}}",
-            "emptyKey": "UPN key can't be empty"
+            "emptyKey": "UPN key can't be empty",
+            "noBackend": "No Dumpus backend answers at this URL"
           }
         },
         "email": {
