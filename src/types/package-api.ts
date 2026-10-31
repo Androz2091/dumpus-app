@@ -13,8 +13,10 @@ export type PackageAPIStatusResponse = Prettify<
     processingQueuePosition: {
       premiumQueueTotal: number;
       standardQueueTotal: number;
-      premiumQueueUser: number;
-      standardQueueUser: number;
+      // Null for the queue the package isn't in: the API ranks a premium
+      // package in the premium queue only, any other in the standard one.
+      premiumQueueUser: number | null;
+      standardQueueUser: number | null;
       standardWhenJoined: number;
       premiumWhenJoined: number;
     };

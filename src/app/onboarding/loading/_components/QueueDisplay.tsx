@@ -84,7 +84,11 @@ function QueueExplanationDialog({
   );
 }
 
-export default function QueueDisplay({ position }: { position: number }) {
+export default function QueueDisplay({
+  position,
+}: {
+  position: number | null;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -110,7 +114,9 @@ export default function QueueDisplay({ position }: { position: number }) {
         <p className="mt-4 text-gray-400">
           {t("onboarding.loading.queue.waitingTime")}{" "}
           <span className="text-brand-300">
-            {formatDuration(position * ESTIMATED_QUEUE_DURATION)}
+            {formatDuration(
+              position === null ? null : position * ESTIMATED_QUEUE_DURATION,
+            )}
           </span>
         </p>
         <Button variant="gray" asChild className="mt-2 inline-flex">
