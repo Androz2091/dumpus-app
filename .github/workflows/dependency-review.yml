@@ -23,3 +23,7 @@ jobs:
 
       - name: "Dependency Review"
         uses: actions/dependency-review-action@v5
+        with:
+          # glib's fix is only in 0.20, which Tauri's GTK 3 bindings (0.18)
+          # can't take, and the app never calls `VariantStrIter`.
+          allow-ghsas: GHSA-wrw7-89jp-8q8g
