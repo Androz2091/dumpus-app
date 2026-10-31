@@ -1,7 +1,7 @@
 <template>
     <details class="group py-5">
         <summary
-            class="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-bold text-white [&::-webkit-details-marker]:hidden"
+            class="flex cursor-pointer list-none items-center justify-between gap-4 text-lg font-semibold text-white [&::-webkit-details-marker]:hidden"
         >
             {{ question }}
             <Icon

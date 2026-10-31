@@ -9,7 +9,7 @@
                     height="40"
                     class="size-10 rounded-[22%] shadow-[0_0_0_2px_rgba(255,255,255,0.12)]"
                 />
-                <span class="text-lg leading-tight font-extrabold tracking-tight">
+                <span class="text-lg leading-tight font-bold tracking-tight">
                     Dumpus
                     <span class="hidden font-medium text-gray-400 sm:inline">
                         · Stats for Discord</span
@@ -17,7 +17,7 @@
                 </span>
             </router-link>
             <nav aria-label="Main">
-                <ul class="flex items-center gap-5 text-sm font-semibold text-gray-300 sm:gap-7">
+                <ul class="flex items-center gap-5 text-sm font-medium text-gray-300 sm:gap-7">
                     <li>
                         <router-link to="/help" class="transition-colors hover:text-white"
                             >Help</router-link

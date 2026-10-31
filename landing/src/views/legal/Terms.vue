@@ -1,6 +1,6 @@
 <template>
     <article
-        class="mx-auto prose max-w-3xl px-4 py-12 prose-invert sm:px-6 sm:py-16 prose-headings:font-extrabold prose-a:text-brand-300"
+        class="mx-auto prose max-w-3xl px-4 py-12 prose-invert sm:px-6 sm:py-16 prose-headings:font-bold prose-a:text-brand-300 prose-strong:font-medium"
     >
         <p>
             <strong>Last updated</strong><br />
@@ -8,8 +8,8 @@
         </p>
         <h1>Terms &amp; Conditions</h1>
         <p>
-            By downloading or using the app, these terms will automatically apply to you – you
-            should make sure therefore that you read them carefully before using the app. You’re not
+            By downloading or using the app, these terms will automatically apply to you. You should
+            make sure therefore that you read them carefully before using the app. You’re not
             allowed to copy or modify the app, any part of the app, or our trademarks in any way.
             You’re not allowed to attempt to extract the source code of the app, and you also
             shouldn’t try to translate the app into other languages or make derivative versions. The
@@ -63,7 +63,7 @@
         <p>
             Along the same lines, Simon LEFORT, also known as &quot;Androz2091&quot; cannot always
             take responsibility for the way you use the app i.e. You need to make sure that your
-            device stays charged – if it runs out of battery and you can’t turn it on to avail the
+            device stays charged. If it runs out of battery and you can’t turn it on to avail the
             Service, Simon LEFORT, also known as &quot;Androz2091&quot; cannot accept
             responsibility.
         </p>
@@ -78,7 +78,7 @@
         </p>
         <p>
             At some point, we may wish to update the app. The app is currently available on Android
-            &amp; iOS – the requirements for the both systems(and for any additional systems we
+            &amp; iOS. The requirements for the both systems(and for any additional systems we
             decide to extend the availability of the app to) may change, and you’ll need to download
             the updates if you want to keep using the app. Simon LEFORT, also known as
             &quot;Androz2091&quot; does not promise that it will always update the app so that it is

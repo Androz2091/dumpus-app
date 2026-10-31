@@ -50,9 +50,9 @@
     }
 }
 
-/* The cards' eyebrow: a short bar, then the label in caps. */
+/* The cards' eyebrow without their leading bar, which reads as an em dash here. */
 @utility eyebrow {
-    @apply flex items-center gap-3 text-sm font-bold tracking-[0.14em] text-brand-300 uppercase before:h-1 before:w-7 before:shrink-0 before:rounded-full before:bg-current;
+    @apply text-sm font-medium tracking-[0.14em] text-brand-300 uppercase;
 }
 
 /*
