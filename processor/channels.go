@@ -85,6 +85,7 @@ type channelKind uint8
 const (
 	channelDM channelKind = iota + 1
 	channelGuild
+	channelOther
 )
 
 type channelResult struct {
@@ -105,9 +106,10 @@ type channelInput struct {
 }
 
 // A channel with exactly two recipients is a DM, else one with a guild is a
-// guild channel, else it is ignored, group DMs included. Its issues are only
-// reported once `messages.json` is known to be well formed, which the
-// reference reads first. err is a read error.
+// guild channel, else another, for eg. a group DM, and one whose recipients or
+// guild can't be read is ignored. Its issues are only reported once
+// `messages.json` is known to be well formed, which the reference reads first.
+// err is a read error.
 func readChannel(in channelInput, ownerID string, iss *issues) (channelResult, error) {
 	var found issues
 	res := classifyChannel(in, ownerID, &found)
@@ -168,6 +170,8 @@ func classifyChannel(in channelInput, ownerID string, iss *issues) channelResult
 		}
 		res.kind = channelGuild
 		res.guildID = gm
+	} else {
+		res.kind = channelOther
 	}
 	return res
 }

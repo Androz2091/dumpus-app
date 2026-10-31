@@ -258,6 +258,7 @@ var messageSentRows = []string{
 	"message_sent|2021-04-07|0|1|" + dmOther + "|NULL|NULL|NULL|NULL",
 	"message_sent|2021-04-06|23|2|" + general + "|" + guildOne + "|NULL|NULL|NULL",
 	"message_sent|2021-04-06|12|1|" + news + "|" + guildTwo + "|NULL|NULL|NULL",
+	"message_sent|2021-04-06|12|1|" + group + "|NULL|NULL|NULL|NULL",
 }
 
 var eventRows = []string{

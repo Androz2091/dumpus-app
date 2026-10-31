@@ -52,6 +52,7 @@ Each limit sits far above the maxima measured on real exports. Past one, the pro
 - The worker wrote `oauth2_authorize_accepted` only beside a `bot_token_compromised`, `notification_clicked` beside a `dev_portal_page_viewed` of a `/docs/` page, and `voice_message_recorded` beside an `application_created`; the processor writes each whenever the stream has it.
 - `activity` also counts `channel_opened` per day for each channel of `guild_channels_data`, which the worker never read, since `package_version` `0.2.0`.
 - `guilds` has one more column, `member_count`: the guild's `guild_size_total` in its latest `channel_opened`, or NULL, since `0.3.0`.
+- `message_sent` also counts, with no guild, the messages of a channel that is neither a DM nor a guild channel, a group DM or a channel of a server the owner left, which exports write without its server, since `0.3.0`: the worker dropped them, though they were sent.
 - `package_version` is `0.3.0` instead of the worker's `0.1.0`, so that the app can tell a database without these.
 
 ## License
