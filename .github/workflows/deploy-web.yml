@@ -10,6 +10,7 @@ on:
       - "infra/**"
       - "api/**"
       - "processor/**"
+      - "landing/**"
       - "**.md"
   workflow_dispatch:
 

@@ -60,6 +60,28 @@ data "aws_iam_policy_document" "github_deploy" {
     actions   = ["cloudfront:CreateInvalidation"]
     resources = [aws_cloudfront_distribution.site.arn]
   }
+
+  # dumpus.app, deployed from `landing/` by deploy-landing.yml. OpenTofu
+  # doesn't manage its bucket or distribution.
+  statement {
+    sid = "LandingS3Sync"
+    actions = [
+      "s3:PutObject",
+      "s3:DeleteObject",
+      "s3:ListBucket",
+      "s3:GetObject",
+    ]
+    resources = [
+      "arn:aws:s3:::dumpus-app-landing",
+      "arn:aws:s3:::dumpus-app-landing/*",
+    ]
+  }
+
+  statement {
+    sid       = "LandingCloudFrontInvalidate"
+    actions   = ["cloudfront:CreateInvalidation"]
+    resources = ["arn:aws:cloudfront::436630934006:distribution/E3QLCNIH63M129"]
+  }
 }
 
 resource "aws_iam_role_policy" "github_deploy" {

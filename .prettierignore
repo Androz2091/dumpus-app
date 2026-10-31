@@ -13,3 +13,4 @@ src-tauri/gen
 pnpm-lock.yaml
 /api
 /processor
+/landing
