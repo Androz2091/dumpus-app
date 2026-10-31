@@ -40,6 +40,16 @@ export function carriesEvent(
 }
 
 /**
+ * Whether the database counts `add_reaction`, so that no rows mean no
+ * reaction was added: the export carries the type, see `carriesEvent`, and a
+ * partial package may have been read without its activity.
+ */
+export function countsReactions(sql: ReturnType<typeof useSQL>) {
+  const { data } = sql<PackageData>`SELECT * FROM package_data LIMIT 1;`;
+  return !data?.[0]?.package_is_partial && carriesEvent(sql, "add_reaction");
+}
+
+/**
  * Whether the database counts `channel_opened`, so that no rows mean the
  * channel was never opened: the processor counts it from `package_version`
  * 0.2.0 on (0.1.0 before), and only in a package with an activity stream.
