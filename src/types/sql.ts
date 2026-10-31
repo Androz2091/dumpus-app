@@ -33,6 +33,11 @@ export type Guild = {
   guild_id: string;
   guild_name: string;
   total_message_count: number;
+  /**
+   * The server's size the last time one of its channels was opened, null when
+   * the package doesn't say, see `countsGuildMembers`.
+   */
+  member_count?: number | null;
 };
 
 export type Payment = {

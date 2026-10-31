@@ -10,12 +10,15 @@ import { iconColor } from "~/utils/discord";
 import { firstCharFromUnicode } from "~/utils";
 import DiscordImage from "~/components/DiscordImage";
 import { useTranslation } from "~/i18n/client";
+import { formatNumber } from "~/utils/format";
 
 export default function Profile({
   guild,
+  memberCount,
   discordLink,
 }: {
   guild: Guild;
+  memberCount: number | null;
   discordLink: string;
 }) {
   const { t } = useTranslation();
@@ -27,13 +30,16 @@ export default function Profile({
     staleTime: Infinity,
   });
 
+  // The bot's count is today's, the package's dates from the last time a
+  // channel of the server was opened.
+  const members =
+    isSuccess && data.error === undefined ? data.member_count : memberCount;
+
   return (
     <ProfileHeader
-      description={
-        isSuccess && data.error === undefined
-          ? t("members", { value: data.member_count })
-          : t("members", { value: "N/A" })
-      }
+      description={t("members", {
+        value: formatNumber(members, { notation: "standard" }),
+      })}
       title={guild.guild_name}
       imageSlot={
         isSuccess && data.error === undefined ? (

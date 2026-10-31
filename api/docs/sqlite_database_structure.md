@@ -51,6 +51,7 @@ Here's the requested documentation in markdown format, providing a description f
 | guild_id                | The unique identifier for the guild (server).                                              |
 | guild_name              | The name of the guild.                                                                         |
 | total_message_count     | The total number of messages sent across all channels in the guild.                          |
+| member_count            | The guild's member count in its latest `channel_opened` event (Discord's `guild_size_total`), NULL when none carries one. Absent from databases before '0.3.0'. |
 
 ---
 
@@ -90,7 +91,7 @@ Here's the requested documentation in markdown format, providing a description f
 | Column                   | Description                                                                                   |
 |-------------------------|-----------------------------------------------------------------------------------------------|
 | package_id              | The unique identifier for the package.                                                       |
-| package_version         | The version of the database's format: '0.2.0' and later count 'channel_opened' in `activity` for the channels of `guild_channels_data`, '0.1.0' doesn't. |
+| package_version         | The version of the database's format: '0.2.0' and later count 'channel_opened' in `activity` for the channels of `guild_channels_data`, '0.3.0' and later have `guilds.member_count`, '0.1.0' has neither. |
 | package_owner_id        | The ID of the user who owns the package.                                                    |
 | package_owner_name      | The username of the package owner.                                                           |
 | package_owner_display_name | The display name of the package owner.                                                    |

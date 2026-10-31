@@ -19,9 +19,11 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 	}
 
 	// DMs come before guild channels. A channel missing from the messages index
-	// is dropped from both tables, with its messages.
+	// is dropped from both tables, with its messages. The other channels, group
+	// DMs and those of servers the owner left, which exports write without
+	// their server, have no page, but their messages were sent all the same.
 	ordered := make([]*channelResult, 0, len(pf.channels))
-	for _, kind := range []channelKind{channelDM, channelGuild} {
+	for _, kind := range []channelKind{channelDM, channelGuild, channelOther} {
 		for i := range pf.channels {
 			if pf.channels[i].kind == kind {
 				ordered = append(ordered, &pf.channels[i])
@@ -34,7 +36,8 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 			continue
 		}
 		var guildID *string
-		if c.kind == channelDM {
+		switch c.kind {
+		case channelDM:
 			row := DMChannel{
 				ChannelID:         c.channelID,
 				DMUserID:          c.dmUserID,
@@ -48,7 +51,7 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 				}
 			}
 			m.DMChannels = append(m.DMChannels, row)
-		} else {
+		case channelGuild:
 			guildID = c.guildID
 			m.GuildChannels = append(m.GuildChannels, GuildChannel{
 				ChannelID:         c.channelID,
@@ -74,8 +77,12 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 			totals[*c.guildID] += c.total
 		}
 	}
+	members := make(map[string]*int64, len(act.guildSizes))
+	for id, s := range act.guildSizes {
+		members[act.names.str(id)] = &s.members
+	}
 	for _, g := range pf.guilds {
-		m.Guilds = append(m.Guilds, Guild{GuildID: g.id, GuildName: g.name, TotalMessageCount: totals[g.id]})
+		m.Guilds = append(m.Guilds, Guild{GuildID: g.id, GuildName: g.name, TotalMessageCount: totals[g.id], MemberCount: members[g.id]})
 	}
 
 	m.Payments = pf.payments

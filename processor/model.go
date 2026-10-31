@@ -55,6 +55,9 @@ type Guild struct {
 	GuildID           string
 	GuildName         *string
 	TotalMessageCount int64
+	// MemberCount is the guild's `guild_size_total` in its latest
+	// `channel_opened`, nil when none carries one.
+	MemberCount *int64
 }
 
 // Payment is a row of `payments`. Amount holds an int64, a float64 or a string,

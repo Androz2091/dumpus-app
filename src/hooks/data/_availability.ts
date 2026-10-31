@@ -49,3 +49,22 @@ export function countsChannelOpenings(sql: ReturnType<typeof useSQL>) {
   const row = data?.[0];
   return !!row?.activity_stream && row.package_version !== "0.1.0";
 }
+
+function fromVersion(sql: ReturnType<typeof useSQL>, version: string) {
+  const { data } = sql<PackageData>`SELECT * FROM package_data LIMIT 1;`;
+  const have = (data?.[0]?.package_version ?? "0").split(".").map(Number);
+  const want = version.split(".").map(Number);
+  for (let i = 0; i < want.length; i++) {
+    const part = have[i] ?? 0;
+    if (part !== want[i]) return part > want[i];
+  }
+  return true;
+}
+
+/**
+ * Whether `guilds` has `member_count`, which the processor writes from
+ * `package_version` 0.3.0 on: an older database has no such column.
+ */
+export function countsGuildMembers(sql: ReturnType<typeof useSQL>) {
+  return fromVersion(sql, "0.3.0");
+}

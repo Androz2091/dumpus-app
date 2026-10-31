@@ -31,9 +31,9 @@ const (
 // happens when the "User data" option is left out of the export request.
 var ErrMissingUserData = errors.New(CodeMissingUserData)
 
-// The app reads `channel_opened` counts only from 0.2.0, the first version to
-// write them.
-const PackageVersion = "0.2.0"
+// The app reads `channel_opened` counts only from 0.2.0, and member counts
+// only from 0.3.0, the first versions to write them.
+const PackageVersion = "0.3.0"
 
 // Options configure Process.
 type Options struct {

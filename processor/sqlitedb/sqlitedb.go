@@ -1,6 +1,7 @@
 // Package sqlitedb writes a `processor.Model` to the SQLite file the Dumpus app
 // opens, with the Python worker's schema (the same DDL text, index names and
-// column storage classes) plus `package_data.activity_stream`.
+// column storage classes) plus `package_data.activity_stream` and
+// `guilds.member_count`.
 package sqlitedb
 
 import (
@@ -19,7 +20,8 @@ import (
 )
 
 // The DDL is the worker's text as is, so `sqlite_master` reads the same,
-// except for `package_data.activity_stream`, added at the end.
+// except for the columns the worker never wrote, `package_data.activity_stream`
+// and `guilds.member_count`, each added after the worker's own.
 var tables = []string{`
         CREATE TABLE activity (
             event_name TEXT NOT NULL,
@@ -59,6 +61,7 @@ var tables = []string{`
             guild_id TEXT NOT NULL,
             guild_name TEXT NOT NULL,
             total_message_count INTEGER NOT NULL,
+            member_count INTEGER,
             PRIMARY KEY (guild_id)
         )
     `, `
@@ -140,10 +143,10 @@ func inserts(m *processor.Model) []insert {
 		return []any{r.EventName, r.Day, r.Hour, r.OccurrenceCount, r.ChannelID, r.GuildID,
 			r.UserID, r.ExtraField1, r.ExtraField2}
 	}}, {"guilds", `INSERT INTO guilds
-        (guild_id, guild_name, total_message_count)
-        VALUES (?, ?, ?)`, len(m.Guilds), func(i int) []any {
+        (guild_id, guild_name, total_message_count, member_count)
+        VALUES (?, ?, ?, ?)`, len(m.Guilds), func(i int) []any {
 		r := m.Guilds[i]
-		return []any{r.GuildID, r.GuildName, r.TotalMessageCount}
+		return []any{r.GuildID, r.GuildName, r.TotalMessageCount, r.MemberCount}
 	}}, {"payments", `INSERT INTO payments
         (payment_id, payment_date, payment_amount, payment_currency, payment_description)
         VALUES (?, ?, ?, ?, ?)`, len(m.Payments), func(i int) []any {
