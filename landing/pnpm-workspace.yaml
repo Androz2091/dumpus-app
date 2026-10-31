@@ -1,13 +1,6 @@
 # pnpm takes the nearest workspace file as the root, so this keeps the
 # landing's install, lockfile and settings apart from the app's.
-allowBuilds:
-    # Its postinstall only fetches the native binary when the optional
-    # dependency that ships it failed to install.
-    esbuild: false
 overrides:
-    # Versions with advisories that dependencies ask for: form-data 4.0.0 and
-    # ws 8.13.0 (jsdom, which renders the pages at build time), and
-    # postcss-selector-parser 6.0.10 (@tailwindcss/typography).
-    form-data: ^4.0.6
+    # @tailwindcss/typography asks for postcss-selector-parser 6.0.10, which
+    # has an advisory.
     postcss-selector-parser: ^6.1.5
-    ws: ^8.21.0
