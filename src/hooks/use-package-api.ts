@@ -25,7 +25,7 @@ export default function usePackageAPI({
     path: string;
     method: "GET" | "POST" | "PUT" | "DELETE";
     headers?: HeadersInit;
-    body?: any;
+    body?: unknown;
   }) {
     return fetch(baseURL + path, {
       method,

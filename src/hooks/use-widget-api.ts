@@ -15,18 +15,12 @@ export default function useWidgetAPI({
     path,
     method,
     headers,
-    body,
   }: {
     path: string;
     method: "GET" | "POST" | "PUT" | "DELETE";
     headers?: HeadersInit;
-    body?: any;
   }) {
-    return fetch(baseURL + path, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : null,
-    });
+    return fetch(baseURL + path, { method, headers });
   }
 
   async function getGuild({
