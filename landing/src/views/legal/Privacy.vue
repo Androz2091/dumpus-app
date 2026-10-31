@@ -1,5 +1,7 @@
 <template>
-    <article class="page markdown-body">
+    <article
+        class="mx-auto prose max-w-3xl px-4 py-12 prose-invert sm:px-6 sm:py-16 prose-headings:font-extrabold prose-a:text-brand-300"
+    >
         <p>
             <strong>Last updated</strong><br />
             July 12th 2023
@@ -124,5 +126,3 @@
         </p>
     </article>
 </template>
-
-<style src="@/assets/css/legal/legal.css"></style>

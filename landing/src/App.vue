@@ -1,10 +1,10 @@
 <template>
-    <div class="imageWrapper">
-        <div class="container">
-            <NavComponent />
+    <div class="flex min-h-screen flex-col">
+        <NavComponent />
+        <main class="flex-1">
             <router-view />
-            <FooterComponent />
-        </div>
+        </main>
+        <FooterComponent />
     </div>
 </template>
 

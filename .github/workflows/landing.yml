@@ -1,17 +1,26 @@
-name: Build landing
+name: Landing
 
 on:
   pull_request:
     paths:
       - "landing/**"
-      - ".github/workflows/build-landing.yml"
+      - ".github/workflows/landing.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "landing/**"
+      - ".github/workflows/landing.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: landing
 
 jobs:
-  build:
+  check:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: landing
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -29,5 +38,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build landing
+      - name: Check formatting
+        run: pnpm exec prettier --check .
+
+      - name: Build
         run: pnpm run build

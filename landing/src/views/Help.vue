@@ -1,7 +1,12 @@
 <template>
-    <article class="page markdown-body" style="user-select: none">
-        <h1>FAQ - Frequently Asked Questions</h1>
-        <FAQ v-for="e in faq" v-bind="e" />
+    <article class="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+        <p class="eyebrow">FAQ</p>
+        <h1 class="mt-4 text-4xl font-black tracking-[-0.03em] sm:text-5xl">
+            Frequently Asked Questions
+        </h1>
+        <div class="mt-10 divide-y divide-gray-800 border-y border-gray-800">
+            <FAQ v-for="e in faq" :key="e.question" v-bind="e" />
+        </div>
     </article>
 </template>
 
@@ -100,5 +105,3 @@ Yes, we have a Discord server. You can join it by clicking [here](https://androz
     },
 ];
 </script>
-
-<style src="@/assets/css/legal/legal.css"></style>
