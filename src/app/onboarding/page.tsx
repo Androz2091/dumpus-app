@@ -24,8 +24,6 @@ export default function Page() {
         </h1>
         <p className="mt-2 text-gray-400">{t("onboarding./.description")}</p>
       </div>
-      {/* TODO: delete? */}
-      {/* <Steps /> */}
       <LocaleSwitch />
     </div>
   );

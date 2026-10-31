@@ -3,7 +3,6 @@
 import { useSearchParams } from "next/navigation";
 import useGuildData from "~/hooks/data/use-guild-data";
 import DailySentMessages from "./_components/DailySentMessages";
-// import FirstMessages from "./_components/FirstMessages";
 import PageHeader from "./_components/PageHeader";
 import Profile from "./_components/Profile";
 import Stats from "./_components/Stats";
@@ -71,11 +70,8 @@ function GuildDetails() {
             })}
             topChatHour={formatHour(stats.topChatHour)}
           />
-          {/* TODO: handle no data */}
           <TopUsedBots bots={topBots || []} />
           <TopChannels guildID={guild.guild_id} channels={topChannels || []} />
-          {/* TODO: implement */}
-          {/* <FirstMessages /> */}
           <DailySentMessages data={dailySentMessages || []} />
         </>
       ) : (
