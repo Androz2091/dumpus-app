@@ -36,6 +36,7 @@ type Actions = {
 export type PurchasesSlice = State & Actions;
 
 let setUpAgain: (() => void) | undefined;
+let notify: (key: string) => void = () => {};
 
 export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
   set,
@@ -45,7 +46,7 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
   supported: false,
   products: [],
   restoring: false,
-  init: async ({ notify }) => {
+  init: async (props) => {
     function finish() {
       emitter.emit("purchases:initialized", true);
       set((state) => ({
@@ -57,6 +58,7 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
     if (!isCapacitorSupported()) {
       return finish();
     }
+    notify = props.notify;
 
     async function setUp(store: CdvPurchase.Store) {
       const { ErrorCode, ProductType, Platform } = window.CdvPurchase;
@@ -171,8 +173,16 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
     retry?.();
   },
   restorePurchases: async () => {
+    const { store } = window.CdvPurchase;
     set((state) => ({ purchases: { ...state.purchases, restoring: true } }));
-    await window.CdvPurchase.store.restorePurchases();
+    const error = await store.restorePurchases();
     set((state) => ({ purchases: { ...state.purchases, restoring: false } }));
+    // The plugin reports a restored purchase as approved half a second after
+    // it arrives, once the restore has ended on Google Play, and not at all
+    // within a minute of its last report.
+    if (!error && store.owned(PRODUCT_SUPPORTER_KEY)) {
+      get().config.setPremium(true);
+      notify(PRODUCT_SUPPORTER_KEY);
+    }
   },
 });
