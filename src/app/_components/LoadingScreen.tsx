@@ -92,7 +92,9 @@ export default function LoadingScreen({
         const destination = await handlePathname(pathname, !!db);
         logger.info("continue");
         if (mounted) {
-          router.replace(destination);
+          // `pathname` has no query: replacing the page opened with it would
+          // drop what the page reads there, for eg. a details page's `?id=`.
+          if (destination !== pathname) router.replace(destination);
           setLoading(false);
         }
       } catch (err) {

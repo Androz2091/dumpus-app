@@ -30,6 +30,9 @@ test("navigating between the main pages", async ({ page }) => {
   await link(/Pixel Otter/).click();
   await expect(page).toHaveURL(/\/top\/dms\/details\/\?id=\d+&/);
   await expect(stat(page, "total messages sent")).toHaveText("8,199");
+  // Opened by its URL, as a shared link does.
+  await page.reload();
+  await expect(stat(page, "total messages sent")).toHaveText("8,199");
   // A details page links back to the list it was opened from.
   await page.locator('a[href*="#dm-"]').filter({ visible: true }).click();
   await expect(page).toHaveURL(/\/top\/dms\/#dm-\d+$/);
