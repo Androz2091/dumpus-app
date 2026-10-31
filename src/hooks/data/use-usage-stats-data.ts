@@ -1,7 +1,7 @@
 "use client";
 
 import { carriesEvent } from "./_availability";
-import { messagesPerDayHour, topLocalHour } from "./_hours";
+import { messagesPerDayHour, messageTotals, topLocalHour } from "./_hours";
 import { useDataSources } from "./_shared";
 
 export default function useUsageStatsData(forceLifetime?: boolean) {
@@ -59,36 +59,18 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     return hasError ? null : data[0].total_spent;
   }
 
+  // Summed from the rows `getTopHour` reads, so a range's messages are read
+  // once.
   function getMessageCount() {
-    const { data, hasError } = sql<{ message_count: number }>`
-      SELECT
-        SUM(a.occurence_count) AS message_count    
-      FROM activity a
-      WHERE a.event_name = 'message_sent'
-      AND a.day BETWEEN '${startDate}' AND '${endDate}'
-    `;
-
-    return hasError ? null : data[0].message_count;
+    return (
+      messageTotals(messagesPerDayHour(sql, startDate, endDate))?.total ?? null
+    );
   }
 
   function getAvgMessageCountPerDay() {
-    const { data, hasError } = sql<{ average_daily_occurences: number }>`
-      SELECT
-        ROUND(AVG(daily_occurences)) AS average_daily_occurences
-      FROM (
-        SELECT
-            day,
-            SUM(occurence_count) AS daily_occurences
-        FROM 
-            activity
-        WHERE event_name = 'message_sent' 
-        AND day BETWEEN '${startDate}' AND '${endDate}'
-        GROUP BY 
-            day
-      ) AS daily_summary;
-    `;
-
-    return hasError ? null : data[0].average_daily_occurences;
+    return (
+      messageTotals(messagesPerDayHour(sql, startDate, endDate))?.perDay ?? null
+    );
   }
 
   function getAppStarted() {

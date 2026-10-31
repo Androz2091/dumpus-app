@@ -1,6 +1,6 @@
 "use client";
 
-import { localHours, messagesPerDayHour } from "./_hours";
+import { localHours, messagesPerDayHour, messageTotals } from "./_hours";
 import { useDataSources } from "./_shared";
 
 export default function useSendingTimesData() {
@@ -21,25 +21,7 @@ export default function useSendingTimesData() {
   }
 
   function getAvgMessagesSentPerDay() {
-    const { data, hasError } = sql<{
-      average_daily_occurences: number;
-    }>`
-      SELECT
-        ROUND(AVG(daily_occurences)) AS average_daily_occurences
-      FROM (
-        SELECT
-            day,
-            SUM(occurence_count) AS daily_occurences
-        FROM 
-            activity
-        WHERE event_name = 'message_sent' 
-        AND day BETWEEN '${start}' AND '${end}'
-        GROUP BY 
-            day
-      ) AS daily_summary;
-    `;
-
-    return hasError ? null : data[0].average_daily_occurences;
+    return messageTotals(messagesPerDayHour(sql, start, end))?.perDay ?? null;
   }
 
   function getAvgOpeningCountPerDay() {

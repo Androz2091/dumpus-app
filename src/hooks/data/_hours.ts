@@ -46,6 +46,28 @@ export function localHours(rows: DayHourCount[]) {
   return hours;
 }
 
+const totalsOf = new WeakMap<
+  DayHourCount[],
+  { total: number; perDay: number }
+>();
+
+/** The messages of the rows, and their average over the days that have one. */
+export function messageTotals(rows: DayHourCount[] | null) {
+  if (!rows) return null;
+  let totals = totalsOf.get(rows);
+  if (!totals) {
+    const days = new Set<string>();
+    let total = 0;
+    for (const { day, count } of rows) {
+      total += count;
+      days.add(day);
+    }
+    totals = { total, perDay: Math.round(total / days.size) };
+    totalsOf.set(rows, totals);
+  }
+  return totals;
+}
+
 /** The local hour with the most messages, the earliest of a tie, or null. */
 export function topLocalHour(rows: DayHourCount[] | null) {
   if (!rows) return null;
