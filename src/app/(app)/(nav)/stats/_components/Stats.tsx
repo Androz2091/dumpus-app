@@ -91,8 +91,6 @@ export default function Stats() {
     {
       value: formatMoney(spentMoney() || 0),
       title: t("stats.spentMoney"),
-      // TODO: fix this more properly (context is not working because of keyof)
-      // @ts-ignore
       description: t("stats.spentMoneyDesc", {
         context: (spentMoney() || 0) > 0 ? "positive" : "empty",
       }),

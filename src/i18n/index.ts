@@ -11,8 +11,7 @@ export async function initI18next(locale: string) {
       resourcesToBackend(
         // Turbopack doesn't apply the `#root/*` path of `tsconfig.json` to a
         // template-literal import, which then fails with "Cannot find module ''".
-        // @ts-ignore
-        (language, namespace) => import(`../../locales/${language}.json`),
+        (language: string) => import(`../../locales/${language}.json`),
       ),
     )
     .init(getOptions(locale));
