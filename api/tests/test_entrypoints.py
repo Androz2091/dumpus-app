@@ -128,3 +128,21 @@ def test_package_goes_from_api_gateway_through_sqs_and_ecs_to_the_worker(
     assert (status['isDataAvailable'], status['processingStep']) == (True, 'PROCESSED')
     blob = json.loads(lambda_api(http_api_event('GET', f'/process/{package}/blob', headers=auth), None)['body'])
     assert requests.get(blob['url']).status_code == 200
+
+
+def test_a_package_whose_worker_died_shows_an_error_and_can_be_sent_again(client, queue, upstream, postgres):
+    sqs, queue_url = queue
+    link, upn = upstream.discord_link('full', packages.build('full'))
+    package = package_id(upn)
+
+    def status():
+        body = client.get(f'/process/{package}/status', headers={'Authorization': f'Bearer {upn}'}).get_json()
+        return body['isErrored'], body['errorMessageCode'], body['processingQueuePosition']['standardQueueTotal']
+
+    client.post('/process', json={'package_link': link})
+    postgres.execute("UPDATE package_process_status SET updated_at = updated_at - interval '61 minutes'")
+    assert status() == (True, 'UNKNOWN_ERROR', 0)
+
+    client.post('/process', json={'package_link': link})
+    assert status() == (False, None, 1)
+    assert len(sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)['Messages']) == 2

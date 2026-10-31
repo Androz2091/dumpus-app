@@ -74,31 +74,44 @@ def update_step (package_status_id, package_id, step, session):
         package.updated_at = datetime.now()
         session.commit()
 
+# A live worker writes a step at least every 11 minutes: dumpus-processor is
+# stopped at 10 (`PROCESSOR_TIMEOUT_SECONDS` in `tasks.py`), and starting the
+# task and the slowest download in a month of production each took less.
+ABANDONED_AFTER = timedelta(hours=1)
+
+def is_abandoned(package_status):
+    return (package_status.step != 'PROCESSED'
+            and not package_status.is_errored and not package_status.is_cancelled
+            and datetime.now() - package_status.updated_at > ABANDONED_AFTER)
+
 def fetch_package_rank (package_id, package_status, session):
     if not package_status:
         return None
     
     upgraded_row_count = None
     row_count = None
+    alive_since = datetime.now() - ABANDONED_AFTER
 
-    query = 'select count(*) from package_process_status where step <> \'PROCESSED\' and is_upgraded = :is_upgraded and is_errored = false and is_cancelled = false;'
+    query = 'select count(*) from package_process_status where step <> \'PROCESSED\' and is_upgraded = :is_upgraded and is_errored = false and is_cancelled = false and updated_at > :alive_since;'
 
-    total_upgraded_row_count = session.execute(text(query).bindparams(is_upgraded=True)).fetchone()[0]
-    total_row_count = session.execute(text(query).bindparams(is_upgraded=False)).fetchone()[0]
+    total_upgraded_row_count = session.execute(text(query).bindparams(is_upgraded=True, alive_since=alive_since)).fetchone()[0]
+    total_row_count = session.execute(text(query).bindparams(is_upgraded=False, alive_since=alive_since)).fetchone()[0]
 
     if package_status.is_upgraded:
         upgraded_row_count = session.execute(text("""
             select count(*) from package_process_status 
             where id < (select id from package_process_status where package_id = :package_id order by created_at desc limit 1)
             and step <> 'PROCESSED'
-            and is_upgraded = true and is_errored = false and is_cancelled = false;
-        """).bindparams(package_id=package_id)).fetchone()[0]
+            and is_upgraded = true and is_errored = false and is_cancelled = false
+            and updated_at > :alive_since;
+        """).bindparams(package_id=package_id, alive_since=alive_since)).fetchone()[0]
     else:    
         row_count = session.execute(text("""
             select count(*) from package_process_status
             where id < (select id from package_process_status where package_id = :package_id order by created_at desc limit 1)
-            and step <> 'PROCESSED' and is_errored = false and is_cancelled = false;
-        """).bindparams(package_id=package_id)).fetchone()[0]
+            and step <> 'PROCESSED' and is_errored = false and is_cancelled = false
+            and updated_at > :alive_since;
+        """).bindparams(package_id=package_id, alive_since=alive_since)).fetchone()[0]
 
     return (total_upgraded_row_count, total_row_count, upgraded_row_count, row_count)
 

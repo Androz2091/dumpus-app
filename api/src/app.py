@@ -8,7 +8,7 @@ from flask_limiter import Limiter
 # Import tasks before db so dotenv loads before SQLAlchemy reads POSTGRES_URL.
 import tasks
 from enqueue import enqueue_package
-from db import PackageProcessStatus, SavedPackageData, Session, fetch_package_status, fetch_package_rank, get_cached_discord_user, cache_discord_user
+from db import PackageProcessStatus, SavedPackageData, Session, fetch_package_status, fetch_package_rank, get_cached_discord_user, cache_discord_user, is_abandoned
 
 from sqlite import generate_demo_database
 
@@ -110,7 +110,7 @@ def process_link():
     session = Session()
 
     existing_package_process_status = fetch_package_status(package_id, session)
-    if existing_package_process_status and not existing_package_process_status.is_errored and not existing_package_process_status.is_cancelled:
+    if existing_package_process_status and not existing_package_process_status.is_errored and not existing_package_process_status.is_cancelled and not is_abandoned(existing_package_process_status):
         send_internal_notification({
             'embeds': [
                 {
@@ -177,6 +177,9 @@ def get_package_status(package_id):
 
     if package_status.is_errored:
         res['errorMessageCode'] = package_status.error_message_code
+    elif is_abandoned(package_status):
+        res['isErrored'] = True
+        res['errorMessageCode'] = 'UNKNOWN_ERROR'
 
     if package_status.step == 'PROCESSED':
         res['isDataAvailable'] = True
