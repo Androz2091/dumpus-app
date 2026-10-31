@@ -5,11 +5,13 @@ on:
     paths-ignore:
       - "api/**"
       - "processor/**"
+      - "landing/**"
   push:
     branches: ["main"]
     paths-ignore:
       - "api/**"
       - "processor/**"
+      - "landing/**"
 permissions:
   contents: read
 

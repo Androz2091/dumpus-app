@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - "api/**"
       - "processor/**"
+      - "landing/**"
 
 jobs:
   build:
