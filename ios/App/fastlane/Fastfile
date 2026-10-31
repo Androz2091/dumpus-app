@@ -98,6 +98,8 @@ platform :ios do
           release_notes: locales.to_h { |locale| [locale, notes] },
           submit_for_review: true,
           automatic_release: true,
+          # Precheck flags a copyright without the current year.
+          copyright: "#{Time.now.year} Simon Lefort",
           force: true,
           precheck_include_in_app_purchases: false,
           # Exempt: HTTPS and the system's WebCrypto only. Info.plist says so
