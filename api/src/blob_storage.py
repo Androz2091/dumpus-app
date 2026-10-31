@@ -20,6 +20,10 @@ def _key(package_id: str) -> str:
     return f"packages/{package_id}.bin"
 
 
+def _link_key(package_status_id: int) -> str:
+    return f"links/{package_status_id}"
+
+
 def _client():
     """boto3 S3 client pinned to a regional endpoint with sigv4 + virtual
     addressing — so presigned URLs come out as
@@ -81,3 +85,15 @@ def exists(package_id: str) -> bool:
         if e.response.get("ResponseMetadata", {}).get("HTTPStatusCode") == 404:
             return False
         raise
+
+
+def put_link(package_status_id: int, link: str) -> None:
+    _client().put_object(Bucket=_bucket(), Key=_link_key(package_status_id), Body=link.encode())
+
+
+def take_link(package_status_id: int) -> str:
+    client = _client()
+    key = _link_key(package_status_id)
+    link = client.get_object(Bucket=_bucket(), Key=key)["Body"].read().decode()
+    client.delete_object(Bucket=_bucket(), Key=key)
+    return link

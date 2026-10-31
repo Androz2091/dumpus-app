@@ -78,6 +78,13 @@ data "aws_iam_policy_document" "worker_task" {
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.package_data.arn}/*"]
   }
+
+  # `take_link` in src/blob_storage.py.
+  statement {
+    sid       = "TakePackageLinks"
+    actions   = ["s3:GetObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.package_data.arn}/links/*"]
+  }
 }
 
 resource "aws_iam_role_policy" "worker_task" {

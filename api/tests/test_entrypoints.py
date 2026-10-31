@@ -74,7 +74,7 @@ def forwarder(api, monkeypatch):
 STARTED = {'tasks': [{'taskArn': 'arn:aws:ecs:eu-west-1:000000000000:task/dumpus-test/0123456789abcdef'}], 'failures': []}
 
 
-def run_task_params(status_id, package, link):
+def run_task_params(status_id, package):
     return {
         'cluster': 'dumpus-test',
         'taskDefinition': 'dumpus-test-worker',
@@ -84,7 +84,6 @@ def run_task_params(status_id, package, link):
         'overrides': {'containerOverrides': [{'name': 'worker', 'environment': [
             {'name': 'PACKAGE_STATUS_ID', 'value': str(status_id)},
             {'name': 'PACKAGE_ID', 'value': package},
-            {'name': 'PACKAGE_LINK', 'value': link},
         ]}]},
     }
 
@@ -97,7 +96,7 @@ def test_lambda_handler_answers_api_gateway(lambda_api):
 
 
 def test_package_goes_from_api_gateway_through_sqs_and_ecs_to_the_worker(
-        lambda_api, queue, forwarder, upstream, postgres, monkeypatch):
+        lambda_api, queue, forwarder, upstream, postgres, s3, monkeypatch):
     sqs, queue_url = queue
     module, ecs = forwarder
     link, upn = upstream.discord_link('full', packages.build('full'))
@@ -111,16 +110,17 @@ def test_package_goes_from_api_gateway_through_sqs_and_ecs_to_the_worker(
     assert postgres.steps(package) == ['LOCKED']
     assert upstream.calls() == []
     (message,) = sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)['Messages']
-    assert json.loads(message['Body']) == {'package_status_id': 1, 'package_id': package, 'link': link}
+    assert json.loads(message['Body']) == {'package_status_id': 1, 'package_id': package}
 
-    ecs.add_response('run_task', STARTED, run_task_params(1, package, link))
+    ecs.add_response('run_task', STARTED, run_task_params(1, package))
     assert module.handler({'Records': [{'messageId': message['MessageId'], 'body': message['Body']}]}, None) == {
         'batchItemFailures': []}
 
     # ECS starts the worker with the overrides above as its environment.
-    for name, value in (('PACKAGE_STATUS_ID', '1'), ('PACKAGE_ID', package), ('PACKAGE_LINK', link)):
+    for name, value in (('PACKAGE_STATUS_ID', '1'), ('PACKAGE_ID', package)):
         monkeypatch.setenv(name, value)
     assert importlib.import_module('worker_main').main() == 0
+    assert s3.list_objects_v2(Bucket=env.BUCKET, Prefix='links/')['KeyCount'] == 0
 
     assert postgres.steps(package) == ['LOCKED', 'DOWNLOADING', 'ANALYZING', 'PROCESSED']
     auth = {'authorization': f'Bearer {upn}'}
