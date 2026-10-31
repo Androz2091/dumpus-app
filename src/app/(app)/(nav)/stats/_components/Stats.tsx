@@ -28,7 +28,7 @@ import {
 export default function Stats() {
   const {
     networkSize,
-    joinedGuilds,
+    servers,
     topHour,
     spentMoney,
     appStarted,
@@ -40,6 +40,7 @@ export default function Stats() {
   } = useUsageStatsData();
   const { t } = useTranslation();
   const { package_is_partial } = useSelectedPackage();
+  const { count: serverCount, joinedInRange } = servers();
 
   const data: {
     value: string;
@@ -58,8 +59,8 @@ export default function Stats() {
     package_is_partial
       ? null
       : {
-          value: formatNumber(joinedGuilds()),
-          title: t("stats.joinedServers"),
+          value: formatNumber(serverCount),
+          title: t(joinedInRange ? "stats.newServers" : "stats.joinedServers"),
           description: t("stats.joinedServersDesc"),
           icon: ArrowLeftOnRectangleIcon,
         } /*

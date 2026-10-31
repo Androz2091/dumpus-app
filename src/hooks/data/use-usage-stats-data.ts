@@ -5,8 +5,9 @@ import { messagesPerDayHour, topLocalHour } from "./_hours";
 import { useDataSources } from "./_shared";
 
 export default function useUsageStatsData(forceLifetime?: boolean) {
-  const { sql, start, end, startLimit, endLimit } = useDataSources();
+  const { sql, timeRange, start, end, startLimit, endLimit } = useDataSources();
 
+  const lifetime = forceLifetime || timeRange === "lifetime";
   const startDate = forceLifetime ? startLimit : start;
   const endDate = forceLifetime ? endLimit : end;
 
@@ -20,16 +21,27 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     return hasError ? null : data[0].network_size;
   }
 
-  function getJoinedGuilds() {
-    const { data, hasError } = sql<{ join_count: number }>`
-      SELECT
-        COUNT(DISTINCT(a.associated_guild_id)) as join_count
-      FROM activity a
-      WHERE a.event_name = 'guild_joined'
-      AND a.day BETWEEN '${startDate}' AND '${endDate}';
-    `;
+  /**
+   * The servers the account is in come from the servers index, which has no
+   * dates, so a range shorter than the lifetime counts the servers joined in
+   * it instead, from `guild_joined`.
+   */
+  function getServers() {
+    const { data, hasError } = lifetime
+      ? sql<{ server_count: number }>`
+          SELECT COUNT(*) AS server_count FROM guilds;
+        `
+      : sql<{ server_count: number }>`
+          SELECT COUNT(DISTINCT associated_guild_id) AS server_count
+          FROM activity
+          WHERE event_name = 'guild_joined'
+          AND day BETWEEN '${startDate}' AND '${endDate}';
+        `;
 
-    return hasError ? null : data[0].join_count;
+    return {
+      count: hasError ? null : data[0].server_count,
+      joinedInRange: !lifetime,
+    };
   }
 
   /** On the device's clock, as the sending times chart. */
@@ -180,7 +192,7 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
 
   return {
     networkSize: () => getNetworkSize(),
-    joinedGuilds: () => getJoinedGuilds(),
+    servers: () => getServers(),
     topHour: () => getTopHour(),
     spentMoney: () => getSpentMoney(),
     messageCount: () => getMessageCount(),

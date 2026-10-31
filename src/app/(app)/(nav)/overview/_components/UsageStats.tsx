@@ -12,13 +12,14 @@ export default function UsageStats() {
   const {
     messageCount,
     networkSize,
-    joinedGuilds,
+    servers,
     topHour,
     appStarted,
     receivedCalls,
   } = useUsageStatsData();
   const { t } = useTranslation();
   const { package_is_partial } = useSelectedPackage();
+  const { count: serverCount, joinedInRange } = servers();
 
   const data: { value: string; label: string }[] = [
     {
@@ -28,8 +29,8 @@ export default function UsageStats() {
     package_is_partial
       ? null
       : {
-          value: formatNumber(joinedGuilds(), { notation: "standard" }),
-          label: t("stats.joinedServers"),
+          value: formatNumber(serverCount, { notation: "standard" }),
+          label: t(joinedInRange ? "stats.newServers" : "stats.joinedServers"),
         },
     package_is_partial
       ? null

@@ -19,5 +19,5 @@ export function useDataSources() {
     ]),
   );
 
-  return { sql, ...getTimeRangeDates({ timeRange, db }) };
+  return { sql, timeRange, ...getTimeRangeDates({ timeRange, db }) };
 }
