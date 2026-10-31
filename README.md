@@ -1,10 +1,56 @@
-# [👨‍💻 Dumpus (Stats for Discord)](https://play.google.com/store/apps/details?id=app.dumpus.app)
+<p align="center">
+  <img src=".github/readme/hero.webp" alt="Five Dumpus share cards for a made-up account: 177,088 messages sent, top DMs, a 7-year recap, top servers and a 10 PM peak hour" width="100%">
+</p>
 
-> [!NOTE]
-> ⚡ Dumpus now processes packages in Go: **3.7× faster** and **5× less memory**.
+<h1 align="center">Dumpus</h1>
 
-<details>
-<summary>Before and after</summary>
+<p align="center">
+  <b>Stats for Discord.</b> Dumpus reads the data package Discord gives you, shows who you talk to, where you hang out and when you're online, and turns it into cards to share.
+</p>
+
+<p align="center">
+  <a href="https://apps.apple.com/us/app/dumpus-stats-for-discord/id6450952260"><img src="assets/appstore.svg" alt="Download on the App Store" height="54"></a>
+  <a href="https://play.google.com/store/apps/details?id=app.dumpus.app"><img src="assets/playstore.svg" alt="Get it on Google Play" height="54"></a>
+  <a href="https://web.dumpus.app"><img src=".github/readme/web-app.svg" alt="Open the web app" height="54"></a>
+</p>
+
+<p align="center">
+  Desktop builds for <a href="https://github.com/Androz2091/dumpus-app/releases/latest">Windows and macOS</a> · <a href="https://androz2091.fr/discord">Our Discord server</a>
+</p>
+
+## What you get
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src=".github/readme/overview.webp" alt="The overview of a made-up account: messages sent, most active DMs and servers"></td>
+    <td align="center" width="25%"><img src=".github/readme/top.webp" alt="The top DMs of a made-up account"></td>
+    <td align="center" width="25%"><img src=".github/readme/stats.webp" alt="Charts of messages sent and minutes on Discord over seven years"></td>
+    <td align="center" width="25%"><img src=".github/readme/details.webp" alt="A friend's page: messages, top chat hour, sentiment and activity over time"></td>
+  </tr>
+  <tr>
+    <td align="center">Your numbers at a glance</td>
+    <td align="center">Top DMs, servers and channels</td>
+    <td align="center">Your activity over time</td>
+    <td align="center">A page for each of them</td>
+  </tr>
+</table>
+
+- Look at the last 4 weeks, 6 months, year, or your whole history.
+- Share 8 story cards and a square summary, drawn on your device.
+- Keep several packages and switch between them.
+
+The screenshots and cards show a made-up account.
+
+## Your data
+
+- You paste the link from Discord's email. Our server downloads the package, turns it into a database with [`dumpus-processor`](processor), and deletes the zip.
+- It stores that database encrypted with a key from your link, and deletes the link once processing starts, so what it keeps can't be read without your link. The app decrypts it on your device.
+- **Delete current package** in the settings deletes it from your device and from our server. Encrypted copies are deleted after 90 days anyway.
+- It's all open source, and you can [run your own server](api/README.md#self-hosting).
+
+## Processing in Go
+
+Packages are processed in Go: **3.7× faster** and **5× less memory** than with Python.
 
 |                                  | Python | Go     |
 | -------------------------------- | ------ | ------ |
@@ -15,58 +61,19 @@
 
 Tested on real packages, 2 CPUs, median of 3 runs per package.
 
-</details>
+## In this repo
 
-Dumpus is a cross-platform app that gives you advanced statistics on your Discord account. The application analyzes your "Discord Data Package", which you can request in the Discord application settings.
+| Folder                                                                         | What it is                                                                      |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| [`src/`](src), [`android/`](android), [`ios/`](ios), [`src-tauri/`](src-tauri) | The app, in Next.js, with Capacitor for Android and iOS and Tauri on desktop    |
+| [`api/`](api)                                                                  | The API that queues packages and hands out their encrypted databases, in Python |
+| [`processor/`](processor)                                                      | `dumpus-processor`, which turns a package into the app's database, in Go        |
+| [`landing/`](landing)                                                          | [dumpus.app](https://dumpus.app), the website                                   |
 
-You can join [our Discord server](https://androz2091.fr/discord) to keep up to date and give us your feedback.
+## Contributing
 
-## Download
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to send a change
+- [DEVELOPERS.md](DEVELOPERS.md): run and build the app
+- [TRANSLATING.md](TRANSLATING.md): translate it on Crowdin
 
-<a href="https://play.google.com/store/apps/details?id=app.dumpus.app" target="_blank">
-<img src="./assets/playstore.svg" height="90px" />
-</a>
-<a href="https://apps.apple.com/us/app/dumpus-stats-for-discord/id6450952260" target="_blank">
-<img src="./assets/appstore.svg" height="90px" />
-</a>
-
-or use the [web version](https://web.dumpus.app), or [Windows, macOS, Linux builds](https://github.com/Androz2091/dumpus-app/releases/latest).
-
-## Screenshots
-
-|                                                       |                                                       |                                                       |
-| ----------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------- |
-| <img src="./assets/screenshot1.jpg" height="400px" /> | <img src="./assets/screenshot2.jpg" height="400px" /> | <img src="./assets/screenshot3.jpg" height="400px" /> |
-
-## Made with
-
-<code><img height="20" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/react/react.png"></code> **React** (front-end)  
-<code><img height="20" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/python/python.png"></code> **Python** (API)  
-<code><img height="20" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/go/go.png"></code> **Go** (package processing)  
-<code><img height="20" src="https://raw.githubusercontent.com/github/explore/80688e429a7d4ef2fca1e82350fe8e3517d3494d/topics/postgresql/postgresql.png"></code> **PostgreSQL** (database)  
-<code><img height="20" src="https://3776657.fs1.hubspotusercontent-na1.net/hub/3776657/hubfs/capacitor-icon.png"></code> **Capacitor** (cross-platform support)
-
-## What's new?
-
-This app is the v2 of the existing [Discord Data Package Explorer](https://ddpe.androz2091.fr), a.k.a **DDPE**. You can see the improvements below:
-
-| Feature                                   | Dumpus        | DDPE                                      |
-| ----------------------------------------- | ------------- | ----------------------------------------- |
-| **100% open source**                      | ✅            | ✅                                        |
-| **Cross-platform**                        | ✅            | ❌ (web only)                             |
-| **Server-side processing**                | ✅            | ❌ (only work on really powerful devices) |
-| **Advanced statistics**                   | ✅            | ❌ (only basic analysis)                  |
-| **More than 10 top DMs/servers/channels** | ✅ (up to 20) | ❌ (10 max)                               |
-| **Shareable stats card**                  | ✅            | ❌                                        |
-| **Multi-packages handling**               | ✅            | ❌                                        |
-
-Users that self-host the project can access unlimited top (instead of 20) for free. When using our hosted API, users can buy the `Supporter` version to get the access.
-
-## Self-hosting
-
-You can self-host **everything** in the project, for free. You can build the app for all the environments (mobile, web, desktop...), host your own instance of the API, the database, to keep **complete control on your data**.
-[Here is a guide to self-host the app](./DEVELOPERS.md), and [one for the API](./api/README.md#self-hosting).
-
-## Need help?
-
-If you need help, you can join the [Discord server](https://androz2091.fr/discord) or open an issue.
+Dumpus is the next version of the [Discord Data Package Explorer](https://ddpe.androz2091.fr), and is licensed under [GPL-3.0](LICENSE).
