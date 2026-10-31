@@ -5,6 +5,7 @@ allowBuilds:
   # dependency that ships it failed to install.
   esbuild: false
 overrides:
-  # jsdom, which renders the pages at build time, asks for 4.0.0, which has
-  # two advisories (GHSA-fjxv-7rqg-78g4, GHSA-hmw2-7cc7-3qxx).
+  # jsdom, which renders the pages at build time, asks for versions with
+  # advisories: form-data 4.0.0 and ws 8.13.0.
   form-data: ^4.0.6
+  ws: ^8.21.0
