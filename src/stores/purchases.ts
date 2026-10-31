@@ -42,7 +42,6 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
     }
 
     try {
-      // @ts-ignore
       await import("cordova-plugin-purchase");
       const { ProductType, Platform, store } = window.CdvPurchase;
 

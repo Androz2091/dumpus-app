@@ -55,8 +55,8 @@ export default function UsageStats() {
     <Section title={t("sheerNumbers")} href="/stats">
       <ScrollArea orientation="horizontal">
         <div className="flex">
-          {data.map((stat, i) => (
-            <StatCard key={i} {...stat} className="ml-2 shrink-0" />
+          {data.map((stat) => (
+            <StatCard key={stat.label} {...stat} className="ml-2 shrink-0" />
           ))}
           <ScrollArea.Spacer />
         </div>

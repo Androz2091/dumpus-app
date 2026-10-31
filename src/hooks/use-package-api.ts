@@ -25,7 +25,7 @@ export default function usePackageAPI({
     path: string;
     method: "GET" | "POST" | "PUT" | "DELETE";
     headers?: HeadersInit;
-    body?: any;
+    body?: unknown;
   }) {
     return fetch(baseURL + path, {
       method,
@@ -167,5 +167,15 @@ export default function usePackageAPI({
     return data;
   }
 
-  return { process, status, data, remove, user };
+  async function isAlive() {
+    try {
+      const response = await api({ path: "/health", method: "GET" });
+      const { status } = (await response.json()) as { status?: unknown };
+      return status === "alive";
+    } catch {
+      return false;
+    }
+  }
+
+  return { process, status, data, remove, user, isAlive };
 }

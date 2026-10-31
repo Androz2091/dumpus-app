@@ -28,7 +28,7 @@ const Label = React.forwardRef<
 ));
 Label.displayName = LabelPrimitive.Root.displayName;
 
-function Form<TFieldValues extends FieldValues, TContext = any>(
+function Form<TFieldValues extends FieldValues, TContext = unknown>(
   props: FormProviderProps<TFieldValues, TContext>,
 ) {
   return <FormProvider {...props} />;

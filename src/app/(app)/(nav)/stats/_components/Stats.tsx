@@ -5,9 +5,7 @@
 import {
   ArrowLeftOnRectangleIcon,
   BanknotesIcon,
-  BellAlertIcon,
   ClockIcon,
-  PhoneArrowDownLeftIcon,
   UsersIcon,
   ChatBubbleBottomCenterTextIcon,
   CursorArrowRippleIcon,
@@ -18,18 +16,12 @@ import useUsageStatsData from "~/hooks/data/use-usage-stats-data";
 import { useTranslation } from "~/i18n/client";
 import { useSelectedPackage } from "~/stores";
 import type { Icon } from "~/types";
-import {
-  formatHour,
-  formatMoney,
-  formatNumber,
-  formatDuration,
-} from "~/utils/format";
+import { formatMoney, formatNumber, formatDuration } from "~/utils/format";
 
 export default function Stats() {
   const {
     networkSize,
     servers,
-    topHour,
     spentMoney,
     appStarted,
     avgAppStartedPerDay,
@@ -63,25 +55,7 @@ export default function Stats() {
           title: t(joinedInRange ? "stats.newServers" : "stats.joinedServers"),
           description: t("stats.joinedServersDesc"),
           icon: ArrowLeftOnRectangleIcon,
-        } /*
-    {
-      value: "N/A",
-      title: "received calls",
-      description: "lorem ipsum",
-      icon: PhoneArrowDownLeftIcon,
-    },
-    {
-      value: "N/A",
-      title: "opened notifs.",
-      description: "lorem ipsum",
-      icon: BellAlertIcon,
-    },
-    {
-      value: formatHour(topHour),
-      title: "top hour",
-      description: "lorem ipsum",
-      icon: ClockIcon,
-    },*/,
+        },
     {
       value: formatNumber(networkSize()),
       title: t("stats.knownUsers"),
@@ -91,8 +65,6 @@ export default function Stats() {
     {
       value: formatMoney(spentMoney() || 0),
       title: t("stats.spentMoney"),
-      // TODO: fix this more properly (context is not working because of keyof)
-      // @ts-ignore
       description: t("stats.spentMoneyDesc", {
         context: (spentMoney() || 0) > 0 ? "positive" : "empty",
       }),
@@ -122,9 +94,9 @@ export default function Stats() {
 
   return (
     <div className="desktop-container grid grid-cols-1 gap-2 px-2 py-4 sm:grid-cols-2 sm:py-8 md:grid-cols-3">
-      {data.map(({ value, title, description, icon: Icon }, i) => (
+      {data.map(({ value, title, description, icon: Icon }) => (
         <DetailCard
-          key={i}
+          key={title}
           leftSlot={<Icon className="h-8 w-8 text-gray-500" />}
           title={
             <>

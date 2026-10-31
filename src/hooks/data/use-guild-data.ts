@@ -41,7 +41,6 @@ export default function useGuildData({ guildID }: { guildID: string }) {
   }
 
   function getMessagesCount() {
-    // TODO: implement query
     const { data, hasError } = sql<{ message_count: number }>`
     SELECT SUM(occurence_count) AS message_count
     FROM activity
