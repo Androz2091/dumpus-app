@@ -43,10 +43,17 @@ function GuildDetails() {
   const params = useSearchParams()!;
   const id = params.get("id")!;
 
-  const { hasData, guild, stats, topBots, topChannels, dailySentMessages } =
-    useGuildData({
-      guildID: id,
-    });
+  const {
+    hasData,
+    guild,
+    memberCount,
+    stats,
+    topBots,
+    topChannels,
+    dailySentMessages,
+  } = useGuildData({
+    guildID: id,
+  });
 
   if (!guild) return <NotFoundState />;
 
@@ -55,7 +62,11 @@ function GuildDetails() {
   return (
     <>
       <PageHeader title={guild.guild_name} discordLink={discordLink} />
-      <Profile guild={guild} discordLink={discordLink} />
+      <Profile
+        guild={guild}
+        memberCount={memberCount}
+        discordLink={discordLink}
+      />
       {hasData ? (
         <>
           <Stats

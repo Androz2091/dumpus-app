@@ -6,7 +6,7 @@ import type {
   Guild,
   GuildChannelsData,
 } from "~/types/sql";
-import { carriesEvent } from "./_availability";
+import { carriesEvent, countsGuildMembers } from "./_availability";
 import { groupDays } from "./_chart";
 import { topLocalHour, type DayHourCount } from "./_hours";
 import { useDataSources } from "./_shared";
@@ -38,6 +38,19 @@ export default function useGuildData({ guildID }: { guildID: string }) {
   `;
 
     return hasError ? null : data[0];
+  }
+
+  /** Null when the package doesn't say, see `countsGuildMembers`. */
+  function getMemberCount() {
+    if (!countsGuildMembers(sql)) return null;
+
+    const { data, hasError } = sql<Pick<Guild, "member_count">>`
+      SELECT member_count
+      FROM guilds
+      WHERE guild_id = '${guildID}'
+      LIMIT 1;
+    `;
+    return hasError ? null : (data[0].member_count ?? null);
   }
 
   function getMessagesCount() {
@@ -170,6 +183,7 @@ export default function useGuildData({ guildID }: { guildID: string }) {
   return {
     hasData,
     guild: getGuild(),
+    memberCount: getMemberCount(),
     stats: {
       messagesCount: getMessagesCount(),
       invitesCount: getInvitesCount(),

@@ -3,6 +3,7 @@ package processor
 import (
 	"bytes"
 	"encoding/json"
+	"strconv"
 	"sync"
 )
 
@@ -81,6 +82,7 @@ const (
 	fApplicationID
 	fUserID
 	fEmojiName
+	fGuildSizeTotal
 	numFields
 )
 
@@ -94,6 +96,7 @@ var fieldNames = [numFields]string{
 	fApplicationID:        "application_id",
 	fUserID:               "user_id",
 	fEmojiName:            "emoji_name",
+	fGuildSizeTotal:       "guild_size_total",
 }
 
 var fieldIndex = func() map[string]int {
@@ -204,7 +207,19 @@ type (
 		channel, guild uint32
 		join           bool
 	}
+	guildSize struct {
+		ts      int64
+		order   uint64
+		members int64
+	}
 )
+
+// A guild's member count changes over time, and lines aren't in time order,
+// so the count kept is the one of the latest event, the one closest to the
+// export.
+func (s guildSize) after(t guildSize) bool {
+	return s.ts > t.ts || s.ts == t.ts && s.order > t.order
+}
 
 // names interns the strings stored events carry, for all the workers of a
 // stream: a stream repeats a few os names and ids many times, and a stored
@@ -254,6 +269,7 @@ type activityAgg struct {
 	reactions     map[reactionKey]int64
 	appOpened     map[osDayKey]int64
 	channelOpened map[channelDayKey]int64
+	guildSizes    map[uint32]guildSize
 	sessions      []sessionEvent
 	voice         []voiceEvent
 	sessionParts  [][]sessionEvent
@@ -270,7 +286,14 @@ func newActivityAgg() *activityAgg {
 		reactions:     map[reactionKey]int64{},
 		appOpened:     map[osDayKey]int64{},
 		channelOpened: map[channelDayKey]int64{},
+		guildSizes:    map[uint32]guildSize{},
 		issues:        map[issueKey]int{},
+	}
+}
+
+func (a *activityAgg) keepGuildSize(guild uint32, s guildSize) {
+	if cur, seen := a.guildSizes[guild]; !seen || s.after(cur) {
+		a.guildSizes[guild] = s
 	}
 }
 
@@ -305,6 +328,9 @@ func (a *activityAgg) merge(b *activityAgg) {
 	}
 	for k, n := range b.channelOpened {
 		a.channelOpened[k] += n
+	}
+	for g, s := range b.guildSizes {
+		a.keepGuildSize(g, s)
 	}
 	// Stored events are kept per chunk and joined once, at their final size.
 	if len(b.sessions) > 0 {
@@ -449,6 +475,31 @@ func (r *lineReader) text(spec eventSpec, f *eventFields, field int) (uint32, bo
 	}
 	r.issue(spec, field, ProblemWrongType)
 	return 0, false
+}
+
+// count reads a field holding a count, which exports write as a string, for
+// eg. `"509"`.
+func (r *lineReader) count(spec eventSpec, f *eventFields, field int) (int64, bool) {
+	v := f.values[field]
+	var s string
+	switch kindOf(v) {
+	case kindString:
+		s, _ = decodeString(v)
+	case kindNumber:
+		s = string(v)
+	case kindNull:
+		r.issue(spec, field, ProblemNull)
+		return 0, false
+	default:
+		r.issue(spec, field, ProblemWrongType)
+		return 0, false
+	}
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil || n < 0 {
+		r.issue(spec, field, ProblemUnparseable)
+		return 0, false
+	}
+	return n, true
 }
 
 // outcome is what event did with an event of a type the parser reads. A field
@@ -619,6 +670,16 @@ func (r *lineReader) event(spec eventSpec, f *eventFields, order uint64) outcome
 			return eventSkipped
 		}
 		a.channelOpened[channelDayKey{channel: channel, day: floorDiv(ts, secondsPerDay)}]++
+		// Member counts come from `channel_opened` alone: it gives one for
+		// nearly every guild of the servers index, and the other event types
+		// carrying `guild_size_total` would be decoded for little more.
+		if f.has(fGuildID) && f.has(fGuildSizeTotal) {
+			guild, guildOK := r.text(spec, f, fGuildID)
+			members, membersOK := r.count(spec, f, fGuildSizeTotal)
+			if guildOK && membersOK && guild != 0 {
+				a.keepGuildSize(guild, guildSize{ts: ts, order: order, members: members})
+			}
+		}
 
 	case evDaily:
 		ts, ok := r.timestamp(spec, f, fTimestamp)

@@ -74,8 +74,12 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 			totals[*c.guildID] += c.total
 		}
 	}
+	members := make(map[string]*int64, len(act.guildSizes))
+	for id, s := range act.guildSizes {
+		members[act.names.str(id)] = &s.members
+	}
 	for _, g := range pf.guilds {
-		m.Guilds = append(m.Guilds, Guild{GuildID: g.id, GuildName: g.name, TotalMessageCount: totals[g.id]})
+		m.Guilds = append(m.Guilds, Guild{GuildID: g.id, GuildName: g.name, TotalMessageCount: totals[g.id], MemberCount: members[g.id]})
 	}
 
 	m.Payments = pf.payments

@@ -50,7 +50,9 @@ Each limit sits far above the maxima measured on real exports. Past one, the pro
 - A row SQLite refuses is skipped and counted in `dropped_rows`, and rows come in another order, so rowids differ.
 - `package_data` has one more column, `activity_stream`: the stream read, `analytics` or `reporting`, or NULL when none was. `reporting` never carries some event types, for eg. `message_edited`, so their counts are unknown, not 0.
 - The worker wrote `oauth2_authorize_accepted` only beside a `bot_token_compromised`, `notification_clicked` beside a `dev_portal_page_viewed` of a `/docs/` page, and `voice_message_recorded` beside an `application_created`; the processor writes each whenever the stream has it.
-- `activity` also counts `channel_opened` per day for each channel of `guild_channels_data`, which the worker never read, and `package_version` is `0.2.0` instead of `0.1.0`, so that the app can tell a database without those counts.
+- `activity` also counts `channel_opened` per day for each channel of `guild_channels_data`, which the worker never read, since `package_version` `0.2.0`.
+- `guilds` has one more column, `member_count`: the guild's `guild_size_total` in its latest `channel_opened`, or NULL, since `0.3.0`.
+- `package_version` is `0.3.0` instead of the worker's `0.1.0`, so that the app can tell a database without these.
 
 ## License
 
