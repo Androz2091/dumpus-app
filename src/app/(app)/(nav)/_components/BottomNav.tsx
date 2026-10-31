@@ -3,15 +3,14 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
-import { useMeasure, useMount, useUnmount } from "react-use";
-import { palette } from "~/utils/palette";
+import { useEffect, useLayoutEffect } from "react";
+import { useMeasure, useUnmount } from "react-use";
 import { useShallow } from "zustand/react/shallow";
 import LinkPending, { usePendingHref } from "~/components/LinkPending";
 import PendingBar from "~/components/PendingBar";
 import { links as _links } from "~/constants";
 import { useTranslation } from "~/i18n/client";
-import { DEFAULT_SAFE_AREA_INSET_COLOR, useAppStore } from "~/stores";
+import { useAppStore } from "~/stores";
 import TimeSelector, { useTimeRangePending } from "./TimeSelector";
 
 const links = _links.filter((link) => !link.desktop);
@@ -25,30 +24,36 @@ export default function BottomNav() {
     links.find((link) => link.href === pendingHref) ??
     links.find((link) => link.active(pathname));
 
+  // The bar's content box, without its inset padding.
   const [ref, { height }] = useMeasure<HTMLDivElement>();
-  const [setHeight, setSafeAreaBottomColor] = useAppStore(
-    useShallow(({ ui }) => [ui.setBottomNavHeight, ui.setSafeAreaBottomColor]),
+  const [setHeight, setShown] = useAppStore(
+    useShallow(({ ui }) => [ui.setBottomNavHeight, ui.setBottomNavShown]),
   );
 
   useEffect(() => {
     setHeight(height);
   }, [height, setHeight]);
 
-  useMount(() => {
-    setSafeAreaBottomColor(palette.gray[900]);
-  });
+  // Before the bar paints, so the page's own inset strip goes in the same
+  // frame instead of showing over the bar.
+  useLayoutEffect(() => {
+    setShown(true);
+    return () => setShown(false);
+  }, [setShown]);
 
   useUnmount(() => {
     setHeight(0);
-    setSafeAreaBottomColor(DEFAULT_SAFE_AREA_INSET_COLOR);
   });
 
   return (
     <div className="contents sm:hidden">
-      <div className="mt-auto" style={{ height: `${height}px` }} />
+      <div
+        className="mt-auto"
+        style={{ height: `calc(${height}px + var(--safe-area-bottom-inset))` }}
+      />
       <div
         ref={ref}
-        className="fixed right-0 bottom-safe-area-bottom-inset left-0 z-20"
+        className="fixed right-0 bottom-0 left-0 z-20 bg-gray-900 pb-safe-area-bottom-inset"
       >
         <PendingBar
           active={pendingHref !== null || rangePending}
