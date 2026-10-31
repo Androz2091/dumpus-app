@@ -66,8 +66,7 @@ export default function SimpleBarChart({
           <Bar
             dataKey="value"
             name={legend}
-            // fill-brand-300
-            fill="#7dd3fc"
+            fill="var(--brand-300)"
             animationDuration={300}
           >
             {!monochrome &&

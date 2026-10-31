@@ -63,18 +63,17 @@ export default function SimpleLineChart({
             type="monotone"
             // className="fill-brand-200"
             name={legend}
-            // stroke-brand-300
-            stroke="#7dd3fc"
+            stroke="var(--brand-300)"
             strokeWidth={2}
             dot={{
-              fill: "#7dd3fc",
-              stroke: "#7dd3fc",
+              fill: "var(--brand-300)",
+              stroke: "var(--brand-300)",
               strokeWidth: showSmallDots ? 0 : 3,
             }}
             // stroke-brand-200
             activeDot={{
-              fill: "#7dd3fc",
-              stroke: "#7dd3fc",
+              fill: "var(--brand-300)",
+              stroke: "var(--brand-300)",
               strokeWidth: showSmallDots ? 1 : 4,
             }}
             animationDuration={300}

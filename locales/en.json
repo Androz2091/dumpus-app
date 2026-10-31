@@ -246,6 +246,13 @@
       "title": "Languages",
       "description": "{{- value}} available"
     },
+    "theme": {
+      "title": "Theme",
+      "blue": "Blue",
+      "green": "Green",
+      "purple": "Purple",
+      "orange": "Orange"
+    },
     "dangerZone": {
       "title": "Danger Zone",
       "description": "Your data will be deleted from this device and our servers, but you can still access it by using the email sent by Discord. Thanks for trying the app, give us some feedback on GitHub!",

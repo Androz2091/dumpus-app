@@ -9,6 +9,7 @@ import Languages from "./_components/Languages";
 import PackageDetails from "./_components/PackageDetails";
 import PackageSwitch from "./_components/PackageSwitch";
 import PageHeader from "./_components/PageHeader";
+import Themes from "./_components/Themes";
 
 export default function Page() {
   return (
@@ -20,6 +21,7 @@ export default function Page() {
         <PackageDetails />
         <Actions />
         <PackageSwitch />
+        <Themes />
         <div className="desktop-container flex flex-col sm:flex-row sm:gap-2 sm:px-2">
           <Languages />
           <DangerZone />

@@ -64,8 +64,10 @@ export default forwardRef<HTMLDivElement, { data: ShareData }>(function Habits(
     <ShareCardFrame
       ref={ref}
       rangeLabel={t(`share.range.${data.range.id}` as const)}
-      background={`radial-gradient(90% 50% at 90% 10%, rgba(56,189,248,0.28) 0%, rgba(2,6,23,0) 70%), ${slate[900]}`}
-      texture={<Facets seed={data.seed ^ 29} color="#7dd3fc" max={0.08} />}
+      background={`radial-gradient(90% 50% at 90% 10%, rgb(var(--brand-400-rgb) / 0.28) 0%, rgba(2,6,23,0) 70%), ${slate[900]}`}
+      texture={
+        <Facets seed={data.seed ^ 29} color="var(--brand-300)" max={0.08} />
+      }
     >
       <Eyebrow className="text-brand-300">{t("share.habits.eyebrow")}</Eyebrow>
       <Headline>{t("share.habits.headline")}</Headline>

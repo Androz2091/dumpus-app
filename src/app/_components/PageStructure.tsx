@@ -5,6 +5,7 @@ import { CSSProperties } from "react";
 import { useCapacitor } from "~/capacitor/hooks";
 import { useScrollTop } from "~/hooks/use-layout";
 import useStoreInit from "~/hooks/use-store-init";
+import { useAppStore } from "~/stores";
 import { monoFamily, sansFamily } from "../_fonts";
 import SafeArea from "./SafeArea";
 import Scripts from "./Scripts";
@@ -19,12 +20,14 @@ export default function PageStructure({
 
   useCapacitor();
   const init = useStoreInit();
+  const theme = useAppStore(({ config }) => config.theme);
   useScrollTop();
 
   return (
     <html
       lang={locale}
       dir={dir(locale)}
+      data-theme={theme}
       className="h-full bg-gray-950 text-gray-400"
       style={
         {

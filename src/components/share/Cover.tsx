@@ -8,7 +8,7 @@ import { useShareFormat } from "./format";
 import type { ShareData } from "./types";
 import useFitText from "./use-fit-text";
 
-const { sky, slate } = palette;
+const { slate } = palette;
 const YEAR_MS = 365.25 * 86_400_000;
 
 export default forwardRef<HTMLDivElement, { data: ShareData }>(function Cover(
@@ -37,7 +37,7 @@ export default forwardRef<HTMLDivElement, { data: ShareData }>(function Cover(
     <ShareCardFrame
       ref={ref}
       rangeLabel={rangeLabel}
-      background={`radial-gradient(120% 70% at 85% 0%, ${sky[300]} 0%, ${sky[500]} 34%, ${sky[700]} 62%, ${slate[950]} 100%)`}
+      background={`radial-gradient(120% 70% at 85% 0%, var(--brand-300) 0%, var(--brand-500) 34%, var(--brand-700) 62%, ${slate[950]} 100%)`}
       texture={<Facets seed={data.seed ^ 3} max={0.16} />}
     >
       <Eyebrow>{t("share.cover.eyebrow", { range: rangeLabel })}</Eyebrow>
