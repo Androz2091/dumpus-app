@@ -97,10 +97,13 @@ export default function InAppPurchasesDialog() {
                         </div>
                         <div className="mt-1 flex items-end justify-between">
                           <div className="text-3xl font-semibold text-white">
-                            {formatMoney(
-                              products[0].pricing!.priceMicros / 1_000_000,
-                              { currency: products[0].pricing!.currency },
-                            )}
+                            {/* The store's own string is what it charges, in
+                                the buyer's currency and format. */}
+                            {products[0].pricing!.price ||
+                              formatMoney(
+                                products[0].pricing!.priceMicros / 1_000_000,
+                                { currency: products[0].pricing!.currency },
+                              )}
                           </div>
                           <div className="text-gray-400">
                             {t("premium.oneTime")}
