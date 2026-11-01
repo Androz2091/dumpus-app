@@ -2,6 +2,7 @@ package processor
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"strconv"
 	"sync"
@@ -72,8 +73,11 @@ var eventTypes = func() map[string]eventSpec {
 	return m
 }()
 
+// eventField is a field of an event line that the parser reads.
+type eventField uint8
+
 const (
-	fEventType = iota
+	fEventType eventField = iota
 	fTimestamp
 	fClientTrackTimestamp
 	fOS
@@ -99,10 +103,10 @@ var fieldNames = [numFields]string{
 	fGuildSizeTotal:       "guild_size_total",
 }
 
-var fieldIndex = func() map[string]int {
-	m := make(map[string]int, numFields)
-	for i, name := range fieldNames {
-		m[name] = i
+var fieldIndex = func() map[string]eventField {
+	m := make(map[string]eventField, numFields)
+	for f := range numFields {
+		m[fieldNames[f]] = f
 	}
 	return m
 }()
@@ -112,7 +116,7 @@ type eventFields struct {
 	values  [numFields][]byte
 }
 
-func (f *eventFields) has(i int) bool { return f.present&(1<<i) != 0 }
+func (f *eventFields) has(field eventField) bool { return f.present&(1<<field) != 0 }
 
 // Duplicate keys keep the last value, like Python's dict. The line must have
 // passed `json.Valid`.
@@ -143,11 +147,10 @@ const (
 // sniffEventType reads the event type of a line without decoding it. A plain
 // `"event_type"` that isn't followed by a colon is a string value, not a key.
 func sniffEventType(line []byte) ([]byte, sniff) {
-	i := bytes.Index(line, eventTypeKey)
-	if i < 0 {
+	_, rest, found := bytes.Cut(line, eventTypeKey)
+	if !found {
 		return nil, sniffAbsent
 	}
-	rest := line[i+len(eventTypeKey):]
 	if bytes.Contains(rest, eventTypeKey) {
 		return nil, sniffAmbiguous
 	}
@@ -170,7 +173,7 @@ func sniffEventType(line []byte) ([]byte, sniff) {
 // id in names, 0 being null.
 type (
 	dayKey struct {
-		daily int32 // the index in dailyEvents
+		daily int // the index in dailyEvents
 		day   int64
 	}
 	guildHourKey struct {
@@ -214,6 +217,14 @@ type (
 	}
 )
 
+func (e sessionEvent) byTime(o sessionEvent) int {
+	return cmp.Or(cmp.Compare(e.ts, o.ts), cmp.Compare(e.order, o.order))
+}
+
+func (e voiceEvent) byTime(o voiceEvent) int {
+	return cmp.Or(cmp.Compare(e.ts, o.ts), cmp.Compare(e.order, o.order))
+}
+
 // A guild's member count changes over time, and lines aren't in time order,
 // so the count kept is the one of the latest event, the one closest to the
 // export.
@@ -239,7 +250,7 @@ func (n *names) id(s []byte) uint32 {
 		return id
 	}
 	n.all = append(n.all, string(s))
-	id := uint32(len(n.all))
+	id := uint32(len(n.all)) //nolint:gosec // G115: 2^32 names would need over 128 GiB first
 	n.ids[n.all[id-1]] = id
 	return id
 }
@@ -351,12 +362,8 @@ type lineReader struct {
 	str    []byte
 }
 
-func (r *lineReader) issue(spec eventSpec, field int, problem string) {
-	fname := ""
-	if field >= 0 {
-		fname = fieldNames[field]
-	}
-	r.agg.issues[issueKey{r.s.path, spec.name, fname, problem}]++
+func (r *lineReader) issue(spec eventSpec, field eventField, problem Problem) {
+	r.agg.issues[issueKey{path: r.s.path, eventType: spec.name, field: fieldNames[field], problem: problem}]++
 }
 
 func (r *lineReader) markUsable() {
@@ -381,12 +388,14 @@ func (r *lineReader) line(line []byte, order uint64) {
 			}
 			return
 		}
+	case sniffAmbiguous:
+		// Decided once the line is decoded.
 	}
 	if !json.Valid(line) {
 		if spec.kind != 0 {
 			r.agg.failed++
 		}
-		r.issue(spec, -1, ProblemMalformed)
+		r.agg.issues[issueKey{path: r.s.path, eventType: spec.name, problem: ProblemMalformed}]++
 		return
 	}
 	f := &r.fields
@@ -407,6 +416,8 @@ func (r *lineReader) line(line []byte, order uint64) {
 		r.agg.read++
 	case eventFailed:
 		r.agg.failed++
+	case eventSkipped:
+		// Counted in neither.
 	}
 }
 
@@ -425,7 +436,7 @@ func (r *lineReader) confirmUsable(line []byte) {
 
 // timestamp reads a field holding a timestamp such as `"\"2021-04-06T12:34:56.789Z\""`,
 // the leading quote being part of the value.
-func (r *lineReader) timestamp(spec eventSpec, f *eventFields, field int) (int64, bool) {
+func (r *lineReader) timestamp(spec eventSpec, f *eventFields, field eventField) (int64, bool) {
 	if !f.has(field) {
 		r.issue(spec, field, ProblemMissing)
 		return 0, false
@@ -455,7 +466,7 @@ func (r *lineReader) timestamp(spec eventSpec, f *eventFields, field int) (int64
 }
 
 // text reads a field holding a string, as its id in names; null is 0.
-func (r *lineReader) text(spec eventSpec, f *eventFields, field int) (uint32, bool) {
+func (r *lineReader) text(spec eventSpec, f *eventFields, field eventField) (uint32, bool) {
 	if !f.has(field) {
 		r.issue(spec, field, ProblemMissing)
 		return 0, false
@@ -466,19 +477,20 @@ func (r *lineReader) text(spec eventSpec, f *eventFields, field int) (uint32, bo
 		raw := v[1 : len(v)-1]
 		if bytes.IndexByte(raw, '\\') >= 0 {
 			s, _ := decodeString(v)
-			raw = append(r.str[:0], s...)
-			r.str = raw
+			r.str = append(r.str[:0], s...)
+			raw = r.str
 		}
 		return r.s.names.id(raw), true
 	case kindNull:
 		return 0, true
+	default:
+		r.issue(spec, field, ProblemWrongType)
+		return 0, false
 	}
-	r.issue(spec, field, ProblemWrongType)
-	return 0, false
 }
 
 // Exports write counts as strings, for eg. `"509"`.
-func (r *lineReader) count(spec eventSpec, f *eventFields, field int) (int64, bool) {
+func (r *lineReader) count(spec eventSpec, f *eventFields, field eventField) (int64, bool) {
 	v := f.values[field]
 	var s string
 	switch kindOf(v) {
@@ -685,7 +697,7 @@ func (r *lineReader) event(spec eventSpec, f *eventFields, order uint64) outcome
 		if !ok {
 			return eventFailed
 		}
-		a.daily[dayKey{daily: int32(spec.daily), day: floorDiv(ts, secondsPerDay)}]++
+		a.daily[dayKey{daily: spec.daily, day: floorDiv(ts, secondsPerDay)}]++
 	}
 	return eventRead
 }

@@ -21,18 +21,22 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// ErrorCode is why a package could not be processed.
+type ErrorCode string
+
 // The codes Report.Error carries, the Python worker's.
 const (
-	CodeMissingUserData = "MISSING_USER_DATA"
-	CodeUnknownError    = "UNKNOWN_ERROR"
+	CodeMissingUserData ErrorCode = "MISSING_USER_DATA"
+	CodeUnknownError    ErrorCode = "UNKNOWN_ERROR"
 )
 
 // ErrMissingUserData is returned for a package without `user.json`, which
 // happens when the "User data" option is left out of the export request.
-var ErrMissingUserData = errors.New(CodeMissingUserData)
+var ErrMissingUserData = errors.New(string(CodeMissingUserData))
 
-// The app reads `channel_opened` counts only from 0.2.0, and member counts
-// only from 0.3.0, the first versions to write them.
+// PackageVersion is written to `package_data`. The app reads `channel_opened`
+// counts only from 0.2.0, and member counts only from 0.3.0, the first
+// versions to write them.
 const PackageVersion = "0.3.0"
 
 // Options configure Process.
@@ -43,9 +47,6 @@ type Options struct {
 	// reading the other files. Zero means `GOMAXPROCS`.
 	Workers int
 
-	// chunkBytes is the size of the chunks the activity stream is cut into;
-	// zero means 4 MiB. Tests make it small so that lines span chunks.
-	chunkBytes int
 	// limits replaces the default limits, field by field; set by tests.
 	limits limits
 }
@@ -64,7 +65,7 @@ func Process(ctx context.Context, r io.ReaderAt, size int64, opts Options) (*Res
 	start := time.Now()
 	rep := newReport()
 	m, err := processPackage(ctx, r, size, opts, rep)
-	rep.TimingsMS["total"] = time.Since(start).Milliseconds()
+	rep.TimingsMS.Total = time.Since(start).Milliseconds()
 	if err != nil {
 		// Which issues were found before the failure depends on how far the
 		// concurrent reads got, so a failed report has none.
@@ -99,14 +100,14 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 	}
 	p.share(l.user, l.activity, l.serversIndex, l.messagesIndex, l.payments)
 	if l.user == "" {
-		rep.MissingFiles = append(rep.MissingFiles, MissingFile{Role: "user", Path: "Account/user.json"})
+		rep.MissingFiles = append(rep.MissingFiles, MissingFile{Role: RoleUser, Path: "Account/user.json"})
 		return nil, ErrMissingUserData
 	}
-	p.budget(p.readOrder(l), lim.inflateBudget(size))
+	p.budget(p.readOrder(&l), lim.inflateBudget(size))
 	if err := p.locate(ctx, workers); err != nil {
 		return nil, err
 	}
-	rep.Inputs["user"] = maskPath(l.user)
+	rep.Inputs.User = maskPath(l.user)
 	userData, ok, err := p.readWhole(p.get(l.user))
 	if err != nil {
 		return nil, err
@@ -119,13 +120,13 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 	rep.Counts.Relationships = len(rels)
 
 	var activity *zip.File
-	var stream *string
+	var stream *ActivityStream
 	if l.activity == "" {
-		rep.MissingFiles = append(rep.MissingFiles, MissingFile{Role: "activity", Path: "Activity/analytics/events-*.json"})
+		rep.MissingFiles = append(rep.MissingFiles, MissingFile{Role: RoleActivity, Path: "Activity/analytics/events-*.json"})
 	} else {
-		rep.Inputs["activity"] = maskPath(l.activity)
+		rep.Inputs.Activity = maskPath(l.activity)
 		if f := p.get(l.activity); p.allowed[f] {
-			activity, stream = f, strPtr(l.stream)
+			activity, stream = f, new(l.stream)
 		}
 	}
 
@@ -139,10 +140,9 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 		g.Go(func() error {
 			t := time.Now()
 			a, err := readActivity(gctx, p, activity, activityConfig{
-				workers:    max(workers-1, 1),
-				chunkBytes: cmp.Or(opts.chunkBytes, defaultChunkBytes),
-				lineBytes:  lim.lineBytes,
-				events:     lim.eventLimit(size),
+				workers:   max(workers-1, 1),
+				lineBytes: lim.lineBytes,
+				events:    lim.eventLimit(size),
 			})
 			if err != nil {
 				return err
@@ -153,7 +153,7 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 	}
 	g.Go(func() error {
 		t := time.Now()
-		pf, err := readFiles(gctx, p, l, own.id, workers)
+		pf, err := readFiles(gctx, p, &l, own.id, workers)
 		files, filesTime = pf, time.Since(t)
 		return err
 	})
@@ -161,23 +161,25 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 		return nil, err
 	}
 	if activity != nil {
-		rep.TimingsMS["activity"] = actTime.Milliseconds()
+		rep.TimingsMS.Activity = new(actTime.Milliseconds())
 	}
-	rep.TimingsMS["files"] = filesTime.Milliseconds()
+	rep.TimingsMS.Files = new(filesTime.Milliseconds())
 	iss.merge(act.issues)
 
-	for role, path := range map[string]string{
-		"servers_index": l.serversIndex, "messages_index": l.messagesIndex, "payments": l.payments,
-	} {
-		if path != "" && p.get(path) != nil {
-			rep.Inputs[role] = maskPath(path)
+	found := func(path string) string {
+		if path == "" || p.get(path) == nil {
+			return ""
 		}
+		return maskPath(path)
 	}
+	rep.Inputs.ServersIndex = found(l.serversIndex)
+	rep.Inputs.MessagesIndex = found(l.messagesIndex)
+	rep.Inputs.Payments = found(l.payments)
 	rep.MissingFiles = append(rep.MissingFiles, files.missing...)
 
 	t := time.Now()
 	m := buildModel(opts.PackageID, own, rels, files, act, stream, p.skipped.Load())
-	rep.TimingsMS["build"] = time.Since(t).Milliseconds()
+	rep.TimingsMS.Build = new(time.Since(t).Milliseconds())
 	rep.Counts.ActivityLines = act.lines
 	rep.Counts.ActivityEvents = act.events
 	rep.Counts.ChannelFiles = len(files.channels)
@@ -218,7 +220,7 @@ type packageFiles struct {
 	messages          int64
 }
 
-func readFiles(ctx context.Context, p *pkg, l layout, ownerID string, workers int) (*packageFiles, error) {
+func readFiles(ctx context.Context, p *pkg, l *layout, ownerID string, workers int) (*packageFiles, error) {
 	pf := &packageFiles{channels: make([]channelResult, len(l.channels))}
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(workers)
@@ -258,22 +260,15 @@ func readFiles(ctx context.Context, p *pkg, l layout, ownerID string, workers in
 	}
 
 	if !pf.serversIndexRead {
-		pf.missing = append(pf.missing, MissingFile{Role: "servers_index", Path: maskPath(orDefault(l.serversIndex, "Servers/index.json"))})
+		pf.missing = append(pf.missing, MissingFile{Role: RoleServersIndex, Path: maskPath(cmp.Or(l.serversIndex, "Servers/index.json"))})
 	}
 	if !pf.messagesIndexRead {
-		pf.missing = append(pf.missing, MissingFile{Role: "messages_index", Path: maskPath(orDefault(l.messagesIndex, "Messages/index.json"))})
+		pf.missing = append(pf.missing, MissingFile{Role: RoleMessagesIndex, Path: maskPath(cmp.Or(l.messagesIndex, "Messages/index.json"))})
 	}
 	for _, c := range pf.channels {
 		pf.messages += c.total
 	}
 	return pf, nil
-}
-
-func orDefault(s, def string) string {
-	if s == "" {
-		return def
-	}
-	return s
 }
 
 // `channel.json` is parsed before looking for `messages.json`, so a malformed
@@ -285,7 +280,7 @@ func readChannelFolder(p *pkg, channelPath, ownerID string) (channelResult, erro
 	}
 	channel, err := parseObject(data)
 	if err != nil {
-		p.iss.add(channelPath, "", "", problemOf(err), 1)
+		p.iss.add(channelPath, "", problemOf(err), 1)
 		return channelResult{}, nil
 	}
 	id, messagesPath, found := messagesEntryFor(channelPath)
@@ -303,7 +298,7 @@ func readChannelFolder(p *pkg, channelPath, ownerID string) (channelResult, erro
 		return channelResult{}, fmt.Errorf("%s: %w", maskPath(messagesPath), err)
 	}
 	defer e.Close()
-	res, err := readChannel(channelInput{
+	res, err := readChannel(&channelInput{
 		channelPath: channelPath, channel: channel, channelID: id, messagesPath: messagesPath, messages: e,
 	}, ownerID, p.iss)
 	if err == nil {

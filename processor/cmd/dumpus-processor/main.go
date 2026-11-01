@@ -31,24 +31,27 @@ import (
 	"github.com/dumpus-app/dumpus-app/processor/sqlitedb"
 )
 
+// exitCode is what the command exits with, see the package comment.
+type exitCode int
+
 const (
-	exitOK              = 0
-	exitFailed          = 1
-	exitMissingUserData = 3
-	exitReportFailed    = 4
-	exitUsage           = 64
+	exitOK              exitCode = 0
+	exitFailed          exitCode = 1
+	exitMissingUserData exitCode = 3
+	exitReportFailed    exitCode = 4
+	exitUsage           exitCode = 64
 )
 
-const codeReportFailed = "REPORT_FAILED"
+const codeReportFailed processor.ErrorCode = "REPORT_FAILED"
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	code := run(ctx, os.Args[1:], os.Stderr)
 	stop()
-	os.Exit(code)
+	os.Exit(int(code))
 }
 
-func run(ctx context.Context, args []string, stderr io.Writer) int {
+func run(ctx context.Context, args []string, stderr io.Writer) exitCode {
 	fs := flag.NewFlagSet("dumpus-processor", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	input := fs.String("input", "", "the package `zip`")
@@ -63,7 +66,7 @@ func run(ctx context.Context, args []string, stderr io.Writer) int {
 		return exitUsage
 	}
 	if *input == "" || *output == "" || *packageID == "" || fs.NArg() > 0 {
-		fmt.Fprintln(stderr, "dumpus-processor: --input, --output and --package-id are required")
+		_, _ = fmt.Fprintln(stderr, "dumpus-processor: --input, --output and --package-id are required")
 		fs.Usage()
 		return exitUsage
 	}
@@ -80,7 +83,7 @@ func run(ctx context.Context, args []string, stderr io.Writer) int {
 	if rep != nil && *reportPath != "" {
 		if werr := writeReport(*reportPath, rep); werr != nil {
 			if code != exitOK {
-				fmt.Fprintf(stderr, "dumpus-processor: report: %v\n", werr)
+				_, _ = fmt.Fprintf(stderr, "dumpus-processor: report: %v\n", werr)
 			} else {
 				code, fail = exitReportFailed, failure{Error: codeReportFailed, Message: werr.Error()}
 			}
@@ -88,22 +91,22 @@ func run(ctx context.Context, args []string, stderr io.Writer) int {
 	}
 	if code != exitOK {
 		line, _ := json.Marshal(fail)
-		fmt.Fprintln(stderr, string(line))
+		_, _ = fmt.Fprintln(stderr, string(line))
 	}
 	return code
 }
 
 // failure is the last line of stderr when the run fails.
 type failure struct {
-	Error   string `json:"error"`
-	Message string `json:"message,omitempty"`
+	Error   processor.ErrorCode `json:"error"`
+	Message string              `json:"message,omitempty"`
 }
 
 // report is what --report writes: the processor's report and the rows the
 // database refused.
 type report struct {
 	*processor.Report
-	DroppedRows map[string]int `json:"dropped_rows,omitempty"`
+	DroppedRows sqlitedb.DroppedRows `json:"dropped_rows,omitzero"`
 }
 
 func process(ctx context.Context, input, output, packageID string, workers int) (*report, error) {
@@ -111,7 +114,7 @@ func process(ctx context.Context, input, output, packageID string, workers int) 
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	st, err := f.Stat()
 	if err != nil {
 		return nil, err
@@ -128,21 +131,17 @@ func process(ctx context.Context, input, output, packageID string, workers int) 
 		err = os.Rename(tmp, output)
 	}
 	if err != nil {
-		os.Remove(tmp)
-		os.Remove(tmp + "-journal")
+		_ = os.Remove(tmp)
+		_ = os.Remove(tmp + "-journal")
 		rep.Error = processor.CodeUnknownError
 		return rep, err
 	}
-	if len(written.DroppedRows) > 0 {
-		rep.DroppedRows = written.DroppedRows
-	}
+	rep.DroppedRows = written.DroppedRows
 	return rep, nil
 }
 
 func writeReport(path string, r *report) error {
-	data, err := json.MarshalIndent(r, "", "  ")
-	if err != nil {
-		return err
-	}
+	// Nothing in a report is a value that encoding can fail on.
+	data, _ := json.MarshalIndent(r, "", "  ")
 	return os.WriteFile(path, append(data, '\n'), 0o600)
 }

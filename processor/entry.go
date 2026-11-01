@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"hash"
 	"hash/crc32"
 	"io"
+	"math"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -30,7 +30,7 @@ type pkg struct {
 	iss     *issues
 	allowed map[*zip.File]bool       // the entries within the inflate budget
 	reads   []*zip.File              // the same, in the order the budget allowed them
-	offsets map[*zip.File]int64      // where the data of each allowed entry starts, see locate
+	data    map[*zip.File]dataRange  // where the compressed data of each allowed entry lies, see locate
 	shared  map[*zip.File]*wholeRead // the entries several roles name, see share
 	skipped atomic.Bool              // an entry, folder or line was left out: the package is partial
 }
@@ -92,7 +92,7 @@ func (p *pkg) budget(order []*zip.File, total uint64) {
 // overlapped entries. It runs before any data is read: entries pointing at one
 // stream would each read it again, as much as they declare.
 func (p *pkg) locate(ctx context.Context, workers int) error {
-	starts := make([]int64, len(p.reads))
+	found := make([]dataRange, len(p.reads))
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(workers)
 	for i, f := range p.reads {
@@ -100,26 +100,44 @@ func (p *pkg) locate(ctx context.Context, workers int) error {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			off, err := f.DataOffset()
+			d, err := dataOf(f)
 			if err != nil {
 				return fmt.Errorf("%s: %w", maskPath(f.Name), err)
 			}
-			starts[i] = off
+			found[i] = d
 			return nil
 		})
 	}
 	if err := g.Wait(); err != nil {
 		return err
 	}
-	p.offsets = make(map[*zip.File]int64, len(p.reads))
+	p.data = make(map[*zip.File]dataRange, len(p.reads))
 	ranges := make([]dataRange, 0, len(p.reads))
 	for i, f := range p.reads {
-		p.offsets[f] = starts[i]
-		if end := starts[i] + int64(f.CompressedSize64); end > starts[i] {
-			ranges = append(ranges, dataRange{start: starts[i], end: end})
+		p.data[f] = found[i]
+		if found[i].end > found[i].start {
+			ranges = append(ranges, found[i])
 		}
 	}
 	return checkRanges(ranges)
+}
+
+// dataOf is where the compressed data of an entry lies. A size that would end
+// the data past the largest offset, which only a crafted package declares,
+// fails the package rather than escape checkRanges.
+func dataOf(f *zip.File) (dataRange, error) {
+	start, err := f.DataOffset()
+	if err != nil {
+		return dataRange{}, err
+	}
+	if f.CompressedSize64 > math.MaxInt64 {
+		return dataRange{}, zip.ErrFormat
+	}
+	size := int64(f.CompressedSize64)
+	if size > math.MaxInt64-start {
+		return dataRange{}, zip.ErrFormat
+	}
+	return dataRange{start: start, end: start + size}, nil
 }
 
 func checkRanges(ranges []dataRange) error {
@@ -134,8 +152,8 @@ func checkRanges(ranges []dataRange) error {
 
 // skip reports an entry the processor leaves out, a duplicate or past a limit,
 // which makes the package partial.
-func (p *pkg) skip(f *zip.File, problem string) {
-	p.iss.add(f.Name, "", "", problem, 1)
+func (p *pkg) skip(f *zip.File, problem Problem) {
+	p.iss.add(f.Name, "", problem, 1)
 	p.skipped.Store(true)
 }
 
@@ -172,11 +190,11 @@ func (p *pkg) inflateWhole(f *zip.File) (data []byte, ok bool, err error) {
 
 // open inflates an allowed entry from where locate found its data.
 func (p *pkg) open(f *zip.File, checksum bool) (*entryReader, error) {
-	start, ok := p.offsets[f]
+	d, ok := p.data[f]
 	if !ok {
 		return nil, fmt.Errorf("%s: read before it was located", maskPath(f.Name))
 	}
-	return newEntryReader(f, io.NewSectionReader(p.r, start, int64(f.CompressedSize64)), checksum)
+	return newEntryReader(f, io.NewSectionReader(p.r, d.start, d.end-d.start), checksum)
 }
 
 // entryReader inflates a zip entry, reading its compressed data through a
@@ -185,16 +203,17 @@ func (p *pkg) open(f *zip.File, checksum bool) (*entryReader, error) {
 // 4 KiB, a request each when the package is read over HTTP. It fails as soon as
 // the entry yields more than its declared size.
 type entryReader struct {
-	r     io.Reader
-	close func() error
-	f     *zip.File
-	n     uint64
-	crc   hash.Hash32 // nil when the caller checksums the data itself
+	r        io.Reader
+	close    func() error
+	f        *zip.File
+	n        uint64
+	checksum bool   // false when the caller checksums the data itself
+	crc      uint32 // of the bytes read, when checksum is set
 }
 
 func newEntryReader(f *zip.File, raw io.Reader, checksum bool) (*entryReader, error) {
 	br := bufio.NewReaderSize(raw, int(min(max(f.CompressedSize64, 16), maxReadBuf)))
-	e := &entryReader{f: f, close: func() error { return nil }}
+	e := &entryReader{f: f, close: func() error { return nil }, checksum: checksum}
 	switch f.Method {
 	case zip.Store:
 		e.r = br
@@ -204,30 +223,30 @@ func newEntryReader(f *zip.File, raw io.Reader, checksum bool) (*entryReader, er
 	default:
 		return nil, fmt.Errorf("%w: compression method %d", zip.ErrAlgorithm, f.Method)
 	}
-	if checksum {
-		e.crc = crc32.NewIEEE()
-	}
 	return e, nil
 }
 
 func (e *entryReader) Read(p []byte) (int, error) {
 	n, err := e.r.Read(p)
-	e.n += uint64(n)
+	read := p[:n]
+	e.n += uint64(len(read))
 	if e.n > e.f.UncompressedSize64 {
 		return 0, fmt.Errorf("%w: more data than the declared size", zip.ErrFormat)
 	}
-	if e.crc != nil {
-		e.crc.Write(p[:n])
+	if e.checksum {
+		e.crc = crc32.Update(e.crc, crc32.IEEETable, read)
 	}
 	if err == io.EOF {
 		if e.n != e.f.UncompressedSize64 {
 			return n, io.ErrUnexpectedEOF
 		}
-		if e.crc != nil && e.f.CRC32 != 0 && e.crc.Sum32() != e.f.CRC32 {
+		if e.checksum && e.f.CRC32 != 0 && e.crc != e.f.CRC32 {
 			return n, zip.ErrChecksum
 		}
 	}
 	return n, err
 }
 
-func (e *entryReader) Close() error { return e.close() }
+// Close releases the inflater. It returns nothing: the inflater only keeps
+// the error a Read already failed on.
+func (e *entryReader) Close() { _ = e.close() }

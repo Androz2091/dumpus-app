@@ -11,11 +11,12 @@ import (
 	"sync/atomic"
 )
 
-const defaultChunkBytes = 4 << 20
+// chunkBytes is the size of the chunks the activity stream is cut into.
+const chunkBytes = 4 << 20
 
 type activityConfig struct {
-	workers, chunkBytes, lineBytes int
-	events                         int64 // relevant events kept, see limits
+	workers, lineBytes int
+	events             int64 // relevant events kept, see limits
 }
 
 // chunk is a run of the activity stream. seq numbers the chunks with lines in
@@ -72,7 +73,7 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 	nbuf := cfg.workers + 2
 	free := make(chan *chunk, nbuf)
 	for range nbuf {
-		free <- &chunk{buf: make([]byte, cfg.chunkBytes)}
+		free <- &chunk{buf: make([]byte, chunkBytes)}
 	}
 	release := func(c *chunk) {
 		if c.refs.Add(-1) == 0 {
@@ -107,10 +108,10 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 		})
 	}
 	var others sync.WaitGroup
-	crc := crc32.NewIEEE()
+	var crc uint32
 	others.Go(func() {
 		for c := range sums {
-			crc.Write(c.fresh)
+			crc = crc32.Update(crc, crc32.IEEETable, c.fresh)
 			release(c)
 		}
 	})
@@ -150,7 +151,7 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 	if err != nil {
 		return nil, err
 	}
-	if f.CRC32 != 0 && crc.Sum32() != f.CRC32 {
+	if f.CRC32 != 0 && crc != f.CRC32 {
 		return nil, zip.ErrChecksum
 	}
 	total.usable = s.usable.Load()
@@ -159,20 +160,20 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 	total.voice, total.voiceParts = join(total.voiceParts), nil
 	if n := total.tooLong + dropped; n > 0 {
 		// A skipped line can be an event the reference keeps.
-		total.issues[issueKey{s.path, "", "", ProblemTooLong}] += n
+		total.issues[issueKey{path: s.path, problem: ProblemTooLong}] += n
 		p.skipped.Store(true)
 	}
 	switch {
 	case s.setAside.Load():
 		total.setAside()
 		total.events = cfg.events
-		total.issues[issueKey{s.path, "", "", ProblemTooManyEvents}]++
+		total.issues[issueKey{path: s.path, problem: ProblemTooManyEvents}]++
 	case total.failed > 0 && total.read == 0:
 		// A format change that breaks every event the reference takes would
 		// otherwise give a package with no activity that claims to be
 		// complete, whatever events it skips without a problem.
 		total.usable = false
-		total.issues[issueKey{s.path, "", "", ProblemNoEventRead}] += int(total.failed)
+		total.issues[issueKey{path: s.path, problem: ProblemNoEventRead}] += int(total.failed)
 	}
 	return total, nil
 }
@@ -194,7 +195,7 @@ func splitLines(ctx context.Context, r io.Reader, cfg activityConfig, free chan 
 		case <-ctx.Done():
 			return dropped, ctx.Err()
 		}
-		size := max(cfg.chunkBytes, 2*len(carry))
+		size := max(chunkBytes, 2*len(carry))
 		if cap(c.buf) != size {
 			c.buf = make([]byte, size)
 		}
@@ -245,8 +246,8 @@ func splitLines(ctx context.Context, r io.Reader, cfg activityConfig, free chan 
 }
 
 // join concatenates parts at their final size, letting each part go once
-// copied.
-func join[E any](parts [][]E) []E {
+// copied, which slices.Concat doesn't.
+func join[E sessionEvent | voiceEvent](parts [][]E) []E {
 	n := 0
 	for _, p := range parts {
 		n += len(p)
@@ -262,9 +263,11 @@ func join[E any](parts [][]E) []E {
 	return out
 }
 
-func fill(r io.Reader, buf []byte, n int) (int, bool, error) {
+// fill reads r into buf from n on, until buf is full or r ends.
+func fill(r io.Reader, buf []byte, n int) (end int, eof bool, err error) {
 	for n < len(buf) {
-		m, err := r.Read(buf[n:])
+		var m int
+		m, err = r.Read(buf[n:])
 		n += m
 		if err == io.EOF {
 			return n, true, nil

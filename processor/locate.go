@@ -18,19 +18,33 @@ var (
 	// Only the first shard of the first stream found is read: `analytics`, the
 	// most complete one, else `reporting`.
 	activityStreams = []struct {
-		name string // stored in `package_data.activity_stream`
+		name ActivityStream
 		re   *regexp.Regexp
 	}{
-		{"analytics", regexp.MustCompile(`/analytics.*\.json$`)},
-		{"reporting", regexp.MustCompile(`/reporting.*\.json$`)},
+		{StreamAnalytics, regexp.MustCompile(`/analytics.*\.json$`)},
+		{StreamReporting, regexp.MustCompile(`/reporting.*\.json$`)},
 	}
 )
+
+type entries struct {
+	files  []*zip.File
+	byName map[string]*zip.File
+}
+
+func indexEntries(zr *zip.Reader) *entries {
+	e := &entries{files: zr.File, byName: make(map[string]*zip.File, len(zr.File))}
+	for _, f := range zr.File {
+		// The last entry wins for a duplicated name, as with Python's zipfile.
+		e.byName[f.Name] = f
+	}
+	return e
+}
 
 // layout is what the processor reads, found from the entry names. An index
 // or payments path is empty when there is no candidate.
 type layout struct {
 	user, activity                        string
-	stream                                string // the activity entry's stream, see activityStreams
+	stream                                ActivityStream // the activity entry's stream, see activityStreams
 	serversIndex, messagesIndex, payments string
 	channels                              []string // channel.json entries
 	duplicates                            []string // channel.json entries left out, see channelFolders
@@ -53,7 +67,7 @@ func (e *entries) layout() layout {
 
 // readOrder is every entry the processor may read, in the order the inflate
 // budget is handed out.
-func (e *entries) readOrder(l layout) []*zip.File {
+func (e *entries) readOrder(l *layout) []*zip.File {
 	var out []*zip.File
 	add := func(name string) {
 		if f := e.get(name); name != "" && f != nil {
@@ -72,20 +86,6 @@ func (e *entries) readOrder(l layout) []*zip.File {
 		}
 	}
 	return out
-}
-
-type entries struct {
-	files  []*zip.File
-	byName map[string]*zip.File
-}
-
-func indexEntries(zr *zip.Reader) *entries {
-	e := &entries{files: zr.File, byName: make(map[string]*zip.File, len(zr.File))}
-	for _, f := range zr.File {
-		// The last entry wins for a duplicated name, as with Python's zipfile.
-		e.byName[f.Name] = f
-	}
-	return e
 }
 
 func (e *entries) get(name string) *zip.File { return e.byName[name] }
@@ -148,7 +148,7 @@ func (e *entries) indexPath(root string, fallbacks ...string) string {
 	return ""
 }
 
-func (e *entries) activityStream() (path, stream string) {
+func (e *entries) activityStream() (path string, stream ActivityStream) {
 	for _, s := range activityStreams {
 		if path = e.first(s.re.MatchString); path != "" {
 			return path, s.name

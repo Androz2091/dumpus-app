@@ -1,26 +1,15 @@
 package processor
 
-import (
-	"cmp"
-	"slices"
-)
+import "slices"
 
 const maxSessionSeconds = 24 * 60 * 60
-
-func sortByTime[E any](events []E, key func(E) (int64, uint64)) {
-	slices.SortFunc(events, func(a, b E) int {
-		ta, oa := key(a)
-		tb, ob := key(b)
-		return cmp.Or(cmp.Compare(ta, tb), cmp.Compare(oa, ob))
-	})
-}
 
 // Starts are checked in time order and sessions are accepted in end order, so a
 // session that ended before the current start can't contain a later one: only
 // the sessions still open are kept, with a running minimum of their starts,
 // which gives the reference's full scan in linear time.
 func buildSessions(events []sessionEvent, n *names) []Session {
-	sortByTime(events, func(e sessionEvent) (int64, uint64) { return e.ts, e.order })
+	slices.SortFunc(events, sessionEvent.byTime)
 	ends := 0
 	for _, ev := range events {
 		if !ev.start {

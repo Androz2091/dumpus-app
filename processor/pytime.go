@@ -33,7 +33,7 @@ func pyIntASCII[S ~string | ~[]byte](s S) (int, bool) {
 	}
 	n := 0
 	prevDigit := false
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		c := s[i]
 		switch {
 		case c >= '0' && c <= '9':
@@ -66,7 +66,7 @@ func pySlice[S ~string | ~[]byte](s S, start, end int) S {
 }
 
 func isASCII[S ~string | ~[]byte](s S) bool {
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] >= utf8.RuneSelf {
 			return false
 		}
@@ -91,7 +91,7 @@ func pyTimestamp[S ~string | ~[]byte](s S, offset int) (int64, bool) {
 	day, ok3 := field(8, 10)
 	hour, ok4 := field(11, 13)
 	minute, ok5 := field(14, 16)
-	if !(ok1 && ok2 && ok3 && ok4 && ok5) {
+	if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 {
 		return 0, false
 	}
 	if year < 1 || year > 9999 || month < 1 || month > 12 || day < 1 || day > daysIn(year, month) ||
@@ -118,12 +118,15 @@ func dayString(epochDay int64) string {
 // an offset is kept as the bucket's zone, so neither is converted to UTC.
 type messageStamp struct {
 	hour   int64 // hours since 1970-01-01T00 of the wall-clock hour
-	format uint8 // the shape pandas infers a format from
-	offset int   // minutes east of UTC, when the format has one
+	format stampFormat
+	offset int // minutes east of UTC, when the format has one
 }
 
+// stampFormat is the shape of a timestamp, which pandas infers a format from.
+type stampFormat uint8
+
 const (
-	fmtHasTime uint8 = 1 << iota
+	fmtHasTime stampFormat = 1 << iota
 	fmtHasMinute
 	fmtHasSecond
 	fmtHasFraction
@@ -248,9 +251,9 @@ func parseMessageTimestamp(s string) (messageStamp, bool) {
 	return st, true
 }
 
-func hourParts(hour int64) (string, int64) {
-	day := floorDiv(hour, 24)
-	return dayString(day), hour - day*24
+func hourParts(hour int64) (day string, hourOfDay int64) {
+	d := floorDiv(hour, 24)
+	return dayString(d), hour - d*24
 }
 
 func itoa(n int64) string { return strconv.FormatInt(n, 10) }
