@@ -17,6 +17,7 @@ function DMCard({
   dm: NonNullable<ReturnType<ReturnType<typeof useTopDMsData>["getData"]>>[0];
   size: number;
 }) {
+  const { t } = useTranslation();
   const data = useUserDetails({ userID: dm.dm_user_id });
 
   const username = dm.user_name;
@@ -42,7 +43,7 @@ function DMCard({
         <div className="relative aspect-square w-full">
           <DiscordImage
             src={avatarURLFallback(avatarURL, dm.dm_user_id) + `?size=${size}`}
-            alt={`${username}'s avatar`}
+            alt={t("avatar", { name: username })}
             fill
             className="rounded-full object-cover object-center"
           />

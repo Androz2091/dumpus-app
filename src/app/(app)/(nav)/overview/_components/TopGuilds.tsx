@@ -18,6 +18,7 @@ function GuildCard({
     ReturnType<ReturnType<typeof useTopGuildsData>["getData"]>
   >[0];
 }) {
+  const { t } = useTranslation();
   const { getGuild } = useWidgetAPI({});
 
   const { isSuccess, data } = useQuery({
@@ -46,7 +47,7 @@ function GuildCard({
           <div className="relative aspect-square w-full">
             <DiscordImage
               src={data.icon_url}
-              alt={`${data.name}'s avatar`}
+              alt={t("avatar", { name: data.name })}
               fill
               className="rounded-lg object-cover object-center"
             />

@@ -46,7 +46,7 @@ export default function Profile({
           <div className="relative aspect-square w-16 sm:w-32">
             <DiscordImage
               src={data.icon_url}
-              alt={`${data.name}'s avatar`}
+              alt={t("avatar", { name: data.name })}
               fill
               className="rounded-lg object-cover object-center"
             />

@@ -447,6 +447,7 @@
   "exitingDemo": "Exiting...",
   "exitDemo": "Exit demo and get started!",
   "members": "{{- value}} members",
+  "avatar": "{{- name}}'s avatar",
   "nav": {
     "overview": "Overview",
     "top": "Top",
@@ -474,6 +475,7 @@
   },
   "noData": "No data available",
   "noDataTip": "Select another time range to view data",
+  "notAvailable": "N/A",
   "notFound": {
     "title": "Not found",
     "description": "The page you are looking for doesn't exist."

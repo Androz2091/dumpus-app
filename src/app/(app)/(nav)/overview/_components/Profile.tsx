@@ -41,7 +41,7 @@ export default function Profile() {
         <div className="relative h-24 w-24 sm:h-32 sm:w-32">
           <DiscordImage
             src={package_owner_avatar_url + `?size=${size}`}
-            alt={`${package_owner_display_name}'s Avatar`}
+            alt={t("avatar", { name: package_owner_display_name })}
             fill
             priority
             className="rounded-full object-cover object-center"

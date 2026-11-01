@@ -41,7 +41,7 @@ function BotCard({ bot }: { bot: Bot }) {
           <div className="relative mr-1 aspect-square w-6 sm:w-8">
             <DiscordImage
               src={avatarURLFallback(avatarURL, bot.associated_user_id)}
-              alt={`${displayName}'s avatar`}
+              alt={t("avatar", { name: displayName })}
               fill
               className="rounded-full object-cover object-center"
             />

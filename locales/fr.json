@@ -291,6 +291,7 @@
   "exitingDemo": "Sortie...",
   "exitDemo": "Quitter la démo et commencer !",
   "members": "{{- value}} membres",
+  "avatar": "Avatar de {{- name}}",
   "nav": {
     "overview": "Aperçu",
     "top": "Classement",
@@ -300,5 +301,6 @@
   "topUsedBot": "Robots les plus utilisés",
   "topChannels": "Salons principaux",
   "firstMessages": "Vos premiers messages",
-  "relatedGuild": "Serveur associé"
+  "relatedGuild": "Serveur associé",
+  "notAvailable": "N/D"
 }

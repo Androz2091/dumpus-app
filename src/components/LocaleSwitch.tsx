@@ -6,7 +6,7 @@ import clsx from "clsx";
 import i18next from "i18next";
 import { Fragment, useState } from "react";
 import DetailCard from "~/components/data/DetailCard";
-import { useTranslation } from "~/i18n/client";
+import { pickLanguage, useTranslation } from "~/i18n/client";
 import { locales as _locales } from "~/i18n/settings";
 import { capitalize } from "~/utils";
 
@@ -30,7 +30,7 @@ function LocalesList({ close }: { close: () => void }) {
     <RadioGroup
       value={i18next.language}
       onChange={(v) => {
-        i18next.changeLanguage(v);
+        pickLanguage(v);
         close();
       }}
     >

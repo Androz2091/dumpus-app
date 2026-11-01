@@ -8,6 +8,7 @@ import clsx from "clsx";
 import { useId, useState } from "react";
 import useMissingStatsData from "~/hooks/data/use-missing-stats-data";
 import { useTranslation } from "~/i18n/client";
+import { languageTag } from "~/i18n/settings";
 import { useSelectedPackage } from "~/stores";
 
 /** `YYYY-MM-DD` as local midnight, so formatting gives back the same day. */
@@ -26,7 +27,7 @@ export default function MissingStats() {
   // The demo's days are made up at random, so they'd always show gaps.
   if (package_id === "demo" || !missing || missing.days === 0) return null;
 
-  const locale = i18n.resolvedLanguage || i18n.language;
+  const locale = languageTag(i18n.resolvedLanguage || i18n.language);
   const number = new Intl.NumberFormat(locale);
   const dates = new Intl.DateTimeFormat(locale, { dateStyle: "medium" });
 

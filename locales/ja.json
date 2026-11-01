@@ -431,6 +431,7 @@
   "exitingDemo": "終了中...",
   "exitDemo": "デモを終了して始めよう！",
   "members": "メンバー数：{{- value}}",
+  "avatar": "{{- name}}のアバター",
   "nav": {
     "overview": "概要",
     "top": "ランキング",
@@ -456,6 +457,7 @@
   },
   "noData": "データなし",
   "noDataTip": "別の期間を選ぶとデータを表示できます",
+  "notAvailable": "不明",
   "notFound": {
     "title": "見つかりません",
     "description": "お探しのページは存在しません。"
