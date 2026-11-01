@@ -1,7 +1,8 @@
 "use client";
 import i18next from "i18next";
 
-const { language: locale } = i18next;
+// Read at each call: the language can change after this module loaded.
+const locale = () => i18next.resolvedLanguage || i18next.language;
 
 // TODO: load from i18n. Some locales may have
 // different texts for fallbacks
@@ -13,7 +14,7 @@ export function formatNumber(
 ) {
   if (n === undefined || n === null) return fallback;
 
-  return Intl.NumberFormat(locale, {
+  return Intl.NumberFormat(locale(), {
     notation,
   }).format(n);
 }
@@ -24,7 +25,7 @@ export function formatMoney(
 ) {
   if (n === undefined || n === null) return fallback;
 
-  return Intl.NumberFormat(locale, {
+  return Intl.NumberFormat(locale(), {
     style: "currency",
     currency,
     // Don't show fraction digits if integer
@@ -38,7 +39,7 @@ export function formatHour(hour?: number | null) {
   const date = new Date();
   date.setHours(hour);
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(locale(), {
     hour: "numeric",
   }).format(date);
 }
@@ -61,7 +62,7 @@ export function formatDate(
 ) {
   if (!date) return fallback;
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat(locale(), {
     year: year === false ? undefined : year,
     month: month ? "2-digit" : undefined,
     day: day ? "2-digit" : undefined,
@@ -72,25 +73,44 @@ export function formatDate(
 
 export function formatDuration(n?: number | undefined | null, short?: boolean) {
   if (n === undefined || n === null) return fallback;
+  const unit = (
+    value: number,
+    name: "hour" | "minute" | "second" | "millisecond",
+  ) =>
+    Intl.NumberFormat(locale(), {
+      style: "unit",
+      unit: name,
+      unitDisplay: "narrow",
+    }).format(value);
+  // Joined as the language does, for eg. "1h15m" in Japanese.
+  const join = (...parts: string[]) =>
+    new Intl.ListFormat(locale(), { type: "unit", style: "narrow" }).format(
+      parts,
+    );
+
   // Not "0ms": the durations shown are counted in minutes.
-  if (n === 0) return "0m";
+  if (n === 0) return unit(0, "minute");
 
   if (n < 1000) {
-    return `${n}ms`;
+    return unit(n, "millisecond");
   }
 
   if (n < 60000) {
     const seconds = Math.floor(n / 1000);
-    return `${seconds}s`;
+    return unit(seconds, "second");
   }
 
   if (n < 3600000) {
     const minutes = Math.floor(n / 60000);
     const seconds = Math.floor((n % 60000) / 1000);
-    return short ? `${minutes}m` : `${minutes}m ${seconds}s`;
+    return short
+      ? unit(minutes, "minute")
+      : join(unit(minutes, "minute"), unit(seconds, "second"));
   }
 
   const hours = Math.floor(n / 3600000);
   const minutes = Math.floor((n % 3600000) / 60000);
-  return short ? `${hours}h` : `${hours}h ${minutes}m`;
+  return short
+    ? unit(hours, "hour")
+    : join(unit(hours, "hour"), unit(minutes, "minute"));
 }
