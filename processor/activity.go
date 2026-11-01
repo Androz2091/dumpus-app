@@ -156,8 +156,8 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 	}
 	total.usable = s.usable.Load()
 	total.names = s.names
-	total.sessions, total.sessionParts = slices.Concat(total.sessionParts...), nil
-	total.voice, total.voiceParts = slices.Concat(total.voiceParts...), nil
+	total.sessions, total.sessionParts = join(total.sessionParts), nil
+	total.voice, total.voiceParts = join(total.voiceParts), nil
 	if n := total.tooLong + dropped; n > 0 {
 		// A skipped line can be an event the reference keeps.
 		total.issues[issueKey{path: s.path, problem: ProblemTooLong}] += n
@@ -243,6 +243,24 @@ func splitLines(ctx context.Context, r io.Reader, cfg activityConfig, free chan 
 			return dropped, nil
 		}
 	}
+}
+
+// join concatenates parts at their final size, letting each part go once
+// copied, which slices.Concat doesn't.
+func join[E sessionEvent | voiceEvent](parts [][]E) []E {
+	n := 0
+	for _, p := range parts {
+		n += len(p)
+	}
+	if n == 0 {
+		return nil
+	}
+	out := make([]E, 0, n)
+	for i, p := range parts {
+		out = append(out, p...)
+		parts[i] = nil
+	}
+	return out
 }
 
 // fill reads r into buf from n on, until buf is full or r ends.
