@@ -1,0 +1,174 @@
+version: "2"
+
+linters:
+  # errcheck, govet, ineffassign, staticcheck and unused.
+  default: standard
+  enable:
+    - bidichk
+    - contextcheck
+    - copyloopvar
+    - dupword
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - forcetypeassert
+    - gocritic
+    - gosec
+    - intrange
+    - makezero
+    - mirror
+    - misspell
+    - modernize
+    - musttag
+    - nakedret
+    - nilerr
+    - nilnesserr
+    - noctx
+    - nolintlint
+    - perfsprint
+    - prealloc
+    - reassign
+    - recvcheck
+    - revive
+    - sqlclosecheck
+    - thelper
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+
+  settings:
+    errchkjson:
+      # Lets an encoding that can't fail go unchecked, and reports a type that
+      # can.
+      check-error-free-encoding: true
+    exhaustive:
+      default-signifies-exhaustive: true
+    forbidigo:
+      analyze-types: true
+      forbid:
+        # `interface{}` is reported by revive's `use-any`, so neither spelling
+        # gets through, type parameter constraints included.
+        - pattern: ^any$
+          msg: name the type, or for a type parameter the types it takes
+    gocritic:
+      enabled-tags: [diagnostic, style, performance, experimental, opinionated]
+      disabled-checks:
+        # The path patterns are the Python worker's, `[0-9]` included, and
+        # `\d` would read as Python's, which matches any Unicode digit.
+        - regexpSimplify
+    govet:
+      enable-all: true
+      disable:
+        # Field order follows meaning, not padding.
+        - fieldalignment
+    misspell:
+      # String literals hold names from elsewhere, for eg. the worker's
+      # `occurence_count` column.
+      mode: restricted
+    nolintlint:
+      allow-unused: false
+      require-explanation: true
+      require-specific: true
+    revive:
+      rules:
+        - name: atomic
+        - name: bare-return
+        - name: blank-imports
+        - name: bool-literal-in-expr
+        - name: call-to-gc
+        - name: comment-spacings
+        - name: confusing-naming
+        - name: confusing-results
+        - name: constant-logical-expr
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: datarace
+        - name: deep-exit
+        - name: defer
+        - name: dot-imports
+        - name: duplicated-imports
+        - name: early-return
+        - name: empty-block
+        - name: empty-lines
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: forbidden-call-in-wg-go
+        - name: get-return
+        - name: identical-branches
+        - name: identical-ifelseif-branches
+        - name: identical-ifelseif-conditions
+        - name: identical-switch-branches
+        - name: identical-switch-conditions
+        - name: if-return
+        - name: import-shadowing
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: inefficient-map-lookup
+        - name: modifies-value-receiver
+        - name: optimize-operands-order
+        - name: package-comments
+        - name: range
+        - name: range-val-address
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: redundant-import-alias
+        - name: string-of-int
+        - name: struct-tag
+        - name: superfluous-else
+        - name: time-equal
+        - name: time-naming
+        - name: unconditional-recursion
+        - name: unexported-naming
+        - name: unexported-return
+        - name: unnecessary-format
+        - name: unnecessary-if
+        - name: unnecessary-stmt
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: unused-receiver
+        - name: use-any
+        - name: use-errors-new
+        - name: use-slices-concat
+        - name: use-slices-sort
+        - name: use-waitgroup-go
+        - name: useless-break
+        - name: useless-fallthrough
+        - name: var-declaration
+        - name: var-naming
+        - name: waitgroup-by-value
+    staticcheck:
+      checks: [all]
+    unparam:
+      check-exported: true
+    usetesting:
+      context-background: true
+      context-todo: true
+
+  exclusions:
+    warn-unused: true
+    rules:
+      # The CLI and the writer open the paths their caller names; the package
+      # parser, which handles untrusted names, keeps the check.
+      - path: ^(cmd/dumpus-processor|sqlitedb)/
+        linters: [gosec]
+        text: G304
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/dumpus-app/dumpus-app/processor
