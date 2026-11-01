@@ -75,7 +75,6 @@
     "mitt": "^3.0.1",
     "modern-screenshot": "^4.7.0",
     "next": "16.4.3",
-    "next-language-detector": "^1.1.1",
     "pako": "^3.0.3",
     "postcss": "8.5.32",
     "react": "19.3.1",
@@ -103,7 +102,6 @@
     "@types/sql.js": "^1.4.11",
     "cross-env": "^10.1.0",
     "dotenv": "^18.0.9",
-    "node-fetch": "^3.3.2",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "serve": "^14.2.6"

@@ -17,11 +17,3 @@ export async function initI18next(locale: string) {
     .init(getOptions(locale));
   return i18nInstance;
 }
-
-export async function useServerTranslation(locale: string) {
-  const i18nextInstance = await initI18next(locale);
-  return {
-    t: i18nextInstance.getFixedT(locale),
-    i18n: i18nextInstance,
-  };
-}

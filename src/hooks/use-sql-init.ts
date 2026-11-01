@@ -30,7 +30,7 @@ export type PackageLoadErrorCode =
   "STORAGE_FULL" | "UNKNOWN_PACKAGE_ID" | "UNAUTHORIZED" | "UNKNOWN_ERROR";
 
 /** Why a package couldn't be opened, for the screen that says so. */
-export class PackageLoadError extends Error {
+class PackageLoadError extends Error {
   readonly code: PackageLoadErrorCode;
 
   constructor(code: PackageLoadErrorCode) {

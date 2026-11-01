@@ -15,7 +15,7 @@ import { getOptions, languageTag } from "./settings";
 // the file after the language covering both, "no".
 const ALIASES: Record<string, string> = { nb: "no", nn: "no" };
 
-export const detection: DetectorOptions = {
+const detection: DetectorOptions = {
   // Not "htmlTag": it reads the prerendered `lang="en"`, which then wins
   // over a browser listing only region tags, as Safari does ("fr-FR").
   order: ["localStorage", "navigator"],
