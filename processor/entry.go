@@ -11,6 +11,7 @@ import (
 	"hash"
 	"hash/crc32"
 	"io"
+	"math"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -30,7 +31,7 @@ type pkg struct {
 	iss     *issues
 	allowed map[*zip.File]bool       // the entries within the inflate budget
 	reads   []*zip.File              // the same, in the order the budget allowed them
-	offsets map[*zip.File]int64      // where the data of each allowed entry starts, see locate
+	data    map[*zip.File]dataRange  // where the compressed data of each allowed entry lies, see locate
 	shared  map[*zip.File]*wholeRead // the entries several roles name, see share
 	skipped atomic.Bool              // an entry, folder or line was left out: the package is partial
 }
@@ -92,7 +93,7 @@ func (p *pkg) budget(order []*zip.File, total uint64) {
 // overlapped entries. It runs before any data is read: entries pointing at one
 // stream would each read it again, as much as they declare.
 func (p *pkg) locate(ctx context.Context, workers int) error {
-	starts := make([]int64, len(p.reads))
+	found := make([]dataRange, len(p.reads))
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(workers)
 	for i, f := range p.reads {
@@ -100,26 +101,44 @@ func (p *pkg) locate(ctx context.Context, workers int) error {
 			if err := ctx.Err(); err != nil {
 				return err
 			}
-			off, err := f.DataOffset()
+			d, err := dataOf(f)
 			if err != nil {
 				return fmt.Errorf("%s: %w", maskPath(f.Name), err)
 			}
-			starts[i] = off
+			found[i] = d
 			return nil
 		})
 	}
 	if err := g.Wait(); err != nil {
 		return err
 	}
-	p.offsets = make(map[*zip.File]int64, len(p.reads))
+	p.data = make(map[*zip.File]dataRange, len(p.reads))
 	ranges := make([]dataRange, 0, len(p.reads))
 	for i, f := range p.reads {
-		p.offsets[f] = starts[i]
-		if end := starts[i] + int64(f.CompressedSize64); end > starts[i] {
-			ranges = append(ranges, dataRange{start: starts[i], end: end})
+		p.data[f] = found[i]
+		if found[i].end > found[i].start {
+			ranges = append(ranges, found[i])
 		}
 	}
 	return checkRanges(ranges)
+}
+
+// dataOf is where the compressed data of an entry lies. A size that would end
+// the data past the largest offset, which only a crafted package declares,
+// fails the package rather than escape checkRanges.
+func dataOf(f *zip.File) (dataRange, error) {
+	start, err := f.DataOffset()
+	if err != nil {
+		return dataRange{}, err
+	}
+	if f.CompressedSize64 > math.MaxInt64 {
+		return dataRange{}, zip.ErrFormat
+	}
+	size := int64(f.CompressedSize64)
+	if size > math.MaxInt64-start {
+		return dataRange{}, zip.ErrFormat
+	}
+	return dataRange{start: start, end: start + size}, nil
 }
 
 func checkRanges(ranges []dataRange) error {
@@ -172,11 +191,11 @@ func (p *pkg) inflateWhole(f *zip.File) (data []byte, ok bool, err error) {
 
 // open inflates an allowed entry from where locate found its data.
 func (p *pkg) open(f *zip.File, checksum bool) (*entryReader, error) {
-	start, ok := p.offsets[f]
+	d, ok := p.data[f]
 	if !ok {
 		return nil, fmt.Errorf("%s: read before it was located", maskPath(f.Name))
 	}
-	return newEntryReader(f, io.NewSectionReader(p.r, start, int64(f.CompressedSize64)), checksum)
+	return newEntryReader(f, io.NewSectionReader(p.r, d.start, d.end-d.start), checksum)
 }
 
 // entryReader inflates a zip entry, reading its compressed data through a
