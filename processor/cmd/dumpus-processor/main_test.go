@@ -7,8 +7,11 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/dumpus-app/dumpus-app/processor"
 )
 
 type entry struct{ name, body string }
@@ -40,13 +43,13 @@ func writeZip(t *testing.T, dir string, entries []entry) string {
 	return path
 }
 
-func readReport(t *testing.T, path string) map[string]any {
+func readReport(t *testing.T, path string) report {
 	t.Helper()
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var r map[string]any
+	var r report
 	if err := json.Unmarshal(data, &r); err != nil {
 		t.Fatal(err)
 	}
@@ -64,9 +67,9 @@ func TestRun(t *testing.T) {
 	dir := t.TempDir()
 	input := writeZip(t, dir, minimalPackage)
 	output := filepath.Join(dir, "out.sqlite")
-	report := filepath.Join(dir, "report.json")
+	reportPath := filepath.Join(dir, "report.json")
 	var stderr bytes.Buffer
-	code := run(context.Background(), []string{"--input", input, "--output", output, "--package-id", "pkg-test", "--report", report}, &stderr)
+	code := run(context.Background(), []string{"--input", input, "--output", output, "--package-id", "pkg-test", "--report", reportPath}, &stderr)
 	// The worker (`api/src/tasks.py`) matches 0, 3 and 4 as numbers, so the
 	// tests do too: renumbering one breaks the worker, not these constants.
 	if code != 0 {
@@ -78,13 +81,12 @@ func TestRun(t *testing.T) {
 	if _, err := os.Stat(output + ".tmp"); !os.IsNotExist(err) {
 		t.Errorf("temporary file left: %v", err)
 	}
-	r := readReport(t, report)
-	if _, ok := r["error"]; ok {
-		t.Errorf("report has an error: %v", r)
+	r := readReport(t, reportPath)
+	if r.Error != "" {
+		t.Errorf("report has an error: %s", r.Error)
 	}
-	missing, _ := json.Marshal(r["missing_files"])
-	if !strings.Contains(string(missing), `"activity"`) {
-		t.Errorf("missing files = %s", missing)
+	if !slices.ContainsFunc(r.MissingFiles, func(f processor.MissingFile) bool { return f.Role == "activity" }) {
+		t.Errorf("missing files = %+v", r.MissingFiles)
 	}
 }
 
@@ -96,9 +98,9 @@ func TestRunMissingUserData(t *testing.T) {
 		{"Mensajes/c400000000000000001/messages.json", `[]`},
 	})
 	output := filepath.Join(dir, "out.sqlite")
-	report := filepath.Join(dir, "report.json")
+	reportPath := filepath.Join(dir, "report.json")
 	var stderr bytes.Buffer
-	code := run(context.Background(), []string{"--input", input, "--output", output, "--package-id", "pkg-test", "--report", report}, &stderr)
+	code := run(context.Background(), []string{"--input", input, "--output", output, "--package-id", "pkg-test", "--report", reportPath}, &stderr)
 	if code != 3 {
 		t.Fatalf("exit %d, want 3", code)
 	}
@@ -108,8 +110,8 @@ func TestRunMissingUserData(t *testing.T) {
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		t.Errorf("output written: %v", err)
 	}
-	if r := readReport(t, report); r["error"] != "MISSING_USER_DATA" {
-		t.Errorf("report error = %v", r["error"])
+	if r := readReport(t, reportPath); r.Error != "MISSING_USER_DATA" {
+		t.Errorf("report error = %s", r.Error)
 	}
 }
 
@@ -127,7 +129,7 @@ func TestRunReportFailure(t *testing.T) {
 		t.Errorf("database not in place: %v", err)
 	}
 	lines := strings.Split(strings.TrimSpace(stderr.String()), "\n")
-	var fail struct{ Error string }
+	var fail failure
 	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &fail); err != nil || fail.Error != "REPORT_FAILED" {
 		t.Errorf("stderr = %q", stderr.String())
 	}
@@ -153,7 +155,7 @@ func TestRunErrors(t *testing.T) {
 		t.Errorf("not a zip: exit %d", code)
 	}
 	lines := strings.Split(strings.TrimSpace(stderr.String()), "\n")
-	var fail struct{ Error string }
+	var fail failure
 	if err := json.Unmarshal([]byte(lines[len(lines)-1]), &fail); err != nil || fail.Error != "UNKNOWN_ERROR" {
 		t.Errorf("stderr = %q", stderr.String())
 	}

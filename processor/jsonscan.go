@@ -251,7 +251,7 @@ func parseObject(data []byte) (members, error) {
 	return objectMembers(data)
 }
 
-func problemOf(err error) string {
+func problemOf(err error) Problem {
 	if errors.Is(err, errNotObject) {
 		return ProblemWrongType
 	}

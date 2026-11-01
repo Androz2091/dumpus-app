@@ -134,8 +134,8 @@ func checkRanges(ranges []dataRange) error {
 
 // skip reports an entry the processor leaves out, a duplicate or past a limit,
 // which makes the package partial.
-func (p *pkg) skip(f *zip.File, problem string) {
-	p.iss.add(f.Name, "", "", problem, 1)
+func (p *pkg) skip(f *zip.File, problem Problem) {
+	p.iss.add(f.Name, "", problem, 1)
 	p.skipped.Store(true)
 }
 

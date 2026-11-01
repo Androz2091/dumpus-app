@@ -36,8 +36,8 @@ func pairVoice(events []voiceEvent, n *names) (out []VoiceSession, steps int) {
 			}
 		}
 		lo = hi
-		sortByTime(joins, func(e voiceEvent) (int64, uint64) { return e.ts, e.order })
-		sortByTime(leaves, func(e voiceEvent) (int64, uint64) { return e.ts, e.order })
+		slices.SortFunc(joins, voiceEvent.byTime)
+		slices.SortFunc(leaves, voiceEvent.byTime)
 		for _, join := range joins {
 			idx := sort.Search(len(leaves), func(i int) bool {
 				steps++

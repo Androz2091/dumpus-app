@@ -8,7 +8,7 @@ import (
 
 // buildModel fills the tables in the reference's order; rows within a table
 // can come in another order, which only changes their rowids.
-func buildModel(packageID string, own owner, rels []relationship, pf *packageFiles, act *activityAgg, stream *string, skipped bool) *Model {
+func buildModel(packageID string, own owner, rels []relationship, pf *packageFiles, act *activityAgg, stream *ActivityStream, skipped bool) *Model {
 	m := &Model{}
 
 	friends := make(map[string]relationship, len(rels))

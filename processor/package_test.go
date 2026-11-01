@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -199,11 +200,24 @@ func fullPackage(l folders) []entry {
 	return es
 }
 
-func ptr(s *string) string {
+func ptr[S ~string](s *S) string {
 	if s == nil {
 		return "NULL"
 	}
-	return *s
+	return string(*s)
+}
+
+func amount(a Amount) string {
+	switch a.Kind {
+	case AmountInt:
+		return strconv.FormatInt(a.Int, 10)
+	case AmountFloat:
+		return strconv.FormatFloat(a.Float, 'g', -1, 64)
+	case AmountText:
+		return a.Text
+	case AmountNull:
+	}
+	return "NULL"
 }
 
 // tables formats every row of the model, each table sorted.
@@ -230,7 +244,7 @@ func tables(m *Model) map[string][]string {
 		add("guilds", fmt.Sprintf("%s|%s|%d|%s", r.GuildID, ptr(r.GuildName), r.TotalMessageCount, members))
 	}
 	for _, r := range m.Payments {
-		add("payments", fmt.Sprintf("%s|%s|%v|%s|%s", ptr(r.PaymentID), r.PaymentDate, r.Amount, ptr(r.Currency), ptr(r.Description)))
+		add("payments", fmt.Sprintf("%s|%s|%s|%s|%s", ptr(r.PaymentID), r.PaymentDate, amount(r.Amount), ptr(r.Currency), ptr(r.Description)))
 	}
 	for _, r := range m.Sessions {
 		add("sessions", fmt.Sprintf("%d|%.1f|%.1f|%s", r.DurationMins, r.StartedDate, r.EndedDate, ptr(r.DeviceOS)))
@@ -320,15 +334,15 @@ func TestFullPackage(t *testing.T) {
 	if len(res.Report.Issues) != 0 || len(res.Report.MissingFiles) != 0 {
 		t.Errorf("report: issues %+v, missing %+v", res.Report.Issues, res.Report.MissingFiles)
 	}
-	wantInputs := map[string]string{
-		"user":           "Account/user.json",
-		"activity":       "Activity/analytics/events-*-*-of-*.json",
-		"servers_index":  "Servers/index.json",
-		"messages_index": "Messages/index.json",
-		"payments":       "Account/user_data_exports/discord_billing/payments.json",
+	wantInputs := Inputs{
+		User:          "Account/user.json",
+		Activity:      "Activity/analytics/events-*-*-of-*.json",
+		ServersIndex:  "Servers/index.json",
+		MessagesIndex: "Messages/index.json",
+		Payments:      "Account/user_data_exports/discord_billing/payments.json",
 	}
-	if !reflect.DeepEqual(res.Report.Inputs, wantInputs) {
-		t.Errorf("inputs = %v", res.Report.Inputs)
+	if res.Report.Inputs != wantInputs {
+		t.Errorf("inputs = %+v", res.Report.Inputs)
 	}
 }
 

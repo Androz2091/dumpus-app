@@ -7,6 +7,7 @@ package sqlitedb
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
 	"net/url"
@@ -111,15 +112,16 @@ var indexes = []string{
 	`CREATE INDEX idx_guild_channels_guild_id ON guild_channels_data (guild_id)`,
 }
 
-// insert is one table's rows; row builds the arguments of the i-th one as it
-// is inserted, so that a large table is never held twice.
+// insert is one table's rows; exec binds the fields of the i-th one and
+// inserts it, so that a large table is never held twice.
 type insert struct {
 	table, query string
 	n            int
-	row          func(i int) []any
+	exec         func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error)
+	dropped      *int // the table's count in DroppedRows
 }
 
-func inserts(m *processor.Model) []insert {
+func inserts(m *processor.Model, dropped *DroppedRows) []insert {
 	pk := m.Package
 	partial := 0
 	if pk.IsPartial {
@@ -127,53 +129,86 @@ func inserts(m *processor.Model) []insert {
 	}
 	return []insert{{"dm_channels_data", `INSERT INTO dm_channels_data
         (channel_id, dm_user_id, user_name, display_name, user_avatar_url, total_message_count, total_voice_channel_duration, sentiment_score)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, len(m.DMChannels), func(i int) []any {
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, len(m.DMChannels), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
 		r := m.DMChannels[i]
-		return []any{r.ChannelID, r.DMUserID, r.UserName, r.DisplayName, r.UserAvatarURL,
-			r.TotalMessageCount, r.TotalVoiceChannelDuration, r.SentimentScore}
-	}}, {"guild_channels_data", `INSERT INTO guild_channels_data
+		return stmt.ExecContext(ctx, r.ChannelID, r.DMUserID, r.UserName, r.DisplayName, r.UserAvatarURL,
+			r.TotalMessageCount, r.TotalVoiceChannelDuration, r.SentimentScore)
+	}, &dropped.DMChannels}, {"guild_channels_data", `INSERT INTO guild_channels_data
         (channel_id, guild_id, channel_name, total_message_count, total_voice_channel_duration)
-        VALUES (?, ?, ?, ?, ?)`, len(m.GuildChannels), func(i int) []any {
+        VALUES (?, ?, ?, ?, ?)`, len(m.GuildChannels), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
 		r := m.GuildChannels[i]
-		return []any{r.ChannelID, r.GuildID, r.ChannelName, r.TotalMessageCount, r.TotalVoiceChannelDuration}
-	}}, {"activity", `INSERT INTO activity
+		return stmt.ExecContext(ctx, r.ChannelID, r.GuildID, r.ChannelName, r.TotalMessageCount, r.TotalVoiceChannelDuration)
+	}, &dropped.GuildChannels}, {"activity", `INSERT INTO activity
         (event_name, day, hour, occurence_count, associated_channel_id, associated_guild_id, associated_user_id, extra_field_1, extra_field_2)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, len(m.Activity), func(i int) []any {
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, len(m.Activity), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
 		r := m.Activity[i]
-		return []any{r.EventName, r.Day, r.Hour, r.OccurrenceCount, r.ChannelID, r.GuildID,
-			r.UserID, r.ExtraField1, r.ExtraField2}
-	}}, {"guilds", `INSERT INTO guilds
+		return stmt.ExecContext(ctx, r.EventName, r.Day, r.Hour, r.OccurrenceCount, r.ChannelID, r.GuildID,
+			r.UserID, r.ExtraField1, r.ExtraField2)
+	}, &dropped.Activity}, {"guilds", `INSERT INTO guilds
         (guild_id, guild_name, total_message_count, member_count)
-        VALUES (?, ?, ?, ?)`, len(m.Guilds), func(i int) []any {
+        VALUES (?, ?, ?, ?)`, len(m.Guilds), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
 		r := m.Guilds[i]
-		return []any{r.GuildID, r.GuildName, r.TotalMessageCount, r.MemberCount}
-	}}, {"payments", `INSERT INTO payments
+		return stmt.ExecContext(ctx, r.GuildID, r.GuildName, r.TotalMessageCount, r.MemberCount)
+	}, &dropped.Guilds}, {"payments", `INSERT INTO payments
         (payment_id, payment_date, payment_amount, payment_currency, payment_description)
-        VALUES (?, ?, ?, ?, ?)`, len(m.Payments), func(i int) []any {
+        VALUES (?, ?, ?, ?, ?)`, len(m.Payments), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
 		r := m.Payments[i]
-		return []any{r.PaymentID, r.PaymentDate, r.Amount, r.Currency, r.Description}
-	}}, {"voice_sessions", `INSERT INTO voice_sessions
+		return stmt.ExecContext(ctx, r.PaymentID, r.PaymentDate, amount(r.Amount), r.Currency, r.Description)
+	}, &dropped.Payments}, {"voice_sessions", `INSERT INTO voice_sessions
         (channel_id, guild_id, duration_mins, started_date, ended_date)
-        VALUES (?, ?, ?, ?, ?)`, len(m.VoiceSessions), func(i int) []any {
+        VALUES (?, ?, ?, ?, ?)`, len(m.VoiceSessions), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
 		r := m.VoiceSessions[i]
-		return []any{r.ChannelID, r.GuildID, r.DurationMins, r.StartedDate, r.EndedDate}
-	}}, {"sessions", `INSERT INTO sessions
+		return stmt.ExecContext(ctx, r.ChannelID, r.GuildID, r.DurationMins, r.StartedDate, r.EndedDate)
+	}, &dropped.VoiceSessions}, {"sessions", `INSERT INTO sessions
         (duration_mins, started_date, ended_date, device_os)
-        VALUES (?, ?, ?, ?)`, len(m.Sessions), func(i int) []any {
+        VALUES (?, ?, ?, ?)`, len(m.Sessions), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
 		r := m.Sessions[i]
-		return []any{r.DurationMins, r.StartedDate, r.EndedDate, r.DeviceOS}
-	}}, {"package_data", `INSERT INTO package_data
+		return stmt.ExecContext(ctx, r.DurationMins, r.StartedDate, r.EndedDate, r.DeviceOS)
+	}, &dropped.Sessions}, {"package_data", `INSERT INTO package_data
         (package_id, package_version, package_owner_id, package_owner_name, package_owner_display_name, package_owner_avatar_url, package_is_partial, activity_stream)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 1, func(int) []any {
-		return []any{pk.PackageID, pk.PackageVersion, pk.OwnerID, pk.OwnerName, pk.OwnerDisplayName, pk.OwnerAvatarURL, partial, pk.ActivityStream}
-	}}}
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 1, func(ctx context.Context, stmt *sql.Stmt, _ int) (sql.Result, error) {
+		return stmt.ExecContext(ctx, pk.PackageID, pk.PackageVersion, pk.OwnerID, pk.OwnerName, pk.OwnerDisplayName,
+			pk.OwnerAvatarURL, partial, pk.ActivityStream)
+	}, &dropped.PackageData}}
+}
+
+// amount binds a payment amount as the Go type of its JSON type, the one the
+// worker bound, so that SQLite stores it the same way.
+type amount processor.Amount
+
+// Value implements driver.Valuer.
+func (a amount) Value() (driver.Value, error) {
+	switch a.Kind {
+	case processor.AmountInt:
+		return a.Int, nil
+	case processor.AmountFloat:
+		return a.Float, nil
+	case processor.AmountText:
+		return a.Text, nil
+	case processor.AmountNull:
+		return nil, nil
+	}
+	return nil, fmt.Errorf("payment amount of unknown kind %d", a.Kind)
 }
 
 // Result is what Write did.
 type Result struct {
 	// DroppedRows counts, per table, the rows the schema refused, for eg. a
 	// NULL in a NOT NULL column.
-	DroppedRows map[string]int
+	DroppedRows DroppedRows
+}
+
+// DroppedRows has a count per table, under the table's name; a table with
+// none is left out.
+type DroppedRows struct {
+	Activity      int `json:"activity,omitempty"`
+	DMChannels    int `json:"dm_channels_data,omitempty"`
+	GuildChannels int `json:"guild_channels_data,omitempty"`
+	Guilds        int `json:"guilds,omitempty"`
+	PackageData   int `json:"package_data,omitempty"`
+	Payments      int `json:"payments,omitempty"`
+	Sessions      int `json:"sessions,omitempty"`
+	VoiceSessions int `json:"voice_sessions,omitempty"`
 }
 
 // Write creates the database at path, replacing any file there, and syncs it
@@ -234,46 +269,46 @@ func syncFile(path string) error {
 	return f.Close()
 }
 
-func write(ctx context.Context, db *sql.DB, m *processor.Model) (map[string]int, error) {
+func write(ctx context.Context, db *sql.DB, m *processor.Model) (DroppedRows, error) {
 	for _, ddl := range tables {
 		if _, err := db.ExecContext(ctx, ddl); err != nil {
-			return nil, err
+			return DroppedRows{}, err
 		}
 	}
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, err
+		return DroppedRows{}, err
 	}
 	defer tx.Rollback()
-	dropped := map[string]int{}
-	for _, ins := range inserts(m) {
+	var dropped DroppedRows
+	for _, ins := range inserts(m, &dropped) {
 		stmt, err := tx.PrepareContext(ctx, ins.query)
 		if err != nil {
-			return nil, err
+			return DroppedRows{}, err
 		}
 		for i := range ins.n {
-			if _, err := stmt.ExecContext(ctx, ins.row(i)...); err != nil {
+			if _, err := ins.exec(ctx, stmt, i); err != nil {
 				if !isConstraint(err) {
 					stmt.Close()
-					return nil, fmt.Errorf("insert into %s: %w", ins.table, err)
+					return DroppedRows{}, fmt.Errorf("insert into %s: %w", ins.table, err)
 				}
-				dropped[ins.table]++
+				*ins.dropped++
 			}
 		}
 		if err := stmt.Close(); err != nil {
-			return nil, err
+			return DroppedRows{}, err
 		}
 	}
 	if err := tx.Commit(); err != nil {
-		return nil, err
+		return DroppedRows{}, err
 	}
 	for _, ddl := range indexes {
 		if _, err := db.ExecContext(ctx, ddl); err != nil {
-			return nil, err
+			return DroppedRows{}, err
 		}
 	}
 	if _, err := db.ExecContext(ctx, "VACUUM"); err != nil {
-		return nil, err
+		return DroppedRows{}, err
 	}
 	return dropped, nil
 }

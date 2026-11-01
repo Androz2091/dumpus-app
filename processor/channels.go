@@ -15,7 +15,7 @@ type guildEntry struct {
 func readServersIndex(data []byte, path string, iss *issues) ([]guildEntry, bool) {
 	m, err := parseObject(data)
 	if err != nil {
-		iss.add(path, "", "", problemOf(err), 1)
+		iss.add(path, "", problemOf(err), 1)
 		return nil, false
 	}
 	out := make([]guildEntry, 0, len(m.keys))
@@ -34,7 +34,7 @@ func readServersIndex(data []byte, path string, iss *issues) ([]guildEntry, bool
 			}
 			fallthrough
 		default:
-			iss.add(path, "", "{guild_id}", ProblemWrongType, 1)
+			iss.add(path, "{guild_id}", ProblemWrongType, 1)
 			continue
 		}
 		out = append(out, g)
@@ -45,7 +45,7 @@ func readServersIndex(data []byte, path string, iss *issues) ([]guildEntry, bool
 func readMessagesIndex(data []byte, path string, iss *issues) (map[string]string, bool) {
 	m, err := parseObject(data)
 	if err != nil {
-		iss.add(path, "", "", problemOf(err), 1)
+		iss.add(path, "", problemOf(err), 1)
 		return nil, false
 	}
 	out := make(map[string]string, len(m.keys))
@@ -56,7 +56,7 @@ func readMessagesIndex(data []byte, path string, iss *issues) (map[string]string
 			continue
 		case kindString:
 		default:
-			iss.add(path, "", "{channel_id}", ProblemWrongType, 1)
+			iss.add(path, "{channel_id}", ProblemWrongType, 1)
 			continue
 		}
 		full, _ := decodeString(v)
@@ -116,7 +116,7 @@ func readChannel(in channelInput, ownerID string, iss *issues) (channelResult, e
 	mc, problem, err := readMessages(in.messages, res.kind == channelDM)
 	if err != nil || problem != "" {
 		if problem != "" {
-			iss.add(in.messagesPath, "", "", problem, 1)
+			iss.add(in.messagesPath, "", problem, 1)
 		}
 		return channelResult{}, err
 	}
@@ -124,13 +124,13 @@ func readChannel(in channelInput, ownerID string, iss *issues) (channelResult, e
 	if res.kind == 0 {
 		return res, nil
 	}
-	iss.add(in.messagesPath, "", "[]", ProblemWrongType, mc.notObjects)
-	iss.add(in.messagesPath, "", "Timestamp", ProblemMissing, mc.missingTS)
-	iss.add(in.messagesPath, "", "Timestamp", ProblemWrongType, mc.wrongTS)
-	iss.add(in.messagesPath, "", "Timestamp", ProblemUnparseable, mc.unparseable)
-	iss.add(in.messagesPath, "", "Contents", ProblemMissing, mc.missingContents)
+	iss.add(in.messagesPath, "[]", ProblemWrongType, mc.notObjects)
+	iss.add(in.messagesPath, "Timestamp", ProblemMissing, mc.missingTS)
+	iss.add(in.messagesPath, "Timestamp", ProblemWrongType, mc.wrongTS)
+	iss.add(in.messagesPath, "Timestamp", ProblemUnparseable, mc.unparseable)
+	iss.add(in.messagesPath, "Contents", ProblemMissing, mc.missingContents)
 	if mc.mixed {
-		iss.add(in.messagesPath, "", "Timestamp", ProblemMixedFormats, 1)
+		iss.add(in.messagesPath, "Timestamp", ProblemMixedFormats, 1)
 	}
 	res.total, res.hours = mc.total, mc.hours
 	return res, nil
@@ -156,9 +156,9 @@ func classifyChannel(in channelInput, ownerID string, iss *issues) channelResult
 				res.dmUserID = id
 			}
 		case kindNull:
-			iss.add(in.channelPath, "", "recipients", ProblemNull, 1)
+			iss.add(in.channelPath, "recipients", ProblemNull, 1)
 		default:
-			iss.add(in.channelPath, "", "recipients", ProblemWrongType, 1)
+			iss.add(in.channelPath, "recipients", ProblemWrongType, 1)
 		}
 	}
 	if isDM {
@@ -187,7 +187,7 @@ func dmUserID(recipients [][]byte, ownerID, path string, iss *issues) (*string, 
 			values[i] = &s
 		case kindNull:
 		default:
-			iss.add(path, "", "recipients[]", ProblemWrongType, 1)
+			iss.add(path, "recipients[]", ProblemWrongType, 1)
 			return nil, false
 		}
 	}
@@ -196,7 +196,7 @@ func dmUserID(recipients [][]byte, ownerID, path string, iss *issues) (*string, 
 			return v, true
 		}
 	}
-	iss.add(path, "", "recipients", ProblemSelfDM, 1)
+	iss.add(path, "recipients", ProblemSelfDM, 1)
 	return strPtr(ownerID), true
 }
 
@@ -204,26 +204,26 @@ func guildOf(gv []byte, path string, iss *issues) (*string, bool) {
 	switch kindOf(gv) {
 	case kindObject:
 	case kindNull:
-		iss.add(path, "", "guild", ProblemNull, 1)
+		iss.add(path, "guild", ProblemNull, 1)
 		return nil, false
 	default:
-		iss.add(path, "", "guild", ProblemWrongType, 1)
+		iss.add(path, "guild", ProblemWrongType, 1)
 		return nil, false
 	}
 	gm, err := objectMembers(gv)
 	if err != nil {
-		iss.add(path, "", "guild", ProblemMalformed, 1)
+		iss.add(path, "guild", ProblemMalformed, 1)
 		return nil, false
 	}
 	idv, has := gm.get("id")
 	if !has {
-		iss.add(path, "", "guild.id", ProblemMissing, 1)
+		iss.add(path, "guild.id", ProblemMissing, 1)
 		return nil, false
 	}
 	// The reference reads the name without using it, so only its absence is
 	// reported.
 	if _, has := gm.get("name"); !has {
-		iss.add(path, "", "guild.name", ProblemMissing, 1)
+		iss.add(path, "guild.name", ProblemMissing, 1)
 	}
 	switch kindOf(idv) {
 	case kindString:
@@ -232,7 +232,7 @@ func guildOf(gv []byte, path string, iss *issues) (*string, bool) {
 	case kindNull:
 		return nil, true
 	}
-	iss.add(path, "", "guild.id", ProblemWrongType, 1)
+	iss.add(path, "guild.id", ProblemWrongType, 1)
 	return nil, false
 }
 
@@ -248,7 +248,7 @@ type messageCounts struct {
 
 // readMessages walks a `messages.json` as it is read, so that its size doesn't
 // matter. problem is set when the whole file is unusable, err on a read error.
-func readMessages(r io.Reader, dm bool) (mc messageCounts, problem string, err error) {
+func readMessages(r io.Reader, dm bool) (mc messageCounts, problem Problem, err error) {
 	s := newJSONStream(r)
 	mc.hours = map[int64]int64{}
 	c := s.nonSpace()

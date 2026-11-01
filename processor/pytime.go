@@ -118,12 +118,15 @@ func dayString(epochDay int64) string {
 // an offset is kept as the bucket's zone, so neither is converted to UTC.
 type messageStamp struct {
 	hour   int64 // hours since 1970-01-01T00 of the wall-clock hour
-	format uint8 // the shape pandas infers a format from
-	offset int   // minutes east of UTC, when the format has one
+	format stampFormat
+	offset int // minutes east of UTC, when the format has one
 }
 
+// stampFormat is the shape of a timestamp, which pandas infers a format from.
+type stampFormat uint8
+
 const (
-	fmtHasTime uint8 = 1 << iota
+	fmtHasTime stampFormat = 1 << iota
 	fmtHasMinute
 	fmtHasSecond
 	fmtHasFraction

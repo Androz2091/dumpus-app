@@ -18,11 +18,11 @@ var (
 	// Only the first shard of the first stream found is read: `analytics`, the
 	// most complete one, else `reporting`.
 	activityStreams = []struct {
-		name string // stored in `package_data.activity_stream`
+		name ActivityStream
 		re   *regexp.Regexp
 	}{
-		{"analytics", regexp.MustCompile(`/analytics.*\.json$`)},
-		{"reporting", regexp.MustCompile(`/reporting.*\.json$`)},
+		{StreamAnalytics, regexp.MustCompile(`/analytics.*\.json$`)},
+		{StreamReporting, regexp.MustCompile(`/reporting.*\.json$`)},
 	}
 )
 
@@ -30,7 +30,7 @@ var (
 // or payments path is empty when there is no candidate.
 type layout struct {
 	user, activity                        string
-	stream                                string // the activity entry's stream, see activityStreams
+	stream                                ActivityStream // the activity entry's stream, see activityStreams
 	serversIndex, messagesIndex, payments string
 	channels                              []string // channel.json entries
 	duplicates                            []string // channel.json entries left out, see channelFolders
@@ -148,7 +148,7 @@ func (e *entries) indexPath(root string, fallbacks ...string) string {
 	return ""
 }
 
-func (e *entries) activityStream() (path, stream string) {
+func (e *entries) activityStream() (path string, stream ActivityStream) {
 	for _, s := range activityStreams {
 		if path = e.first(s.re.MatchString); path != "" {
 			return path, s.name

@@ -18,7 +18,7 @@ func processWith(t *testing.T, entries []entry, opts Options) *Result {
 	return res
 }
 
-func hasIssue(r *Report, path, problem string, count int) bool {
+func hasIssue(r *Report, path string, problem Problem, count int) bool {
 	return slices.Contains(r.Issues, Issue{Path: path, Problem: problem, Count: count})
 }
 

@@ -60,15 +60,34 @@ type Guild struct {
 	MemberCount *int64
 }
 
-// Payment is a row of `payments`. Amount holds an int64, a float64 or a string,
-// whichever JSON type the package used.
+// Payment is a row of `payments`.
 type Payment struct {
 	PaymentID   *string
 	PaymentDate string
-	Amount      any
+	Amount      Amount
 	Currency    *string
 	Description *string
 }
+
+// Amount is a payment amount with the JSON type the package gave it, which
+// decides the storage class SQLite gives it.
+type Amount struct {
+	Kind  AmountKind
+	Int   int64   // when Kind is AmountInt
+	Float float64 // when Kind is AmountFloat
+	Text  string  // when Kind is AmountText
+}
+
+// AmountKind is the JSON type of an Amount.
+type AmountKind uint8
+
+// The JSON types an Amount can have, null being the zero value.
+const (
+	AmountNull AmountKind = iota
+	AmountInt
+	AmountFloat
+	AmountText
+)
 
 // VoiceSession is a row of `voice_sessions`; the dates are epoch seconds.
 type VoiceSession struct {
@@ -96,10 +115,19 @@ type PackageData struct {
 	OwnerDisplayName *string
 	OwnerAvatarURL   *string
 	IsPartial        bool
-	// ActivityStream is the activity stream read, `analytics` or
-	// `reporting`, nil when none was. `reporting` never carries some event
-	// types, for eg. `message_edited`, so their counts are unknown, not 0.
-	ActivityStream *string
+	// ActivityStream is the activity stream read, nil when none was.
+	ActivityStream *ActivityStream
 }
+
+// ActivityStream is a folder of activity events in a package.
+type ActivityStream string
+
+// The activity streams, in the order they are looked for.
+const (
+	StreamAnalytics ActivityStream = "analytics"
+	// StreamReporting never carries some event types, for eg.
+	// `message_edited`, so their counts are unknown, not 0.
+	StreamReporting ActivityStream = "reporting"
+)
 
 func strPtr(s string) *string { return &s }

@@ -155,24 +155,24 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 	}
 	total.usable = s.usable.Load()
 	total.names = s.names
-	total.sessions, total.sessionParts = join(total.sessionParts), nil
-	total.voice, total.voiceParts = join(total.voiceParts), nil
+	total.sessions, total.sessionParts = slices.Concat(total.sessionParts...), nil
+	total.voice, total.voiceParts = slices.Concat(total.voiceParts...), nil
 	if n := total.tooLong + dropped; n > 0 {
 		// A skipped line can be an event the reference keeps.
-		total.issues[issueKey{s.path, "", "", ProblemTooLong}] += n
+		total.issues[issueKey{path: s.path, problem: ProblemTooLong}] += n
 		p.skipped.Store(true)
 	}
 	switch {
 	case s.setAside.Load():
 		total.setAside()
 		total.events = cfg.events
-		total.issues[issueKey{s.path, "", "", ProblemTooManyEvents}]++
+		total.issues[issueKey{path: s.path, problem: ProblemTooManyEvents}]++
 	case total.failed > 0 && total.read == 0:
 		// A format change that breaks every event the reference takes would
 		// otherwise give a package with no activity that claims to be
 		// complete, whatever events it skips without a problem.
 		total.usable = false
-		total.issues[issueKey{s.path, "", "", ProblemNoEventRead}] += int(total.failed)
+		total.issues[issueKey{path: s.path, problem: ProblemNoEventRead}] += int(total.failed)
 	}
 	return total, nil
 }
@@ -242,24 +242,6 @@ func splitLines(ctx context.Context, r io.Reader, cfg activityConfig, free chan 
 			return dropped, nil
 		}
 	}
-}
-
-// join concatenates parts at their final size, letting each part go once
-// copied.
-func join[E any](parts [][]E) []E {
-	n := 0
-	for _, p := range parts {
-		n += len(p)
-	}
-	if n == 0 {
-		return nil
-	}
-	out := make([]E, 0, n)
-	for i, p := range parts {
-		out = append(out, p...)
-		parts[i] = nil
-	}
-	return out
 }
 
 func fill(r io.Reader, buf []byte, n int) (int, bool, error) {
