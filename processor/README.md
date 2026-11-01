@@ -1,6 +1,6 @@
 # dumpus-processor
 
-Turns a Discord data package into the SQLite database the Dumpus app reads, with the tables, columns and values of the Python worker, on any machine Go runs on.
+Turns a Discord data package into the SQLite database the Dumpus app reads, on any machine Go runs on.
 
 ## Usage
 
@@ -39,6 +39,8 @@ Each limit sits far above the maxima measured on real exports. Past one, the pro
 - One goroutine inflates the activity stream into chunks of whole lines that workers decode, a pool reads the other entries, and `processor/sqlitedb` writes the worker's DDL with `modernc.org/sqlite`, pure Go.
 
 ## Parity with the Python worker
+
+Until October 2026 the API's worker processed packages in Python. The app still reads the databases it made, so the processor writes the same tables, columns and values.
 
 - The worker's quirks are kept: reactions never custom, activity timestamps cut to the minute at fixed positions and read as UTC, session and voice dates stored as TEXT like `'1617712440.0'`, its pairing loops, and the rows pandas groups with a null key dropped.
 - Messages count by the hour written in their timestamp, and channels missing from the messages index are dropped but count in their guild's total.
