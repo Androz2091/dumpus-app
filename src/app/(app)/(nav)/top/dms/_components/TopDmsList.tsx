@@ -46,7 +46,7 @@ function DMCard({
         <div className="relative aspect-square w-10">
           <DiscordImage
             src={avatarURLFallback(avatarURL, dm.dm_user_id)}
-            alt={`${username}'s avatar`}
+            alt={t("avatar", { name: username })}
             fill
             className="rounded-full object-cover object-center"
           />

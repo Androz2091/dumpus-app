@@ -19,6 +19,7 @@ import DiscordImage from "~/components/DiscordImage";
 import Deferred from "~/components/Deferred";
 import DetailsSkeleton from "~/components/DetailsSkeleton";
 import PageEnter from "~/components/PageEnter";
+import { useTranslation } from "~/i18n/client";
 
 export default function Page() {
   const id = useSearchParams()!.get("id")!;
@@ -46,6 +47,7 @@ export default function Page() {
 }
 
 function DMDetails() {
+  const { t } = useTranslation();
   const params = useSearchParams()!;
   const id = params.get("id")!;
 
@@ -90,7 +92,7 @@ function DMDetails() {
               src={
                 avatarURLFallback(avatarURL, user.dm_user_id) + `?size=${size}`
               }
-              alt={`${username}'s avatar`}
+              alt={t("avatar", { name: username })}
               fill
               priority
               className="rounded-full object-cover object-center"

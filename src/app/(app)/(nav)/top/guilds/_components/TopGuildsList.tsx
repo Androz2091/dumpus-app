@@ -51,7 +51,7 @@ function GuildCard({
           <div className="relative aspect-square w-10">
             <DiscordImage
               src={data.icon_url}
-              alt={`${data.name}'s avatar`}
+              alt={t("avatar", { name: data.name })}
               fill
               className="rounded-lg object-cover object-center"
             />

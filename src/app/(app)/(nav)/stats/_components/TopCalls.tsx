@@ -44,7 +44,7 @@ function CallCard({ call }: { call: Call }) {
         <div className="relative aspect-square w-10">
           <DiscordImage
             src={avatarURLFallback(avatarURL, call.dm_user_id)}
-            alt={`${username}'s avatar`}
+            alt={t("avatar", { name: username })}
             fill
             className="rounded-full object-cover object-center"
           />

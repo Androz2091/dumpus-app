@@ -3,16 +3,13 @@ import i18next from "i18next";
 
 // Read at each call: the language can change after this module loaded.
 const locale = () => i18next.resolvedLanguage || i18next.language;
-
-// TODO: load from i18n. Some locales may have
-// different texts for fallbacks
-const fallback = "N/A";
+const fallback = () => i18next.t("notAvailable");
 
 export function formatNumber(
   n?: number | null,
   { notation = "compact" }: { notation?: "standard" | "compact" } = {},
 ) {
-  if (n === undefined || n === null) return fallback;
+  if (n === undefined || n === null) return fallback();
 
   return Intl.NumberFormat(locale(), {
     notation,
@@ -23,7 +20,7 @@ export function formatMoney(
   n?: number | null,
   { currency = "USD" }: { currency?: string } = {},
 ) {
-  if (n === undefined || n === null) return fallback;
+  if (n === undefined || n === null) return fallback();
 
   return Intl.NumberFormat(locale(), {
     style: "currency",
@@ -34,7 +31,7 @@ export function formatMoney(
 }
 
 export function formatHour(hour?: number | null) {
-  if (hour === undefined || hour === null) return fallback;
+  if (hour === undefined || hour === null) return fallback();
 
   const date = new Date();
   date.setHours(hour);
@@ -60,7 +57,7 @@ export function formatDate(
     minute?: boolean;
   } = {},
 ) {
-  if (!date) return fallback;
+  if (!date) return fallback();
 
   return new Intl.DateTimeFormat(locale(), {
     year: year === false ? undefined : year,
@@ -72,7 +69,7 @@ export function formatDate(
 }
 
 export function formatDuration(n?: number | undefined | null, short?: boolean) {
-  if (n === undefined || n === null) return fallback;
+  if (n === undefined || n === null) return fallback();
   const unit = (
     value: number,
     name: "hour" | "minute" | "second" | "millisecond",
