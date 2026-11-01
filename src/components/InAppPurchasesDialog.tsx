@@ -2,7 +2,7 @@
 
 import { Dialog, Transition } from "@headlessui/react";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import Button from "~/components/Button";
 import useToast from "~/hooks/use-toast";
@@ -19,12 +19,20 @@ export default function InAppPurchasesDialog() {
       ui.setShowInAppPurchasesDialog,
     ]),
   );
-  const [supported, products] = useAppStore(
-    useShallow(({ purchases }) => [purchases.supported, purchases.products]),
+  const [supported, products, retryFailedSetup] = useAppStore(
+    useShallow(({ purchases }) => [
+      purchases.supported,
+      purchases.products,
+      purchases.retryFailedSetup,
+    ]),
   );
   const hasProducts = products.length > 0;
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open) retryFailedSetup();
+  }, [open, retryFailedSetup]);
 
   async function onPurchase() {
     setLoading(true);
@@ -89,10 +97,13 @@ export default function InAppPurchasesDialog() {
                         </div>
                         <div className="mt-1 flex items-end justify-between">
                           <div className="text-3xl font-semibold text-white">
-                            {formatMoney(
-                              products[0].pricing!.priceMicros / 1_000_000,
-                              { currency: products[0].pricing!.currency },
-                            )}
+                            {/* The store's own string is what it charges, in
+                                the buyer's currency and format. */}
+                            {products[0].pricing!.price ||
+                              formatMoney(
+                                products[0].pricing!.priceMicros / 1_000_000,
+                                { currency: products[0].pricing!.currency },
+                              )}
                           </div>
                           <div className="text-gray-400">
                             {t("premium.oneTime")}
