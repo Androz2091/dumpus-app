@@ -1,29 +1,17 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import languageDetector from "./language-detector";
-import { fallbackLocale } from "./settings";
 
-export function useRedirect(_to?: string) {
-  const pathname = usePathname();
+export function useRedirect(to: string) {
   const router = useRouter();
-  const to = _to || pathname || "/";
 
   useEffect(() => {
-    const detectedLocale = languageDetector.detect() || fallbackLocale;
-    const basePath = `/${detectedLocale}`;
-    if (to.startsWith(basePath) && pathname === "/404") {
-      router.replace(basePath + pathname);
-      return;
-    }
-
-    languageDetector.cache?.(detectedLocale);
-    router.replace(basePath + to);
-  }, [pathname, router, to]);
+    router.replace(to);
+  }, [router, to]);
 }
 
-export function Redirect({ to }: { to?: string }) {
+export function Redirect({ to }: { to: string }) {
   useRedirect(to);
   return null;
 }

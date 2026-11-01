@@ -6,7 +6,9 @@ import {
   useTranslation as useTranslationOrg,
 } from "react-i18next";
 import resourcesToBackend from "i18next-resources-to-backend";
-import LanguageDetector from "i18next-browser-languagedetector";
+import LanguageDetector, {
+  type DetectorOptions,
+} from "i18next-browser-languagedetector";
 import { getOptions } from "./settings";
 
 // Browsers say Norwegian Bokmål ("nb") or Nynorsk ("nn"), and Crowdin names
@@ -16,6 +18,19 @@ const ALIASES: Record<string, string> = { nb: "no", nn: "no" };
 // `zh.json` is in Traditional characters, and under a bare "zh" browsers
 // draw some of them in their Simplified forms.
 const HTML_LANGS: Record<string, string> = { zh: "zh-Hant" };
+
+export const detection: DetectorOptions = {
+  // Not "htmlTag": it reads the prerendered `lang="en"`, which then wins
+  // over a browser listing only region tags, as Safari does ("fr-FR").
+  order: ["localStorage", "navigator"],
+  // The files are named by language alone. Not `load: "languageOnly"`:
+  // it keeps "fr-FR" as the language, and `useTranslation` below then
+  // calls `changeLanguage` on every render.
+  convertDetectedLanguage: (code) => {
+    const language = code.split(/[-_]/)[0].toLowerCase();
+    return ALIASES[language] ?? language;
+  },
+};
 
 i18next
   .use(initReactI18next)
@@ -29,18 +44,7 @@ i18next
   .init({
     ...getOptions(),
     lng: undefined, // let detect the language on client side
-    detection: {
-      // Not "htmlTag": it reads the prerendered `lang="en"`, which then wins
-      // over a browser listing only region tags, as Safari does ("fr-FR").
-      order: ["localStorage", "navigator"],
-      // The files are named by language alone. Not `load: "languageOnly"`:
-      // it keeps "fr-FR" as the language, and `useTranslation` below then
-      // calls `changeLanguage` on every render.
-      convertDetectedLanguage: (code) => {
-        const language = code.split(/[-_]/)[0].toLowerCase();
-        return ALIASES[language] ?? language;
-      },
-    },
+    detection,
   });
 
 // The language is known only in the browser, after the English prerender
