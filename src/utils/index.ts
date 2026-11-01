@@ -98,8 +98,6 @@ export function partitionArray<T>(
   return [pass, fail] as const;
 }
 
-export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 export function capitalize(str: string) {
   return str[0].toUpperCase() + str.slice(1);
 }

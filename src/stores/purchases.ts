@@ -4,7 +4,7 @@ import type { CreateSlice } from ".";
 import { emitter } from "~/utils/emitter";
 
 const PRODUCT_SUPPORTER_KEY = "supporter";
-export const PRODUCT_KEYS = [PRODUCT_SUPPORTER_KEY] as const;
+const PRODUCT_KEYS = [PRODUCT_SUPPORTER_KEY] as const;
 export type ProductKey = (typeof PRODUCT_KEYS)[number];
 
 // Google Play stops listing a refunded purchase. On iOS a refresh is a

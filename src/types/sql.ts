@@ -40,22 +40,6 @@ export type Guild = {
   member_count?: number | null;
 };
 
-export type Payment = {
-  payment_id: string;
-  payment_date: string;
-  payment_amount: number;
-  payment_currency: string;
-  payment_description: string;
-};
-
-export type VoiceSession = {
-  channel_id: string;
-  guild_id?: string;
-  duration_mins: number;
-  started_date: string;
-  ended_date: string;
-};
-
 export type PackageData = {
   package_id: string;
   package_version: string;

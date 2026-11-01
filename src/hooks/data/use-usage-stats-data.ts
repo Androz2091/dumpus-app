@@ -122,17 +122,6 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     return hasError ? null : data[0].received_calls;
   }
 
-  function getUsePerOS() {
-    const { data, hasError } = sql<{ os: string; count: number }>`
-      SELECT SUM(duration_mins) / 60 as count, device_os as os
-      FROM sessions
-      WHERE started_date >= '${from}' AND started_date < '${to}'
-      GROUP BY device_os;
-    `;
-
-    return hasError ? null : data;
-  }
-
   /** Null when the export can't tell, see `carriesEvent`. */
   function countEvent(eventName: string) {
     if (!carriesEvent(sql, eventName)) return null;
@@ -168,7 +157,6 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
     avgSessionDuration: () => getAvgSessionDuration(),
     totalSessionDuration: () => getTotalSessionDuration(),
     receivedCalls: () => getReceivedCalls(),
-    usePerOs: () => getUsePerOS(),
     notificationClicked: () => countEvent("notification_clicked"),
     emailReceived: () => countEvent("email_opened"),
     loginSuccessful: () => countEvent("login_successful"),

@@ -236,5 +236,3 @@ FormMessage.displayName = "FormMessage";
 Form.Message = FormMessage;
 
 export default Form;
-
-export { useFormField };
