@@ -43,23 +43,10 @@ The screenshots and cards show a made-up account.
 
 ## Your data
 
-- You paste the link from Discord's email. Our server downloads the package, turns it into a database with [`dumpus-processor`](processor), and deletes the zip.
+- You paste the link from Discord's email. Our server downloads the package, turns it into a database with [`dumpus-processor`](processor) in about 4 seconds (15 for a large package), and deletes the zip.
 - It stores that database encrypted with a key from your link, and deletes the link once processing starts, so what it keeps can't be read without your link. The app decrypts it on your device.
 - **Delete current package** in the settings deletes it from your device and from our server. Encrypted copies are deleted after 90 days anyway.
 - It's all open source, and you can [run your own server](api/README.md#self-hosting).
-
-## Processing in Go
-
-Packages are processed in Go: **3.7× faster** and **5× less memory** than with Python.
-
-|                                  | Python | Go     |
-| -------------------------------- | ------ | ------ |
-| Typical package (median)         | 16.8 s | 4.4 s  |
-| Large packages (90th percentile) | 48.4 s | 14.9 s |
-| Peak memory (median)             | 277 MB | 51 MB  |
-| Start-up                         | 0.27 s | 1.1 ms |
-
-Tested on real packages, 2 CPUs, median of 3 runs per package.
 
 ## In this repo
 
