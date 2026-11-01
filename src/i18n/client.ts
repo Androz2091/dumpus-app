@@ -48,7 +48,6 @@ i18next
 i18next.on("languageChanged", (language) => {
   if (typeof document === "undefined") return;
   document.documentElement.lang = HTML_LANGS[language] ?? language;
-  document.documentElement.dir = i18next.dir(language);
 });
 
 export function useTranslation(locale = i18next.language) {
