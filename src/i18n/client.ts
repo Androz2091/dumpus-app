@@ -9,15 +9,11 @@ import resourcesToBackend from "i18next-resources-to-backend";
 import LanguageDetector, {
   type DetectorOptions,
 } from "i18next-browser-languagedetector";
-import { getOptions } from "./settings";
+import { getOptions, languageTag } from "./settings";
 
 // Browsers say Norwegian Bokmål ("nb") or Nynorsk ("nn"), and Crowdin names
 // the file after the language covering both, "no".
 const ALIASES: Record<string, string> = { nb: "no", nn: "no" };
-
-// `zh.json` is in Traditional characters, and under a bare "zh" browsers
-// draw some of them in their Simplified forms.
-const HTML_LANGS: Record<string, string> = { zh: "zh-Hant" };
 
 export const detection: DetectorOptions = {
   // Not "htmlTag": it reads the prerendered `lang="en"`, which then wins
@@ -51,7 +47,7 @@ i18next
 // hydrated, so `<html>` gets it here rather than from React.
 i18next.on("languageChanged", (language) => {
   if (typeof document === "undefined") return;
-  document.documentElement.lang = HTML_LANGS[language] ?? language;
+  document.documentElement.lang = languageTag(language);
 });
 
 export function useTranslation(locale = i18next.language) {

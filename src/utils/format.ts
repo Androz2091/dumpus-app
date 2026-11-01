@@ -1,8 +1,9 @@
 "use client";
 import i18next from "i18next";
+import { languageTag } from "~/i18n/settings";
 
 // Read at each call: the language can change after this module loaded.
-const locale = () => i18next.resolvedLanguage || i18next.language;
+const locale = () => languageTag(i18next.resolvedLanguage || i18next.language);
 const fallback = () => i18next.t("notAvailable");
 
 export function formatNumber(

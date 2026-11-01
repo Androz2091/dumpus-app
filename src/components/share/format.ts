@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { useTranslation } from "~/i18n/client";
+import { languageTag } from "~/i18n/settings";
 
 /** `YYYY-MM-DD` as local midnight, so formatting gives back the same day. */
 function localDay(day: string) {
@@ -11,7 +12,7 @@ function localDay(day: string) {
 
 export function useShareFormat() {
   const { t, i18n } = useTranslation();
-  const locale = i18n.resolvedLanguage || i18n.language || "en";
+  const locale = languageTag(i18n.resolvedLanguage || i18n.language || "en");
 
   return useMemo(() => {
     const numberFormat = new Intl.NumberFormat(locale);
