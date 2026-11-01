@@ -10,7 +10,6 @@ type limits struct {
 	entryBytes   uint64 // largest entry read whole; larger ones are skipped
 	inflateRatio uint64 // bytes inflated in all, per byte of zip,
 	minInflate   uint64 // and at least this many
-	events       int64  // relevant activity events; zero derives it from the inflate budget
 }
 
 var defaultLimits = limits{
@@ -34,7 +33,6 @@ func (l limits) orDefaults() limits {
 		entryBytes:   cmp.Or(l.entryBytes, d.entryBytes),
 		inflateRatio: cmp.Or(l.inflateRatio, d.inflateRatio),
 		minInflate:   cmp.Or(l.minInflate, d.minInflate),
-		events:       l.events,
 	}
 }
 
@@ -45,8 +43,5 @@ func (l limits) inflateBudget(size int64) uint64 {
 // eventLimit is how many relevant events a stream of a package of the given
 // size may hold.
 func (l limits) eventLimit(size int64) int64 {
-	if l.events > 0 {
-		return l.events
-	}
 	return int64(l.inflateBudget(size) / minEventLine) //nolint:gosec // G115: a uint64 over 60 fits in an int64
 }

@@ -11,17 +11,11 @@ import (
 // earlier start, across all channels: only that one is checked, not every
 // accepted session.
 func buildVoiceSessions(events []voiceEvent, n *names) []VoiceSession {
-	out, _ := pairVoice(events, n)
-	return out
-}
-
-// pairVoice also counts the steps of its searches, which a test bounds so that
-// the pairing can't turn quadratic again unnoticed.
-func pairVoice(events []voiceEvent, n *names) (out []VoiceSession, steps int) {
 	slices.SortFunc(events, func(a, b voiceEvent) int {
 		return cmp.Or(cmp.Compare(n.str(a.channel), n.str(b.channel)), cmp.Compare(a.order, b.order))
 	})
 	acc := newAcceptedVoice(events)
+	var out []VoiceSession
 	for lo := 0; lo < len(events); {
 		hi := lo
 		for hi < len(events) && events[hi].channel == events[lo].channel {
@@ -39,10 +33,7 @@ func pairVoice(events []voiceEvent, n *names) (out []VoiceSession, steps int) {
 		slices.SortFunc(joins, voiceEvent.byTime)
 		slices.SortFunc(leaves, voiceEvent.byTime)
 		for _, join := range joins {
-			idx := sort.Search(len(leaves), func(i int) bool {
-				steps++
-				return leaves[i].ts >= join.ts
-			})
+			idx := sort.Search(len(leaves), func(i int) bool { return leaves[i].ts >= join.ts })
 			if idx >= len(leaves) {
 				continue
 			}
@@ -64,7 +55,7 @@ func pairVoice(events []voiceEvent, n *names) (out []VoiceSession, steps int) {
 			acc.add(join.ts, leave)
 		}
 	}
-	return out, steps + acc.steps
+	return out
 }
 
 // acceptedVoice holds the accepted sessions by start. No two share a start,
@@ -76,7 +67,6 @@ type acceptedVoice struct {
 	times []int64 // the joins' times, sorted and distinct
 	tree  []int32 // the Fenwick tree of the accepted starts per position, from 1
 	ends  []int64 // the end of the session accepted at each position
-	steps int     // the tree nodes visited
 }
 
 func newAcceptedVoice(events []voiceEvent) *acceptedVoice {
@@ -102,7 +92,6 @@ func (a *acceptedVoice) add(start, end int64) {
 	a.ends[i] = end
 	for j := i + 1; j < len(a.tree); j += j & -j {
 		a.tree[j]++
-		a.steps++
 	}
 }
 
@@ -112,7 +101,6 @@ func (a *acceptedVoice) covers(t int64) bool {
 	k := int32(0) // accepted starts at or before t
 	for j := a.pos(t) + 1; j > 0; j -= j & -j {
 		k += a.tree[j]
-		a.steps++
 	}
 	if k == 0 {
 		return false
@@ -124,7 +112,6 @@ func (a *acceptedVoice) covers(t int64) bool {
 			i += step
 			k -= a.tree[i]
 		}
-		a.steps++
 	}
 	return a.ends[i] >= t
 }

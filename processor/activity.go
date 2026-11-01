@@ -11,11 +11,12 @@ import (
 	"sync/atomic"
 )
 
-const defaultChunkBytes = 4 << 20
+// chunkBytes is the size of the chunks the activity stream is cut into.
+const chunkBytes = 4 << 20
 
 type activityConfig struct {
-	workers, chunkBytes, lineBytes int
-	events                         int64 // relevant events kept, see limits
+	workers, lineBytes int
+	events             int64 // relevant events kept, see limits
 }
 
 // chunk is a run of the activity stream. seq numbers the chunks with lines in
@@ -72,7 +73,7 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 	nbuf := cfg.workers + 2
 	free := make(chan *chunk, nbuf)
 	for range nbuf {
-		free <- &chunk{buf: make([]byte, cfg.chunkBytes)}
+		free <- &chunk{buf: make([]byte, chunkBytes)}
 	}
 	release := func(c *chunk) {
 		if c.refs.Add(-1) == 0 {
@@ -194,7 +195,7 @@ func splitLines(ctx context.Context, r io.Reader, cfg activityConfig, free chan 
 		case <-ctx.Done():
 			return dropped, ctx.Err()
 		}
-		size := max(cfg.chunkBytes, 2*len(carry))
+		size := max(chunkBytes, 2*len(carry))
 		if cap(c.buf) != size {
 			c.buf = make([]byte, size)
 		}

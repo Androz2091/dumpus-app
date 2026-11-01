@@ -8,7 +8,6 @@ package processor
 
 import (
 	"archive/zip"
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -47,9 +46,6 @@ type Options struct {
 	// reading the other files. Zero means `GOMAXPROCS`.
 	Workers int
 
-	// chunkBytes is the size of the chunks the activity stream is cut into;
-	// zero means 4 MiB. Tests make it small so that lines span chunks.
-	chunkBytes int
 	// limits replaces the default limits, field by field; set by tests.
 	limits limits
 }
@@ -143,10 +139,9 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 		g.Go(func() error {
 			t := time.Now()
 			a, err := readActivity(gctx, p, activity, activityConfig{
-				workers:    max(workers-1, 1),
-				chunkBytes: cmp.Or(opts.chunkBytes, defaultChunkBytes),
-				lineBytes:  lim.lineBytes,
-				events:     lim.eventLimit(size),
+				workers:   max(workers-1, 1),
+				lineBytes: lim.lineBytes,
+				events:    lim.eventLimit(size),
 			})
 			if err != nil {
 				return err
