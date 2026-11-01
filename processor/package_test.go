@@ -3,7 +3,6 @@ package processor
 import (
 	"archive/zip"
 	"bytes"
-	"context"
 	"fmt"
 	"reflect"
 	"slices"
@@ -16,7 +15,7 @@ import (
 
 type entry struct{ name, body string }
 
-func zipOf(t testing.TB, entries []entry) (*bytes.Reader, int64) {
+func zipOf(t *testing.T, entries []entry) (r *bytes.Reader, size int64) {
 	t.Helper()
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
@@ -39,10 +38,11 @@ func zipOf(t testing.TB, entries []entry) (*bytes.Reader, int64) {
 	return bytes.NewReader(buf.Bytes()), int64(buf.Len())
 }
 
-func process(t testing.TB, entries []entry) *Result {
+func processWith(t *testing.T, entries []entry, opts Options) *Result {
 	t.Helper()
 	r, size := zipOf(t, entries)
-	res, err := Process(context.Background(), r, size, Options{PackageID: "pkg-test", Workers: 3})
+	opts.PackageID = "pkg-test"
+	res, err := Process(t.Context(), r, size, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,8 +55,8 @@ func ts(s string) string { return `"\"` + s + `\""` }
 // event is one activity line from key and raw JSON value pairs.
 func event(eventType string, kv ...string) string {
 	parts := []string{`"event_type":"` + eventType + `"`}
-	for i := 0; i < len(kv); i += 2 {
-		parts = append(parts, `"`+kv[i]+`":`+kv[i+1])
+	for pair := range slices.Chunk(kv, 2) {
+		parts = append(parts, `"`+pair[0]+`":`+pair[1])
 	}
 	return "{" + strings.Join(parts, ",") + "}"
 }
@@ -103,9 +103,9 @@ var paymentsJSON = `{"records": [
 ]}`
 
 func messages(timestamps ...string) string {
-	var ms []string
+	ms := make([]string, 0, len(timestamps))
 	for i, t := range timestamps {
-		ms = append(ms, fmt.Sprintf(`{"ID": %d, "Timestamp": "%s", "Contents": "text", "Attachments": ""}`, i+1, t))
+		ms = append(ms, fmt.Sprintf(`{"ID": %d, "Timestamp": %q, "Contents": "text", "Attachments": ""}`, i+1, t))
 	}
 	return "[" + strings.Join(ms, ", ") + "]"
 }
@@ -166,7 +166,7 @@ var activityLines = lines(
 
 // fullPackage is a package with every section, in the given folders.
 func fullPackage(l folders) []entry {
-	es := []entry{
+	return slices.Concat([]entry{
 		{l.account + "/", ""},
 		{l.account + "/user.json", userJSON},
 		{l.account + "/user_data_exports/discord_billing/payments.json", paymentsJSON},
@@ -181,23 +181,23 @@ func fullPackage(l folders) []entry {
 			"` + group + `": "Group Chat",
 			"` + news + `": "news#0000-old",
 			"400000000000000006": null}`},
-	}
-	es = append(es, channelFolder(l, dmFriend, dmChannel(dmFriend, ownerID, friend),
-		messages("2021-04-06 12:34:56", "2021-04-06 12:59:59", "2021-04-06 13:00:00"))...)
-	es = append(es, channelFolder(l, dmOther, dmChannel(dmOther, stranger, ownerID), messages("2021-04-07 00:00:00"))...)
-	es = append(es, channelFolder(l, general, guildChannel(general, guildOne),
-		messages("2021-04-06 23:59:59.500", "2021-04-06 23:00:00.000"))...)
-	es = append(es, channelFolder(l, unindexed, guildChannel(unindexed, guildOne),
-		messages("2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00"))...)
-	es = append(es, channelFolder(l, group, dmChannel(group, ownerID, friend, stranger), messages("2021-04-06 12:00:00"))...)
-	es = append(es, channelFolder(l, noMsgs, guildChannel(noMsgs, guildOne), "")...)
-	es = append(es, channelFolder(l, news, guildChannel(news, guildTwo), messages("2021-04-06 12:00:00"))...)
-	es = append(es,
-		entry{l.activity + "/", ""},
-		entry{l.activity + "/analytics/events-2021-00000-of-00001.json", activityLines},
-		entry{l.activity + "/tns/events-2021-00000-of-00001.json", lines(event("app_opened", "timestamp", ts("2020-01-01T00:00:00.000Z"), "os", `"tns"`))},
+	},
+		channelFolder(l, dmFriend, dmChannel(dmFriend, ownerID, friend),
+			messages("2021-04-06 12:34:56", "2021-04-06 12:59:59", "2021-04-06 13:00:00")),
+		channelFolder(l, dmOther, dmChannel(dmOther, stranger, ownerID), messages("2021-04-07 00:00:00")),
+		channelFolder(l, general, guildChannel(general, guildOne),
+			messages("2021-04-06 23:59:59.500", "2021-04-06 23:00:00.000")),
+		channelFolder(l, unindexed, guildChannel(unindexed, guildOne),
+			messages("2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00")),
+		channelFolder(l, group, dmChannel(group, ownerID, friend, stranger), messages("2021-04-06 12:00:00")),
+		channelFolder(l, noMsgs, guildChannel(noMsgs, guildOne), ""),
+		channelFolder(l, news, guildChannel(news, guildTwo), messages("2021-04-06 12:00:00")),
+		[]entry{
+			{l.activity + "/", ""},
+			{l.activity + "/analytics/events-2021-00000-of-00001.json", activityLines},
+			{l.activity + "/tns/events-2021-00000-of-00001.json", lines(event("app_opened", "timestamp", ts("2020-01-01T00:00:00.000Z"), "os", `"tns"`))},
+		},
 	)
-	return es
 }
 
 func ptr[S ~string](s *S) string {
@@ -239,7 +239,7 @@ func tables(m *Model) map[string][]string {
 	for _, r := range m.Guilds {
 		members := "NULL"
 		if r.MemberCount != nil {
-			members = fmt.Sprint(*r.MemberCount)
+			members = strconv.FormatInt(*r.MemberCount, 10)
 		}
 		add("guilds", fmt.Sprintf("%s|%s|%d|%s", r.GuildID, ptr(r.GuildName), r.TotalMessageCount, members))
 	}
@@ -329,7 +329,7 @@ func diffTables(t *testing.T, got, want map[string][]string) {
 }
 
 func TestFullPackage(t *testing.T) {
-	res := process(t, fullPackage(english))
+	res := processWith(t, fullPackage(english), Options{Workers: 3})
 	diffTables(t, tables(res.Model), fullTables())
 	if len(res.Report.Issues) != 0 || len(res.Report.MissingFiles) != 0 {
 		t.Errorf("report: issues %+v, missing %+v", res.Report.Issues, res.Report.MissingFiles)

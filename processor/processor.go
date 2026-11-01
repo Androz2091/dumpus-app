@@ -34,8 +34,9 @@ const (
 // happens when the "User data" option is left out of the export request.
 var ErrMissingUserData = errors.New(string(CodeMissingUserData))
 
-// The app reads `channel_opened` counts only from 0.2.0, and member counts
-// only from 0.3.0, the first versions to write them.
+// PackageVersion is written to `package_data`. The app reads `channel_opened`
+// counts only from 0.2.0, and member counts only from 0.3.0, the first
+// versions to write them.
 const PackageVersion = "0.3.0"
 
 // Options configure Process.
@@ -105,7 +106,7 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 		rep.MissingFiles = append(rep.MissingFiles, MissingFile{Role: RoleUser, Path: "Account/user.json"})
 		return nil, ErrMissingUserData
 	}
-	p.budget(p.readOrder(l), lim.inflateBudget(size))
+	p.budget(p.readOrder(&l), lim.inflateBudget(size))
 	if err := p.locate(ctx, workers); err != nil {
 		return nil, err
 	}
@@ -156,7 +157,7 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 	}
 	g.Go(func() error {
 		t := time.Now()
-		pf, err := readFiles(gctx, p, l, own.id, workers)
+		pf, err := readFiles(gctx, p, &l, own.id, workers)
 		files, filesTime = pf, time.Since(t)
 		return err
 	})
@@ -223,7 +224,7 @@ type packageFiles struct {
 	messages          int64
 }
 
-func readFiles(ctx context.Context, p *pkg, l layout, ownerID string, workers int) (*packageFiles, error) {
+func readFiles(ctx context.Context, p *pkg, l *layout, ownerID string, workers int) (*packageFiles, error) {
 	pf := &packageFiles{channels: make([]channelResult, len(l.channels))}
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(workers)
@@ -308,7 +309,7 @@ func readChannelFolder(p *pkg, channelPath, ownerID string) (channelResult, erro
 		return channelResult{}, fmt.Errorf("%s: %w", maskPath(messagesPath), err)
 	}
 	defer e.Close()
-	res, err := readChannel(channelInput{
+	res, err := readChannel(&channelInput{
 		channelPath: channelPath, channel: channel, channelID: id, messagesPath: messagesPath, messages: e,
 	}, ownerID, p.iss)
 	if err == nil {

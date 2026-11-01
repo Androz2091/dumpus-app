@@ -217,7 +217,8 @@ func (s *jsonStream) number(c byte) {
 				return n
 			}
 			if !isDigit(b) {
-				s.r.UnreadByte()
+				// It can't fail right after a ReadByte.
+				_ = s.r.UnreadByte()
 				return n
 			}
 			n++
@@ -231,7 +232,7 @@ func (s *jsonStream) number(c byte) {
 			}
 			return 0
 		}
-		s.r.UnreadByte()
+		_ = s.r.UnreadByte()
 		return b
 	}
 	if c == '-' {

@@ -29,7 +29,7 @@ func readServersIndex(data []byte, path string, iss *issues) ([]guildEntry, bool
 		case kindNull:
 		case kindNumber:
 			if n, _ := decodeNumber(v); n.isInt {
-				g.name = strPtr(itoa(n.i))
+				g.name = new(itoa(n.i))
 				break
 			}
 			fallthrough
@@ -110,7 +110,7 @@ type channelInput struct {
 // guild can't be read is ignored. Its issues are only reported once
 // `messages.json` is known to be well formed, which the reference reads first.
 // err is a read error.
-func readChannel(in channelInput, ownerID string, iss *issues) (channelResult, error) {
+func readChannel(in *channelInput, ownerID string, iss *issues) (channelResult, error) {
 	var found issues
 	res := classifyChannel(in, ownerID, &found)
 	mc, problem, err := readMessages(in.messages, res.kind == channelDM)
@@ -136,7 +136,7 @@ func readChannel(in channelInput, ownerID string, iss *issues) (channelResult, e
 	return res, nil
 }
 
-func classifyChannel(in channelInput, ownerID string, iss *issues) channelResult {
+func classifyChannel(in *channelInput, ownerID string, iss *issues) channelResult {
 	res := channelResult{channelID: in.channelID}
 	isDM := false
 	if rv, has := in.channel.get("recipients"); has {
@@ -197,7 +197,7 @@ func dmUserID(recipients [][]byte, ownerID, path string, iss *issues) (*string, 
 		}
 	}
 	iss.add(path, "recipients", ProblemSelfDM, 1)
-	return strPtr(ownerID), true
+	return new(ownerID), true
 }
 
 func guildOf(gv []byte, path string, iss *issues) (*string, bool) {
@@ -231,9 +231,10 @@ func guildOf(gv []byte, path string, iss *issues) (*string, bool) {
 		return &s, true
 	case kindNull:
 		return nil, true
+	default:
+		iss.add(path, "guild.id", ProblemWrongType, 1)
+		return nil, false
 	}
-	iss.add(path, "guild.id", ProblemWrongType, 1)
-	return nil, false
 }
 
 // messageCounts is what a `messages.json` gives the tables.

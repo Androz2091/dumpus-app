@@ -65,6 +65,9 @@ linters:
       disable:
         # Field order follows meaning, not padding.
         - fieldalignment
+        # Flags `if err := f(); err != nil` below an outer `err`, the form
+        # gocritic's `sloppyReassign` asks for.
+        - shadow
     misspell:
       # String literals hold names from elsewhere, for eg. the worker's
       # `occurence_count` column.
@@ -163,6 +166,7 @@ linters:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  uniq-by-line: false
 
 formatters:
   enable:

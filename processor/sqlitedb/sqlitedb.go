@@ -15,9 +15,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dumpus-app/dumpus-app/processor"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
+
+	"github.com/dumpus-app/dumpus-app/processor"
 )
 
 // The DDL is the worker's text as is, so `sqlite_master` reads the same,
@@ -232,13 +233,14 @@ func Write(ctx context.Context, path string, m *processor.Model) (*Result, error
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 	db.SetMaxOpenConns(1)
-	dropped, err := write(ctx, db, m)
-	if err != nil {
-		return nil, err
+	dropped, err := writeModel(ctx, db, m)
+	// The database is closed on every path, and an error closing it counts
+	// once the rows are in.
+	if cerr := db.Close(); err == nil {
+		err = cerr
 	}
-	if err := db.Close(); err != nil {
+	if err != nil {
 		return nil, err
 	}
 	return &Result{DroppedRows: dropped}, syncFile(path)
@@ -252,8 +254,10 @@ func dsn(path string) string {
 	if filepath.IsAbs(path) && !strings.HasPrefix(p, "/") {
 		p = "/" + p
 	}
-	u := url.URL{Scheme: "file", OmitHost: true, Path: p,
-		RawQuery: "_pragma=journal_mode(DELETE)&_pragma=synchronous(OFF)&_pragma=temp_store(MEMORY)"}
+	u := url.URL{
+		Scheme: "file", OmitHost: true, Path: p,
+		RawQuery: "_pragma=journal_mode(DELETE)&_pragma=synchronous(OFF)&_pragma=temp_store(MEMORY)",
+	}
 	return u.String()
 }
 
@@ -262,14 +266,14 @@ func syncFile(path string) error {
 	if err != nil {
 		return err
 	}
-	if err := f.Sync(); err != nil {
-		f.Close()
-		return err
+	err = f.Sync()
+	if cerr := f.Close(); err == nil {
+		err = cerr
 	}
-	return f.Close()
+	return err
 }
 
-func write(ctx context.Context, db *sql.DB, m *processor.Model) (DroppedRows, error) {
+func writeModel(ctx context.Context, db *sql.DB, m *processor.Model) (DroppedRows, error) {
 	for _, ddl := range tables {
 		if _, err := db.ExecContext(ctx, ddl); err != nil {
 			return DroppedRows{}, err
@@ -279,23 +283,12 @@ func write(ctx context.Context, db *sql.DB, m *processor.Model) (DroppedRows, er
 	if err != nil {
 		return DroppedRows{}, err
 	}
-	defer tx.Rollback()
+	// Once committed, rolling back does nothing; before, the error returned is
+	// the one that stopped the inserts.
+	defer func() { _ = tx.Rollback() }()
 	var dropped DroppedRows
 	for _, ins := range inserts(m, &dropped) {
-		stmt, err := tx.PrepareContext(ctx, ins.query)
-		if err != nil {
-			return DroppedRows{}, err
-		}
-		for i := range ins.n {
-			if _, err := ins.exec(ctx, stmt, i); err != nil {
-				if !isConstraint(err) {
-					stmt.Close()
-					return DroppedRows{}, fmt.Errorf("insert into %s: %w", ins.table, err)
-				}
-				*ins.dropped++
-			}
-		}
-		if err := stmt.Close(); err != nil {
+		if err := insertRows(ctx, tx, ins); err != nil {
 			return DroppedRows{}, err
 		}
 	}
@@ -311,6 +304,29 @@ func write(ctx context.Context, db *sql.DB, m *processor.Model) (DroppedRows, er
 		return DroppedRows{}, err
 	}
 	return dropped, nil
+}
+
+// insertRows inserts a table's rows, counting those the schema refuses. An
+// error closing the statement counts once the rows are in.
+func insertRows(ctx context.Context, tx *sql.Tx, ins insert) (err error) {
+	stmt, err := tx.PrepareContext(ctx, ins.query)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if cerr := stmt.Close(); err == nil {
+			err = cerr
+		}
+	}()
+	for i := range ins.n {
+		if _, err := ins.exec(ctx, stmt, i); err != nil {
+			if !isConstraint(err) {
+				return fmt.Errorf("insert into %s: %w", ins.table, err)
+			}
+			*ins.dropped++
+		}
+	}
+	return nil
 }
 
 func isConstraint(err error) bool {

@@ -48,5 +48,5 @@ func (l limits) eventLimit(size int64) int64 {
 	if l.events > 0 {
 		return l.events
 	}
-	return int64(l.inflateBudget(size) / minEventLine)
+	return int64(l.inflateBudget(size) / minEventLine) //nolint:gosec // G115: a uint64 over 60 fits in an int64
 }

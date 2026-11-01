@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"hash"
 	"hash/crc32"
 	"io"
 	"math"
@@ -204,16 +203,17 @@ func (p *pkg) open(f *zip.File, checksum bool) (*entryReader, error) {
 // 4 KiB, a request each when the package is read over HTTP. It fails as soon as
 // the entry yields more than its declared size.
 type entryReader struct {
-	r     io.Reader
-	close func() error
-	f     *zip.File
-	n     uint64
-	crc   hash.Hash32 // nil when the caller checksums the data itself
+	r        io.Reader
+	close    func() error
+	f        *zip.File
+	n        uint64
+	checksum bool   // false when the caller checksums the data itself
+	crc      uint32 // of the bytes read, when checksum is set
 }
 
 func newEntryReader(f *zip.File, raw io.Reader, checksum bool) (*entryReader, error) {
 	br := bufio.NewReaderSize(raw, int(min(max(f.CompressedSize64, 16), maxReadBuf)))
-	e := &entryReader{f: f, close: func() error { return nil }}
+	e := &entryReader{f: f, close: func() error { return nil }, checksum: checksum}
 	switch f.Method {
 	case zip.Store:
 		e.r = br
@@ -223,30 +223,30 @@ func newEntryReader(f *zip.File, raw io.Reader, checksum bool) (*entryReader, er
 	default:
 		return nil, fmt.Errorf("%w: compression method %d", zip.ErrAlgorithm, f.Method)
 	}
-	if checksum {
-		e.crc = crc32.NewIEEE()
-	}
 	return e, nil
 }
 
 func (e *entryReader) Read(p []byte) (int, error) {
 	n, err := e.r.Read(p)
-	e.n += uint64(n)
+	read := p[:n]
+	e.n += uint64(len(read))
 	if e.n > e.f.UncompressedSize64 {
 		return 0, fmt.Errorf("%w: more data than the declared size", zip.ErrFormat)
 	}
-	if e.crc != nil {
-		e.crc.Write(p[:n])
+	if e.checksum {
+		e.crc = crc32.Update(e.crc, crc32.IEEETable, read)
 	}
 	if err == io.EOF {
 		if e.n != e.f.UncompressedSize64 {
 			return n, io.ErrUnexpectedEOF
 		}
-		if e.crc != nil && e.f.CRC32 != 0 && e.crc.Sum32() != e.f.CRC32 {
+		if e.checksum && e.f.CRC32 != 0 && e.crc != e.f.CRC32 {
 			return n, zip.ErrChecksum
 		}
 	}
 	return n, err
 }
 
-func (e *entryReader) Close() error { return e.close() }
+// Close releases the inflater. It returns nothing: the inflater only keeps
+// the error a Read already failed on.
+func (e *entryReader) Close() { _ = e.close() }

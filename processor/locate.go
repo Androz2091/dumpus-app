@@ -26,6 +26,20 @@ var (
 	}
 )
 
+type entries struct {
+	files  []*zip.File
+	byName map[string]*zip.File
+}
+
+func indexEntries(zr *zip.Reader) *entries {
+	e := &entries{files: zr.File, byName: make(map[string]*zip.File, len(zr.File))}
+	for _, f := range zr.File {
+		// The last entry wins for a duplicated name, as with Python's zipfile.
+		e.byName[f.Name] = f
+	}
+	return e
+}
+
 // layout is what the processor reads, found from the entry names. An index
 // or payments path is empty when there is no candidate.
 type layout struct {
@@ -53,7 +67,7 @@ func (e *entries) layout() layout {
 
 // readOrder is every entry the processor may read, in the order the inflate
 // budget is handed out.
-func (e *entries) readOrder(l layout) []*zip.File {
+func (e *entries) readOrder(l *layout) []*zip.File {
 	var out []*zip.File
 	add := func(name string) {
 		if f := e.get(name); name != "" && f != nil {
@@ -72,20 +86,6 @@ func (e *entries) readOrder(l layout) []*zip.File {
 		}
 	}
 	return out
-}
-
-type entries struct {
-	files  []*zip.File
-	byName map[string]*zip.File
-}
-
-func indexEntries(zr *zip.Reader) *entries {
-	e := &entries{files: zr.File, byName: make(map[string]*zip.File, len(zr.File))}
-	for _, f := range zr.File {
-		// The last entry wins for a duplicated name, as with Python's zipfile.
-		e.byName[f.Name] = f
-	}
-	return e
 }
 
 func (e *entries) get(name string) *zip.File { return e.byName[name] }

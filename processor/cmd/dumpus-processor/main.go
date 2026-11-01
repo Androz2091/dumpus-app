@@ -66,7 +66,7 @@ func run(ctx context.Context, args []string, stderr io.Writer) exitCode {
 		return exitUsage
 	}
 	if *input == "" || *output == "" || *packageID == "" || fs.NArg() > 0 {
-		fmt.Fprintln(stderr, "dumpus-processor: --input, --output and --package-id are required")
+		_, _ = fmt.Fprintln(stderr, "dumpus-processor: --input, --output and --package-id are required")
 		fs.Usage()
 		return exitUsage
 	}
@@ -83,7 +83,7 @@ func run(ctx context.Context, args []string, stderr io.Writer) exitCode {
 	if rep != nil && *reportPath != "" {
 		if werr := writeReport(*reportPath, rep); werr != nil {
 			if code != exitOK {
-				fmt.Fprintf(stderr, "dumpus-processor: report: %v\n", werr)
+				_, _ = fmt.Fprintf(stderr, "dumpus-processor: report: %v\n", werr)
 			} else {
 				code, fail = exitReportFailed, failure{Error: codeReportFailed, Message: werr.Error()}
 			}
@@ -91,7 +91,7 @@ func run(ctx context.Context, args []string, stderr io.Writer) exitCode {
 	}
 	if code != exitOK {
 		line, _ := json.Marshal(fail)
-		fmt.Fprintln(stderr, string(line))
+		_, _ = fmt.Fprintln(stderr, string(line))
 	}
 	return code
 }
@@ -114,7 +114,7 @@ func process(ctx context.Context, input, output, packageID string, workers int) 
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	st, err := f.Stat()
 	if err != nil {
 		return nil, err
@@ -131,8 +131,8 @@ func process(ctx context.Context, input, output, packageID string, workers int) 
 		err = os.Rename(tmp, output)
 	}
 	if err != nil {
-		os.Remove(tmp)
-		os.Remove(tmp + "-journal")
+		_ = os.Remove(tmp)
+		_ = os.Remove(tmp + "-journal")
 		rep.Error = processor.CodeUnknownError
 		return rep, err
 	}
@@ -141,9 +141,7 @@ func process(ctx context.Context, input, output, packageID string, workers int) 
 }
 
 func writeReport(path string, r *report) error {
-	data, err := json.MarshalIndent(r, "", "  ")
-	if err != nil {
-		return err
-	}
+	// Nothing in a report is a value that encoding can fail on.
+	data, _ := json.MarshalIndent(r, "", "  ")
 	return os.WriteFile(path, append(data, '\n'), 0o600)
 }

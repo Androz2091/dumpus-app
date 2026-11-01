@@ -59,12 +59,14 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 				ChannelName:       name,
 				TotalMessageCount: c.total,
 			})
+		case channelOther:
+			// No row of its own, only its messages.
 		}
 		for _, hour := range slices.Sorted(maps.Keys(c.hours)) {
 			day, h := hourParts(hour)
 			m.Activity = append(m.Activity, Activity{
 				EventName: "message_sent", Day: day, Hour: h, OccurrenceCount: c.hours[hour],
-				ChannelID: strPtr(c.channelID), GuildID: guildID,
+				ChannelID: new(c.channelID), GuildID: guildID,
 			})
 		}
 	}
@@ -94,7 +96,7 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 	}
 	m.Activity = append(m.Activity, activityRows(act, pages)...)
 
-	isPartial := !(stream != nil && act.usable) || !pf.serversIndexRead || !pf.messagesIndexRead || skipped
+	isPartial := stream == nil || !act.usable || !pf.serversIndexRead || !pf.messagesIndexRead || skipped
 	m.Package = PackageData{
 		PackageID:        packageID,
 		PackageVersion:   PackageVersion,
@@ -146,7 +148,7 @@ func activityRows(a *activityAgg, channelPages map[string]bool) []Activity {
 		// which never holds, so every reaction is stored as not custom.
 		rows = append(rows, Activity{
 			EventName: "add_reaction", Day: dayString(k.day), OccurrenceCount: a.reactions[k],
-			ChannelID: n.ptr(k.channel), ExtraField1: n.ptr(k.emoji), ExtraField2: strPtr("0"),
+			ChannelID: n.ptr(k.channel), ExtraField1: n.ptr(k.emoji), ExtraField2: new("0"),
 		})
 	}
 

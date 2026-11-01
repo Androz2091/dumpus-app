@@ -1,22 +1,10 @@
 package processor
 
 import (
-	"context"
 	"slices"
 	"strings"
 	"testing"
 )
-
-func processWith(t *testing.T, entries []entry, opts Options) *Result {
-	t.Helper()
-	r, size := zipOf(t, entries)
-	opts.PackageID = "pkg-test"
-	res, err := Process(context.Background(), r, size, opts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return res
-}
 
 func hasIssue(r *Report, path string, problem Problem, count int) bool {
 	return slices.Contains(r.Issues, Issue{Path: path, Problem: problem, Count: count})

@@ -147,11 +147,10 @@ const (
 // sniffEventType reads the event type of a line without decoding it. A plain
 // `"event_type"` that isn't followed by a colon is a string value, not a key.
 func sniffEventType(line []byte) ([]byte, sniff) {
-	i := bytes.Index(line, eventTypeKey)
-	if i < 0 {
+	_, rest, found := bytes.Cut(line, eventTypeKey)
+	if !found {
 		return nil, sniffAbsent
 	}
-	rest := line[i+len(eventTypeKey):]
 	if bytes.Contains(rest, eventTypeKey) {
 		return nil, sniffAmbiguous
 	}
@@ -174,7 +173,7 @@ func sniffEventType(line []byte) ([]byte, sniff) {
 // id in names, 0 being null.
 type (
 	dayKey struct {
-		daily int32 // the index in dailyEvents
+		daily int // the index in dailyEvents
 		day   int64
 	}
 	guildHourKey struct {
@@ -251,7 +250,7 @@ func (n *names) id(s []byte) uint32 {
 		return id
 	}
 	n.all = append(n.all, string(s))
-	id := uint32(len(n.all))
+	id := uint32(len(n.all)) //nolint:gosec // G115: 2^32 names would need over 128 GiB first
 	n.ids[n.all[id-1]] = id
 	return id
 }
@@ -389,6 +388,8 @@ func (r *lineReader) line(line []byte, order uint64) {
 			}
 			return
 		}
+	case sniffAmbiguous:
+		// Decided once the line is decoded.
 	}
 	if !json.Valid(line) {
 		if spec.kind != 0 {
@@ -415,6 +416,8 @@ func (r *lineReader) line(line []byte, order uint64) {
 		r.agg.read++
 	case eventFailed:
 		r.agg.failed++
+	case eventSkipped:
+		// Counted in neither.
 	}
 }
 
@@ -474,15 +477,16 @@ func (r *lineReader) text(spec eventSpec, f *eventFields, field eventField) (uin
 		raw := v[1 : len(v)-1]
 		if bytes.IndexByte(raw, '\\') >= 0 {
 			s, _ := decodeString(v)
-			raw = append(r.str[:0], s...)
-			r.str = raw
+			r.str = append(r.str[:0], s...)
+			raw = r.str
 		}
 		return r.s.names.id(raw), true
 	case kindNull:
 		return 0, true
+	default:
+		r.issue(spec, field, ProblemWrongType)
+		return 0, false
 	}
-	r.issue(spec, field, ProblemWrongType)
-	return 0, false
 }
 
 // Exports write counts as strings, for eg. `"509"`.
@@ -693,7 +697,7 @@ func (r *lineReader) event(spec eventSpec, f *eventFields, order uint64) outcome
 		if !ok {
 			return eventFailed
 		}
-		a.daily[dayKey{daily: int32(spec.daily), day: floorDiv(ts, secondsPerDay)}]++
+		a.daily[dayKey{daily: spec.daily, day: floorDiv(ts, secondsPerDay)}]++
 	}
 	return eventRead
 }

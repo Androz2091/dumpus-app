@@ -129,5 +129,3 @@ const (
 	// `message_edited`, so their counts are unknown, not 0.
 	StreamReporting ActivityStream = "reporting"
 )
-
-func strPtr(s string) *string { return &s }

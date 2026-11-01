@@ -25,13 +25,13 @@ func avatarURL(userID, hash string) *string {
 	if strings.HasPrefix(hash, "a_") {
 		ext = "gif"
 	}
-	return strPtr("https://cdn.discordapp.com/avatars/" + userID + "/" + hash + "." + ext)
+	return new("https://cdn.discordapp.com/avatars/" + userID + "/" + hash + "." + ext)
 }
 
 // optionalString reads a key the reference takes with `.get()`: present is
 // false when it is absent or null, ok is false when it holds anything but a
 // string.
-func optionalString(m members, key string) (s string, present bool, ok bool) {
+func optionalString(m members, key string) (s string, present, ok bool) {
 	v, has := m.get(key)
 	if !has || kindOf(v) == kindNull {
 		return "", false, true
@@ -42,11 +42,11 @@ func optionalString(m members, key string) (s string, present bool, ok bool) {
 
 // orDisplayName mirrors `a.get('display_name') or b.get('global_name')`: the
 // first value when it is a non-empty string, else the second one as is.
-func orDisplayName(first members, second members, path string, iss *issues) *string {
+func orDisplayName(first, second members, path string, iss *issues) *string {
 	if s, present, ok := optionalString(first, "display_name"); !ok {
 		iss.add(path, "display_name", ProblemWrongType, 1)
 	} else if present && s != "" {
-		return strPtr(s)
+		return new(s)
 	}
 	s, present, ok := optionalString(second, "global_name")
 	if !ok {
@@ -56,7 +56,7 @@ func orDisplayName(first members, second members, path string, iss *issues) *str
 	if !present {
 		return nil
 	}
-	return strPtr(s)
+	return new(s)
 }
 
 func requiredString(m members, key, path, field string, iss *issues) (string, bool) {
@@ -175,11 +175,10 @@ func avatarHash(v []byte) (string, bool) {
 	case kindString:
 		return decodeString(v)
 	case kindBool:
-		if string(v) == "false" {
-			return "", true
-		}
+		return "", string(v) == "false"
+	default:
+		return "", false
 	}
-	return "", false
 }
 
 // readPayments keeps the successful payments that weren't settled in Orbs.
@@ -256,12 +255,14 @@ func readPayment(v []byte, path string, iss *issues) (Payment, bool) {
 			return nil
 		case kindNumber:
 			if n, _ := decodeNumber(v); n.isInt {
-				return strPtr(itoa(n.i))
+				return new(itoa(n.i))
 			}
+			fallthrough
+		default:
+			iss.add(path, field+"."+key, ProblemWrongType, 1)
+			ok = false
+			return nil
 		}
-		iss.add(path, field+"."+key, ProblemWrongType, 1)
-		ok = false
-		return nil
 	}
 	p.PaymentID = text("id")
 	p.Currency = text("currency")
@@ -272,13 +273,13 @@ func readPayment(v []byte, path string, iss *issues) (Payment, bool) {
 		iss.add(path, field+".amount", ProblemMissing, 1)
 		ok = false
 	case kindOf(amount) == kindNumber:
-		n, valid := decodeNumber(amount)
-		if !valid {
+		switch n, valid := decodeNumber(amount); {
+		case !valid:
 			iss.add(path, field+".amount", ProblemWrongType, 1)
 			ok = false
-		} else if n.isInt {
+		case n.isInt:
 			p.Amount = Amount{Kind: AmountInt, Int: n.i}
-		} else {
+		default:
 			p.Amount = Amount{Kind: AmountFloat, Float: n.f}
 		}
 	case kindOf(amount) == kindString:

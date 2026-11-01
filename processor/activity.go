@@ -107,10 +107,10 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 		})
 	}
 	var others sync.WaitGroup
-	crc := crc32.NewIEEE()
+	var crc uint32
 	others.Go(func() {
 		for c := range sums {
-			crc.Write(c.fresh)
+			crc = crc32.Update(crc, crc32.IEEETable, c.fresh)
 			release(c)
 		}
 	})
@@ -150,7 +150,7 @@ func readActivity(ctx context.Context, p *pkg, f *zip.File, cfg activityConfig) 
 	if err != nil {
 		return nil, err
 	}
-	if f.CRC32 != 0 && crc.Sum32() != f.CRC32 {
+	if f.CRC32 != 0 && crc != f.CRC32 {
 		return nil, zip.ErrChecksum
 	}
 	total.usable = s.usable.Load()
@@ -244,9 +244,11 @@ func splitLines(ctx context.Context, r io.Reader, cfg activityConfig, free chan 
 	}
 }
 
-func fill(r io.Reader, buf []byte, n int) (int, bool, error) {
+// fill reads r into buf from n on, until buf is full or r ends.
+func fill(r io.Reader, buf []byte, n int) (end int, eof bool, err error) {
 	for n < len(buf) {
-		m, err := r.Read(buf[n:])
+		var m int
+		m, err = r.Read(buf[n:])
 		n += m
 		if err == io.EOF {
 			return n, true, nil
