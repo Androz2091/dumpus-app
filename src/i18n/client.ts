@@ -26,6 +26,10 @@ export const detection: DetectorOptions = {
     const language = code.split(/[-_]/)[0].toLowerCase();
     return ALIASES[language] ?? language;
   },
+  // Only a language the user picks is saved, by `pickLanguage`. A detected
+  // one is found again on the next visit, and the English saved for a
+  // language not offered yet would win over it once it is.
+  caches: [],
 };
 
 i18next
@@ -49,6 +53,14 @@ i18next.on("languageChanged", (language) => {
   if (typeof document === "undefined") return;
   document.documentElement.lang = languageTag(language);
 });
+
+export function pickLanguage(language: string) {
+  i18next.changeLanguage(language);
+  (i18next.services.languageDetector as LanguageDetector).cacheUserLanguage(
+    language,
+    ["localStorage"],
+  );
+}
 
 export function useTranslation(locale = i18next.language) {
   if (i18next.resolvedLanguage !== locale) i18next.changeLanguage(locale);
