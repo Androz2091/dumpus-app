@@ -8,6 +8,7 @@ package processor
 
 import (
 	"archive/zip"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -259,22 +260,15 @@ func readFiles(ctx context.Context, p *pkg, l *layout, ownerID string, workers i
 	}
 
 	if !pf.serversIndexRead {
-		pf.missing = append(pf.missing, MissingFile{Role: RoleServersIndex, Path: maskPath(orDefault(l.serversIndex, "Servers/index.json"))})
+		pf.missing = append(pf.missing, MissingFile{Role: RoleServersIndex, Path: maskPath(cmp.Or(l.serversIndex, "Servers/index.json"))})
 	}
 	if !pf.messagesIndexRead {
-		pf.missing = append(pf.missing, MissingFile{Role: RoleMessagesIndex, Path: maskPath(orDefault(l.messagesIndex, "Messages/index.json"))})
+		pf.missing = append(pf.missing, MissingFile{Role: RoleMessagesIndex, Path: maskPath(cmp.Or(l.messagesIndex, "Messages/index.json"))})
 	}
 	for _, c := range pf.channels {
 		pf.messages += c.total
 	}
 	return pf, nil
-}
-
-func orDefault(s, def string) string {
-	if s == "" {
-		return def
-	}
-	return s
 }
 
 // `channel.json` is parsed before looking for `messages.json`, so a malformed
