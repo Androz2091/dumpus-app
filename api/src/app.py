@@ -1,6 +1,7 @@
 import socket
+import time
 
-from flask import Flask, jsonify, request, make_response
+from flask import Flask, g, jsonify, request, make_response
 from flask_cors import CORS
 
 from flask_limiter import Limiter
@@ -18,6 +19,19 @@ from wh import send_internal_notification
 
 app = Flask(__name__)
 CORS(app)
+
+@app.before_request
+def start_timer():
+    g.started = time.monotonic()
+
+# One line per call, with the route's pattern rather than its path, so that no
+# package or user id lands in the logs.
+@app.after_request
+def log_request(response):
+    rule = request.url_rule.rule if request.url_rule else '(no route)'
+    ms = (time.monotonic() - g.get('started', time.monotonic())) * 1000
+    print(f'request: {request.method} {rule} {response.status_code} {ms:.0f} ms')
+    return response
 
 def get_request_package_id():
     return request.view_args.get('package_id')

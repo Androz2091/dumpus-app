@@ -30,6 +30,50 @@ resource "aws_cloudwatch_metric_alarm" "worker_dlq_depth" {
   ok_actions    = [aws_sns_topic.alerts.arn]
 }
 
+# An API Lambda that fails outright: a cold start that can't reach PostgreSQL,
+# or an exception no view catches. Views answer their own errors with a 500,
+# which this doesn't count.
+resource "aws_cloudwatch_metric_alarm" "api_errors" {
+  alarm_name          = "${local.name}-api-errors"
+  alarm_description   = "The API Lambda failed. Check /aws/lambda/${aws_lambda_function.api.function_name}."
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = aws_lambda_function.api.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
+# Calls turned away by the API's reserved concurrency, see lambda.tf.
+resource "aws_cloudwatch_metric_alarm" "api_throttles" {
+  alarm_name          = "${local.name}-api-throttles"
+  alarm_description   = "API calls were turned away at the concurrency cap. Check the \"request:\" lines in /aws/lambda/${aws_lambda_function.api.function_name} for the routes behind the burst."
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Throttles"
+  namespace           = "AWS/Lambda"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 0
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    FunctionName = aws_lambda_function.api.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
 # --- Discord notifier Lambda ---
 
 data "archive_file" "notifier" {
