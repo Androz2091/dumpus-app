@@ -10,7 +10,7 @@ export default function PageHeader({
   discordLink,
 }: {
   title: string;
-  discordLink: string;
+  discordLink?: string;
 }) {
   const href = useRedirectParam("/top/dms");
 
@@ -21,11 +21,13 @@ export default function PageHeader({
       revealBorderOnScroll
       leftSlot={<Header.Icon href={href} icon={ChevronLeftIcon} />}
       rightSlot={
-        <Header.Icon
-          href={discordLink}
-          target="_blank"
-          icon={SimpleIconsDiscord}
-        />
+        discordLink && (
+          <Header.Icon
+            href={discordLink}
+            target="_blank"
+            icon={SimpleIconsDiscord}
+          />
+        )
       }
     />
   );

@@ -6,6 +6,7 @@ import { PackageAPIUserResponse } from "~/types/package-api";
 import usePackageAPI from "./use-package-api";
 import { useAppStore, useSelectedPackage } from "~/stores";
 import { useShallow } from "zustand/react/shallow";
+import { isUserID } from "~/utils/discord";
 
 export default function useUserDetails({ userID }: { userID: string }) {
   const [usersCache, setUsersCache] = useAppStore(
@@ -17,6 +18,7 @@ export default function useUserDetails({ userID }: { userID: string }) {
 
   const { data } = useQuery({
     queryKey: ["user", userID],
+    enabled: isUserID(userID),
     queryFn: () =>
       api.user({
         packageID: selectedPackage.package_id,

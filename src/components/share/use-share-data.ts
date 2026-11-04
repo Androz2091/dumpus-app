@@ -14,7 +14,7 @@ import useUserData from "~/hooks/data/use-user-data";
 import usePackageAPI from "~/hooks/use-package-api";
 import useWidgetAPI from "~/hooks/use-widget-api";
 import { useAppStore } from "~/stores";
-import { avatarURLFallback } from "~/utils/discord";
+import { avatarURLFallback, isUserID } from "~/utils/discord";
 import type { ShareData } from "./types";
 
 const TOP = 5;
@@ -143,6 +143,7 @@ export default function useShareData() {
   const userQueries = useQueries({
     queries: dms.map((dm) => ({
       queryKey: ["user", dm.dm_user_id],
+      enabled: isUserID(dm.dm_user_id),
       queryFn: () =>
         packageAPI.user({
           packageID: user.package_id,

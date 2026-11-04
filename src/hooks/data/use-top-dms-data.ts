@@ -1,7 +1,7 @@
 "use client";
 
 import { SQL_DEFAULT_LIMIT } from "~/constants";
-import { sqlOffset, useDataSources } from "./_shared";
+import { DM_KEY, sqlOffset, useDataSources } from "./_shared";
 import type { DmChannelsData } from "~/types/sql";
 
 type Row = Pick<
@@ -19,7 +19,7 @@ export default function useTopDMsData() {
   function page(offset: number | false) {
     return sql.rows<Row>`
       SELECT
-        d.dm_user_id,
+        ${DM_KEY} AS dm_user_id,
         d.user_name,
         d.user_avatar_url,
         SUM(a.occurence_count) AS message_count,
@@ -29,8 +29,8 @@ export default function useTopDMsData() {
         ON a.associated_channel_id = d.channel_id
       WHERE a.event_name = 'message_sent'
       AND a.day BETWEEN '${start}' AND '${end}'
-      GROUP BY d.dm_user_id
-      ORDER BY message_count DESC, d.dm_user_id
+      GROUP BY ${DM_KEY}
+      ORDER BY message_count DESC, ${DM_KEY}
       ${
         offset === false
           ? ""

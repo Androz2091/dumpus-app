@@ -4,10 +4,11 @@ import type { DmChannelsData } from "~/types/sql";
 import { countsReactions } from "./_availability";
 import { groupDays } from "./_chart";
 import { topLocalHour, type DayHourCount } from "./_hours";
-import { useDataSources } from "./_shared";
+import { dmWhere, useDataSources } from "./_shared";
 
 export default function useDMData({ userID }: { userID: string }) {
   const { sql, start, end } = useDataSources();
+  const where = dmWhere(userID);
 
   // Whether the user is in the range's top DMs: a message to them in it.
   const hasData = !!sql.rows`
@@ -15,7 +16,7 @@ export default function useDMData({ userID }: { userID: string }) {
     FROM activity a
     WHERE a.event_name = 'message_sent'
     AND a.associated_channel_id IN (
-      SELECT channel_id FROM dm_channels_data WHERE dm_user_id = '${userID}'
+      SELECT channel_id FROM dm_channels_data WHERE ${where}
     )
     AND a.day BETWEEN '${start}' AND '${end}'
     LIMIT 1;
@@ -28,9 +29,9 @@ export default function useDMData({ userID }: { userID: string }) {
       SELECT
           user_name,
           user_avatar_url,
-          dm_user_id
+          '${userID}' AS dm_user_id
       FROM dm_channels_data
-      WHERE dm_user_id = '${userID}'
+      WHERE ${where}
       LIMIT 1;
     `;
 
@@ -44,7 +45,7 @@ export default function useDMData({ userID }: { userID: string }) {
       FROM activity a
       WHERE a.event_name = 'message_sent'
       AND a.associated_channel_id IN (
-        SELECT channel_id FROM dm_channels_data WHERE dm_user_id = '${userID}'
+        SELECT channel_id FROM dm_channels_data WHERE ${where}
       )
       AND a.day BETWEEN '${start}' AND '${end}'
       GROUP BY a.day;
@@ -68,7 +69,7 @@ export default function useDMData({ userID }: { userID: string }) {
       FROM activity a
       WHERE a.event_name = 'message_sent'
       AND a.associated_channel_id IN (
-        SELECT channel_id FROM dm_channels_data WHERE dm_user_id = '${userID}'
+        SELECT channel_id FROM dm_channels_data WHERE ${where}
       )
       AND a.day BETWEEN '${start}' AND '${end}'
       GROUP BY a.day, a.hour;
@@ -92,9 +93,10 @@ export default function useDMData({ userID }: { userID: string }) {
     const { data, hasError } = sql<{ reaction_count: number | null }>`
       SELECT SUM(a.occurence_count) AS reaction_count
       FROM activity a
-      JOIN dm_channels_data d ON a.associated_channel_id = d.channel_id
       WHERE a.event_name = 'add_reaction'
-      AND d.dm_user_id = '${userID}'
+      AND a.associated_channel_id IN (
+        SELECT channel_id FROM dm_channels_data WHERE ${where}
+      )
       AND a.day BETWEEN '${start}' AND '${end}';
     `;
 
@@ -107,7 +109,7 @@ export default function useDMData({ userID }: { userID: string }) {
       SELECT
         sentiment_score
       FROM dm_channels_data
-      WHERE dm_user_id = '${userID}';
+      WHERE ${where};
     `;
 
     return hasError ? null : data[0].sentiment_score;

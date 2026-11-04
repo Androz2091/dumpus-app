@@ -1,7 +1,7 @@
 "use client";
 
 import type { DmChannelsData } from "~/types/sql";
-import { useDataSources } from "./_shared";
+import { DM_KEY, useDataSources } from "./_shared";
 
 const TOP = 5;
 const DAY_SECONDS = 86_400;
@@ -24,7 +24,7 @@ export default function useTopCallsData() {
 
   const { data } = sql.rows<Row>`
     SELECT
-      d.dm_user_id,
+      ${DM_KEY} AS dm_user_id,
       d.user_name,
       d.user_avatar_url,
       COUNT(*) AS call_count,
@@ -32,8 +32,8 @@ export default function useTopCallsData() {
     FROM voice_sessions v
     JOIN dm_channels_data d ON d.channel_id = v.channel_id
     WHERE v.started_date >= '${from}' AND v.started_date < '${to}'
-    GROUP BY d.dm_user_id
-    ORDER BY call_minutes DESC, call_count DESC, d.dm_user_id
+    GROUP BY ${DM_KEY}
+    ORDER BY call_minutes DESC, call_count DESC, ${DM_KEY}
     LIMIT ${TOP};
   `;
 
