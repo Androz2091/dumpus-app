@@ -253,11 +253,16 @@ def get_package_blob(package_id):
     ).first()
     session.close()
 
-    if not row or not blob_storage.exists(package_id):
+    if not row:
+        return make_response('', 404)
+
+    # A blob from before keys held the iv has none in its key.
+    key_iv = row.iv if blob_storage.exists(package_id, row.iv) else None
+    if not key_iv and not blob_storage.exists(package_id):
         return make_response('', 404)
 
     return jsonify({
-        'url': blob_storage.presigned_url(package_id, ttl_seconds=ttl),
+        'url': blob_storage.presigned_url(package_id, ttl_seconds=ttl, iv=key_iv),
         'iv': row.iv,
         'ttl': ttl,
     }), 200

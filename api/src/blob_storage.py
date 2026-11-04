@@ -15,9 +15,12 @@ def _bucket():
 
 
 
-def _key(package_id: str) -> str:
+def _key(package_id: str, iv: str | None = None) -> str:
     # Flat layout. Package IDs are MD5 hex digests, so no path-traversal risk.
-    return f"packages/{package_id}.bin"
+    # The iv in the key means a new blob never overwrites the one being served,
+    # and a blob is only ever read with its own iv. Blobs from before that, and
+    # the demo, have none.
+    return f"packages/{package_id}.{iv}.bin" if iv else f"packages/{package_id}.bin"
 
 
 def _link_key(package_status_id: int) -> str:
@@ -46,38 +49,41 @@ def _client():
     )
 
 
-def upload(package_id: str, body: bytes) -> None:
+def upload(package_id: str, body: bytes, iv: str | None = None) -> None:
     """Push a blob to S3 under a deterministic key. Same operation for the
     worker's encrypted SQLite and the demo's unencrypted one."""
     _client().put_object(
         Bucket=_bucket(),
-        Key=_key(package_id),
+        Key=_key(package_id, iv),
         Body=body,
         ContentType="application/octet-stream",
     )
 
 
 def delete(package_id: str) -> None:
-    """S3 answers success for a key it doesn't have, so a package that
-    never got a blob deletes the same way."""
-    _client().delete_object(Bucket=_bucket(), Key=_key(package_id))
+    """Every blob of the package: a reprocess leaves the one it replaced for
+    the bucket's lifecycle rule to expire."""
+    client = _client()
+    listed = client.list_objects_v2(Bucket=_bucket(), Prefix=f"packages/{package_id}.")
+    for blob in listed.get("Contents", []):
+        client.delete_object(Bucket=_bucket(), Key=blob["Key"])
 
 
-def presigned_url(package_id: str, ttl_seconds: int = 300) -> str:
+def presigned_url(package_id: str, ttl_seconds: int = 300, iv: str | None = None) -> str:
     """Return a short-lived URL the client can GET directly from S3."""
     return _client().generate_presigned_url(
         "get_object",
-        Params={"Bucket": _bucket(), "Key": _key(package_id)},
+        Params={"Bucket": _bucket(), "Key": _key(package_id, iv)},
         ExpiresIn=ttl_seconds,
     )
 
 
-def exists(package_id: str) -> bool:
+def exists(package_id: str, iv: str | None = None) -> bool:
     """True if a blob has been uploaded for this package."""
     from botocore.exceptions import ClientError
 
     try:
-        _client().head_object(Bucket=_bucket(), Key=_key(package_id))
+        _client().head_object(Bucket=_bucket(), Key=_key(package_id, iv))
         return True
     except ClientError as e:
         # boto3 reports object-not-found in several flavors depending on the

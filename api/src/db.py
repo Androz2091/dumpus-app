@@ -56,6 +56,11 @@ class PackageProcessStatus(Base):
     is_cancelled = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, onupdate=func.now(), default=func.now())
+    # The dumpus-processor version that made the package, set when the row
+    # reaches PROCESSED. A reprocess run has it from the start, as the version it
+    # runs for: see `is_pending_reprocess`. `create_all` doesn't add a column to
+    # an existing table: `scripts/add-package-version-column.sh` did.
+    package_version = Column(String(255), nullable=True)
 
 Base.metadata.create_all(engine)
 

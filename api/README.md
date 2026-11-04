@@ -45,6 +45,8 @@ The worker no longer runs as a separate Celery process — set `QUEUE_BACKEND=sy
     - fill the .env file with your PostgreSQL creds
     - start the API: `QUEUE_BACKEND=sync waitress-serve --port=5000 app:app`
 
+`db.py` creates missing tables but adds no column to an existing one. Before updating a server older than the `package_version` column, run `ALTER TABLE package_process_status ADD COLUMN IF NOT EXISTS package_version varchar(255);` on its database, or its package calls fail.
+
 By default, Dumpus API will only treat zip files sent from `https://discord.click`. You can specify a `DL_ZIP_WHITELISTED_DOMAINS` environment variable to add other allowed domains.
 
 ## Deploy to AWS
