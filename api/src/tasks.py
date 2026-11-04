@@ -29,6 +29,33 @@ from util import (
 
 from wh import send_internal_notification
 
+def link_problem(link, timeout=None):
+    """Why `link` can't be downloaded, as an error code, or None when it can.
+    A failed request's message quotes the link, whose UPN is the key of the
+    blob, so that message goes no further than here."""
+    print('checking content type')
+    try:
+        r = requests.head(link, allow_redirects=True, timeout=timeout)
+    except requests.RequestException as e:
+        print(f'Could not check the link: {type(e).__name__}')
+        return 'UNKNOWN_ERROR'
+    print(r.status_code, r.headers.get('content-type'))
+    # A busy upstream says nothing about the link.
+    if r.status_code == 429:
+        return 'UNKNOWN_ERROR'
+    # Discord download URLs are signed and short-lived: click.discord.com
+    # 302s to a Google Cloud Storage signed URL, which returns 4xx (most
+    # commonly 400) once the signature TTL is up. Surface that as
+    # EXPIRED_LINK so the user sees a useful message instead of the
+    # generic UNKNOWN_ERROR fallback.
+    if 400 <= r.status_code < 500:
+        print(f'Link is expired (upstream returned {r.status_code}).')
+        return 'EXPIRED_LINK'
+    if r.status_code != 200 or 'content-type' not in r.headers or 'application/octet-stream' not in r.headers['content-type']:
+        print('The link does not point to a valid file.')
+        return 'INVALID_LINK'
+    return None
+
 def download_file(package_status_id, package_id, link, session):
     # check if file exists in tmp
     path = get_package_zip_path(package_id)
@@ -39,28 +66,20 @@ def download_file(package_status_id, package_id, link, session):
         pass
 
     if not check_whitelisted_link(link):
-        print('checking content type')
-        r = requests.head(link, allow_redirects=True)
-        print(r.status_code)
-        print(r.headers)
-        # Discord download URLs are signed and short-lived: click.discord.com
-        # 302s to a Google Cloud Storage signed URL, which returns 4xx (most
-        # commonly 400) once the signature TTL is up. Surface that as
-        # EXPIRED_LINK so the user sees a useful message instead of the
-        # generic UNKNOWN_ERROR fallback.
-        if 400 <= r.status_code < 500:
-            print(f'Link is expired (upstream returned {r.status_code}).')
-            raise Exception('EXPIRED_LINK')
-        if r.status_code != 200 or 'content-type' not in r.headers or 'application/octet-stream' not in r.headers['content-type']:
-            print('The link does not point to a valid file.')
-            raise Exception('INVALID_LINK')
+        problem = link_problem(link)
+        if problem:
+            raise Exception(problem)
 
     print('downloading')
     update_step(package_status_id, package_id, 'DOWNLOADING', session)
-    r = requests.get(link, allow_redirects=True, stream=True)
-    with open(path, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=10*1024):
-            f.write(chunk)
+    try:
+        r = requests.get(link, allow_redirects=True, stream=True)
+        with open(path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=10*1024):
+                f.write(chunk)
+    except requests.RequestException as e:
+        # Its message quotes the link, see `link_problem`.
+        raise Exception(f'download failed: {type(e).__name__}') from None
 
     return path
 
