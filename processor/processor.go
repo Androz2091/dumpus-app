@@ -36,7 +36,9 @@ var ErrMissingUserData = errors.New(string(CodeMissingUserData))
 
 // PackageVersion is written to `package_data`. The app reads `channel_opened`
 // counts only from 0.2.0, and member counts only from 0.3.0, the first
-// versions to write them.
+// versions to write them. The API reads this line too, with
+// `current_processor_version` in `api/src/util.py`: a major or minor bump makes
+// the app offer a reprocess to everyone whose package is under 30 days old.
 const PackageVersion = "0.3.0"
 
 // Options configure Process.

@@ -31,6 +31,11 @@ EXPOSE 5000
 
 WORKDIR /app/src
 
+# Where `current_processor_version` in `src/util.py` reads the version
+# dumpus-processor stamps. A version it can't read fails the build.
+COPY --from=processor processor.go /processor/processor.go
+RUN python -c "from util import current_processor_version as version; assert version()"
+
 # Start the API server
 # waitress-serve --port=5000 app:app
 CMD ["waitress-serve", "--port=5000", "app:app"]

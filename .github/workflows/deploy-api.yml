@@ -71,6 +71,8 @@ jobs:
         with:
           context: api
           file: api/Dockerfile.lambda
+          # Dockerfile.lambda reads PackageVersion from this named context.
+          build-contexts: processor=processor
           push: true
           # Lambda only runs amd64 unless the function is configured for arm64.
           platforms: linux/amd64
