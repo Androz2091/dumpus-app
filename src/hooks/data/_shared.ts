@@ -5,6 +5,26 @@ import useSQL from "../use-sql";
 import { useAppStore } from "~/stores";
 import { useShallow } from "zustand/react/shallow";
 
+// Discord's exports write a localized "Deleted User" where a deleted account's
+// id goes, the same text in each of its DMs. A real id goes by itself, since it
+// can have several channels; any other DM goes by its channel, or they would
+// all add up as one person.
+const CHANNEL_KEY = "channel:";
+
+/** Who a row of `dm_channels_data`, as `d`, was with. */
+export const DM_KEY = `CASE
+  WHEN d.dm_user_id GLOB '[0-9]*' AND d.dm_user_id NOT GLOB '*[^0-9]*'
+  THEN d.dm_user_id
+  ELSE '${CHANNEL_KEY}' || d.channel_id
+END`;
+
+/** The condition for the rows of `dm_channels_data` of a `DM_KEY`. */
+export function dmWhere(key: string) {
+  return key.startsWith(CHANNEL_KEY)
+    ? `channel_id = '${key.slice(CHANNEL_KEY.length)}'`
+    : `dm_user_id = '${key}'`;
+}
+
 export function sqlOffset(offset: number) {
   return offset * SQL_DEFAULT_LIMIT;
 }

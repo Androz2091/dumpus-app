@@ -2,6 +2,11 @@ import CRC32 from "crc-32";
 import type { Range } from "~/types";
 import { tailwindColors } from ".";
 
+/** A DM with a deleted account has no user id, see `DM_KEY`. */
+export function isUserID(id: string) {
+  return /^\d+$/.test(id);
+}
+
 const fallbackAvatarURLsMap = new Map<string, string>();
 
 export function avatarURLFallback(url: string | undefined, id: string) {

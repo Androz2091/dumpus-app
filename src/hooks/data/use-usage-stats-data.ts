@@ -2,7 +2,7 @@
 
 import { carriesEvent } from "./_availability";
 import { messagesPerDayHour, messageTotals, topLocalHour } from "./_hours";
-import { avgAppOpensPerDay, useDataSources } from "./_shared";
+import { DM_KEY, avgAppOpensPerDay, useDataSources } from "./_shared";
 
 const DAY_SECONDS = 86_400;
 
@@ -18,8 +18,8 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
   function getNetworkSize() {
     const { data, hasError } = sql<{ network_size: number }>`
       SELECT
-        COUNT(DISTINCT dm_user_id) as network_size
-      FROM dm_channels_data;
+        COUNT(DISTINCT ${DM_KEY}) as network_size
+      FROM dm_channels_data d;
     `;
 
     return hasError ? null : data[0].network_size;

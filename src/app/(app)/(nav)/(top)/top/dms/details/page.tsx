@@ -7,7 +7,7 @@ import { SimpleIconsDiscord } from "~/components/icons";
 import Header from "~/components/layout/Header";
 import useDMData from "~/hooks/data/use-dm-data";
 import useUserDetails from "~/hooks/use-user-details";
-import { avatarURLFallback } from "~/utils/discord";
+import { avatarURLFallback, isUserID } from "~/utils/discord";
 import DailySentMessages from "./_components/DailySentMessages";
 import PageHeader from "./_components/PageHeader";
 import Stats from "./_components/Stats";
@@ -21,6 +21,10 @@ import DetailsSkeleton from "~/components/DetailsSkeleton";
 import PageEnter from "~/components/PageEnter";
 import { useTranslation } from "~/i18n/client";
 
+function discordLinkOf(id: string) {
+  return isUserID(id) ? `https://discord.com/users/${id}` : undefined;
+}
+
 export default function Page() {
   const id = useSearchParams()!.get("id")!;
 
@@ -28,12 +32,7 @@ export default function Page() {
     <Deferred
       fallback={
         <DetailsSkeleton
-          header={
-            <PageHeader
-              title=""
-              discordLink={`https://discord.com/users/${id}`}
-            />
-          }
+          header={<PageHeader title="" discordLink={discordLinkOf(id)} />}
           roundImage
           stats={3}
         />
@@ -78,7 +77,7 @@ function DMDetails() {
   const displayName = data?.display_name || username;
   const avatarURL = data?.avatar_url || user.user_avatar_url;
 
-  const discordLink = `https://discord.com/users/${user.dm_user_id}`;
+  const discordLink = discordLinkOf(user.dm_user_id);
 
   return (
     <>
@@ -100,12 +99,14 @@ function DMDetails() {
           </div>
         }
       >
-        <Header.Icon
-          href={discordLink}
-          target="_blank"
-          icon={SimpleIconsDiscord}
-          className="absolute top-4 right-2 hidden sm:block"
-        />
+        {discordLink && (
+          <Header.Icon
+            href={discordLink}
+            target="_blank"
+            icon={SimpleIconsDiscord}
+            className="absolute top-4 right-2 hidden sm:block"
+          />
+        )}
       </ProfileHeader>
       {hasData ? (
         <>
