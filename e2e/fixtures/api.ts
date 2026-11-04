@@ -55,8 +55,36 @@ export class FakeApi {
   step: ProcessingStep = "PROCESSED";
   /** Requests to hosts no mock stands in for, the test fails if any. */
   readonly unexpected: string[] = [];
+  /** The version `/status` announces, left out as an older server does. */
+  currentVersion: string | null = null;
+  /** What `/status?reprocess=true` reports. */
+  runStep: ProcessingStep = "PROCESSED";
+  /** What a `POST /process` asking for a reprocess is refused with. */
+  reprocessError: string | null = null;
+  /** The links of the `POST /process` that asked for a reprocess. */
+  readonly reprocessLinks: string[] = [];
+  /** How many times `/status` was asked outside a run. */
+  statusChecks = 0;
 
-  constructor(private readonly packages: Package[]) {}
+  private readonly packages: Package[];
+
+  constructor(packages: Package[]) {
+    // `finishRun` changes them, and the workers' tests share the originals.
+    this.packages = packages.map((pkg) => ({ ...pkg }));
+  }
+
+  /** A reprocess ended: `/blob` serves its package from now on. */
+  finishRun(
+    packageId: string,
+    { body, iv }: { body: Buffer; iv: string | null },
+  ) {
+    const pkg = this.packages.find(
+      ({ dataset }) => dataset.packageId === packageId,
+    )!;
+    pkg.blob = body;
+    pkg.iv = iv;
+    this.runStep = "PROCESSED";
+  }
 
   async install(context: BrowserContext) {
     // Registered first so every route below takes precedence over it.
@@ -79,19 +107,29 @@ export class FakeApi {
   private api(route: Route) {
     const request = route.request();
     const method = request.method();
-    const { pathname } = new URL(request.url());
+    const { pathname, searchParams } = new URL(request.url());
     const authorization = request.headers()["authorization"];
 
     const [resource, id, ...rest] = pathname.split("/").filter(Boolean);
     const action = rest.join("/");
 
     if (method === "POST" && pathname === "/process") {
-      const link = request.postDataJSON().package_link;
+      const { package_link: link, reprocess } = request.postDataJSON();
       const pkg = this.packages.find(
         ({ dataset }) =>
           dataset.upn !== null &&
           link === `https://click.discord.com/ls/click?upn=${dataset.upn}`,
       );
+      if (reprocess) {
+        this.reprocessLinks.push(link);
+        if (this.reprocessError) {
+          return json(route, {
+            isAccepted: false,
+            packageId: pkg?.dataset.packageId,
+            errorMessageCode: this.reprocessError,
+          });
+        }
+      }
       return json(
         route,
         pkg
@@ -136,7 +174,11 @@ export class FakeApi {
       }
 
       if (method === "GET" && action === "status") {
-        return json(route, this.statusBody());
+        if (searchParams.get("reprocess") === "true") {
+          return json(route, this.statusBody(this.runStep));
+        }
+        this.statusChecks++;
+        return json(route, this.statusBody(this.step));
       }
       if (method === "GET" && action === "blob") {
         return json(route, this.blobBody(pkg));
@@ -159,9 +201,16 @@ export class FakeApi {
     };
   }
 
-  private statusBody() {
-    const base = { ...baseStatus(), processingStep: this.step };
-    if (this.step === "PROCESSED") return { ...base, isDataAvailable: true };
+  private statusBody(step: ProcessingStep) {
+    const base = {
+      ...baseStatus(),
+      processingStep: step,
+      ...(this.currentVersion && {
+        currentVersion: this.currentVersion,
+        canReprocess: true,
+      }),
+    };
+    if (step === "PROCESSED") return { ...base, isDataAvailable: true };
     return {
       ...base,
       isProcessing: true,

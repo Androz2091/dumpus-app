@@ -5,6 +5,7 @@ import Error from "./_components/Error";
 import ProcessLoading from "./_components/ProcessLoading";
 import Progress from "./_components/Progress";
 import QueueDisplay from "./_components/QueueDisplay";
+import ReprocessError from "./_components/ReprocessError";
 import useLogic from "./_hooks/use-logic";
 
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -22,7 +23,9 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 export default function Page() {
   const { t } = useTranslation();
 
-  const { process, status, data, error } = useLogic();
+  const { process, status, data, error, reprocess } = useLogic();
+
+  if (error && reprocess) return <ReprocessError error={error} />;
 
   if (error) {
     return (
@@ -36,6 +39,8 @@ export default function Page() {
             EXPIRED_LINK: t("onboarding.loading.expiredLink"),
             MISSING_USER_DATA: t("onboarding.loading.missingUserData"),
             STORAGE_FULL: t("settings.actions.notEnoughStorage.description"),
+            // Only a reprocess gets it, and that's handled above.
+            ALREADY_REPROCESSED: t("onboarding.loading.unknownError"),
           }[error]
         }
         url="/onboarding/access/link/"

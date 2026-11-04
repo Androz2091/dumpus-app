@@ -141,9 +141,9 @@ export default function useSQLInit() {
       backendURL: string;
     };
   }) {
-    const existingPackage = packages.find(
-      (pkg) => pkg.packageLink === initData?.packageLink,
-    );
+    // By its key: a link rebuilt from it may not be the text once pasted.
+    const existingPackage =
+      initData && packages.find((pkg) => pkg.UPNKey === initData.UPNKey);
     if (existingPackage) {
       id = existingPackage.id;
     }
