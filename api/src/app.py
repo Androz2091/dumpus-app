@@ -125,6 +125,7 @@ def process_link():
 
     existing_package_process_status = fetch_package_status(package_id, session)
     if existing_package_process_status and not existing_package_process_status.is_errored and not existing_package_process_status.is_cancelled and not is_abandoned(existing_package_process_status):
+        session.close()
         send_internal_notification({
             'embeds': [
                 {
