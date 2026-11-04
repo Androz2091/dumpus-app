@@ -115,6 +115,12 @@ variable "api_lambda_timeout" {
   default     = 30
 }
 
+variable "api_lambda_reserved_concurrency" {
+  description = "Most API Lambdas running at once. db.t4g.micro takes about 80 connections, which the workers share; 82 Lambdas at once filled them."
+  type        = number
+  default     = 50
+}
+
 # ---- Fargate worker sizing ----
 
 variable "worker_task_cpu" {

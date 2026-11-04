@@ -39,6 +39,10 @@ resource "aws_lambda_function" "api" {
   memory_size = var.api_lambda_memory
   timeout     = var.api_lambda_timeout
 
+  # Each running API Lambda holds a PostgreSQL connection: past this many at
+  # once, calls are turned away instead of filling the database.
+  reserved_concurrent_executions = var.api_lambda_reserved_concurrency
+
   vpc_config {
     subnet_ids         = aws_subnet.private[*].id
     security_group_ids = [aws_security_group.lambda.id]
