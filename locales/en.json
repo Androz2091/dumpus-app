@@ -475,7 +475,7 @@
   },
   "reprocess": {
     "title": "A newer version can read more from your package",
-    "description": "Dumpus will read it again with the link saved on this device, so there's nothing to paste. Your current stats stay until the new ones are ready, and our server deletes the link again once it starts.",
+    "description": "Dumpus will read it again with the link saved on this device, so there's nothing to paste. Your current stats stay until the new ones are ready, and our server deletes the link as soon as it starts.",
     "update": "Update my stats",
     "notNow": "Not now",
     "errors": {

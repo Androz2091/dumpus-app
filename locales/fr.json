@@ -305,7 +305,7 @@
   "notAvailable": "N/D",
   "reprocess": {
     "title": "Une version plus récente peut lire davantage de votre paquet",
-    "description": "Dumpus va le relire avec le lien enregistré sur cet appareil, vous n'avez rien à coller. Vos statistiques actuelles restent en place jusqu'à ce que les nouvelles soient prêtes, et notre serveur supprime de nouveau le lien dès le début du traitement.",
+    "description": "Dumpus va le relire avec le lien enregistré sur cet appareil, vous n'avez rien à coller. Vos statistiques actuelles restent en place jusqu'à ce que les nouvelles soient prêtes, et notre serveur supprime le lien dès le début du traitement.",
     "update": "Mettre à jour mes statistiques",
     "notNow": "Pas maintenant",
     "errors": {
