@@ -1,5 +1,6 @@
 import socket
 import time
+from datetime import datetime, timedelta
 
 from flask import Flask, g, jsonify, request, make_response
 from flask_cors import CORS
@@ -9,11 +10,11 @@ from flask_limiter import Limiter
 # Import tasks before db so dotenv loads before SQLAlchemy reads POSTGRES_URL.
 import tasks
 from enqueue import enqueue_package
-from db import PackageProcessStatus, SavedPackageData, Session, fetch_package_status, fetch_package_rank, get_cached_discord_user, cache_discord_user, is_abandoned
+from db import PackageProcessStatus, SavedPackageData, Session, claim_reprocess, current_run, fetch_package_runs, fetch_package_status, fetch_package_rank, get_cached_discord_user, cache_discord_user, is_abandoned, reprocess_block
 
 from sqlite import generate_demo_database
 
-from util import check_discord_link, check_whitelisted_link, extract_package_id_from_discord_link, extract_package_id_from_upn, fetch_diswho_user, fetch_discord_guild, discord_icon_url
+from util import check_discord_link, check_whitelisted_link, current_processor_version, extract_package_id_from_discord_link, extract_package_id_from_upn, fetch_diswho_user, fetch_discord_guild, discord_icon_url
 
 from wh import send_internal_notification
 
@@ -42,9 +43,20 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
+# Discord's links last 30 days from its email, so no link is still good later
+# than this after it was submitted.
+REPROCESS_WINDOW = timedelta(days=30)
+
+# Each hop of the link's redirect gets this, within API Gateway's 30 s.
+LINK_CHECK_TIMEOUT_SECONDS = 5
+
 def get_base_status_response():
     return {
         "isDataAvailable": False,
+
+        "packageVersion": None,
+        "currentVersion": None,
+        "canReprocess": False,
 
         "isUpgraded": False,
 
@@ -102,6 +114,72 @@ def health():
         'hostname': hostname
     }), 200
 
+def queue_package(package_process_status, package_id, link, session):
+    (total_upgraded_row_count, total_row_count, _cp, _cs) = fetch_package_rank(
+        package_id, package_process_status, session)
+
+    package_process_status.queue_premium_total_when_started = total_upgraded_row_count
+    package_process_status.queue_standard_total_when_started = total_row_count
+    session.commit()
+
+    id = package_process_status.id
+
+    session.close()
+
+    enqueue_package(id, package_id, link)
+
+
+def reprocess_package(package_id, link, res, session):
+    """Start a new run of a package that works, if `reprocess_block` allows it.
+    A run already in the way isn't an error: the app follows it, or downloads
+    what the server already has."""
+    current_version = current_processor_version()
+    block = reprocess_block(fetch_package_runs(package_id, session), current_version)
+    # No transaction stays open while the link is checked.
+    session.close()
+
+    if block == 'ALREADY_RAN':
+        res['isAccepted'] = False
+        res['errorMessageCode'] = 'ALREADY_REPROCESSED'
+        return jsonify(res), 200
+    if block:
+        return jsonify(res), 200
+
+    problem = None if check_whitelisted_link(link) else tasks.link_problem(link, timeout=LINK_CHECK_TIMEOUT_SECONDS)
+    if problem:
+        res['isAccepted'] = False
+        res['errorMessageCode'] = problem
+        return jsonify(res), 200
+
+    run = claim_reprocess(package_id, current_version, session)
+    if not run:
+        session.close()
+        return jsonify(res), 200
+
+    send_internal_notification({
+        'embeds': [
+            {
+                'title': 'Package added to the queue to reprocess',
+                'description': f'Package ID: {package_id}',
+                'color': 0x1F8BFF
+            }
+        ]
+    })
+
+    id = run.id
+    try:
+        queue_package(run, package_id, link, session)
+    except Exception:
+        # No worker started, so the version's one run is still to come.
+        session.rollback()
+        session.query(PackageProcessStatus).filter_by(id=id).delete()
+        session.commit()
+        session.close()
+        raise
+
+    return jsonify(res), 200
+
+
 @app.route('/process', methods=['POST'])
 def process_link():
 
@@ -125,6 +203,9 @@ def process_link():
 
     existing_package_process_status = fetch_package_status(package_id, session)
     if existing_package_process_status and not existing_package_process_status.is_errored and not existing_package_process_status.is_cancelled and not is_abandoned(existing_package_process_status):
+        if request.json.get('reprocess') is True and existing_package_process_status.step == 'PROCESSED':
+            return reprocess_package(package_id, link, res, session)
+
         session.close()
         send_internal_notification({
             'embeds': [
@@ -152,18 +233,7 @@ def process_link():
     session.add(package_process_status)
     session.commit()
 
-    (total_upgraded_row_count, total_row_count, _cp, _cs) = fetch_package_rank(
-        package_id, package_process_status, session)
-
-    package_process_status.queue_premium_total_when_started = total_upgraded_row_count
-    package_process_status.queue_standard_total_when_started = total_row_count
-    session.commit()
-
-    id = package_process_status.id
-
-    session.close()
-
-    enqueue_package(id, package_id, link)
+    queue_package(package_process_status, package_id, link, session)
 
     return jsonify(res), 200
 
@@ -179,13 +249,29 @@ def get_package_status(package_id):
         return jsonify(res), 401
 
     session = Session()
-    package_status = fetch_package_status(package_id, session)
-    package_rank = fetch_package_rank(package_id, package_status, session)
+    runs = fetch_package_runs(package_id, session)
+    working = current_run(runs)
+    # `?reprocess=true` follows the newest run, failed or not, for the app's
+    # loading page. Any other caller sees the package as it stands.
+    package_status = runs[0] if working and request.args.get('reprocess') == 'true' else working
+    # The ranks count every waiting row, which a processed package doesn't show.
+    package_rank = None
+    if package_status and package_status.step != 'PROCESSED':
+        package_rank = fetch_package_rank(package_id, package_status, session)
     session.close()
 
     if not package_status:
         res['errorMessageCode'] = 'UNKNOWN_PACKAGE_ID'
         return jsonify(res), 200
+
+    current_version = current_processor_version()
+    res['packageVersion'] = working.package_version
+    res['currentVersion'] = current_version
+    # The app compares its own copy with `currentVersion`: a copy older than the
+    # server's only needs a download, so only a used-up run rules a tap out.
+    res['canReprocess'] = (bool(current_version) and working.step == 'PROCESSED' and not working.is_errored
+                           and datetime.now() - runs[-1].created_at < REPROCESS_WINDOW
+                           and reprocess_block(runs, current_version) != 'ALREADY_RAN')
 
     res['isUpgraded'] = package_status.is_upgraded
     res['isErrored'] = package_status.is_errored

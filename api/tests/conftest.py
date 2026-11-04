@@ -77,6 +77,15 @@ def client(api):
     return api.app.app.test_client()
 
 
+@pytest.fixture
+def queue(monkeypatch):
+    sqs = boto3.client('sqs', region_name=env.REGION)
+    url = sqs.create_queue(QueueName='dumpus-test-packages')['QueueUrl']
+    monkeypatch.setenv('QUEUE_BACKEND', 'sqs')
+    monkeypatch.setenv('SQS_QUEUE_URL', url)
+    return sqs, url
+
+
 @dataclass
 class Submitted:
     upn: str
