@@ -6,6 +6,10 @@ import { groupDays } from "./_chart";
 import { topLocalHour, type DayHourCount } from "./_hours";
 import { dmWhere, useDataSources } from "./_shared";
 
+// What the processor writes for every DM, since it doesn't score them: the bar
+// would show it as a real score.
+const SENTIMENT_PLACEHOLDER = 0.5;
+
 export default function useDMData({ userID }: { userID: string }) {
   const { sql, start, end } = useDataSources();
   const where = dmWhere(userID);
@@ -112,7 +116,9 @@ export default function useDMData({ userID }: { userID: string }) {
       WHERE ${where};
     `;
 
-    return hasError ? null : data[0].sentiment_score;
+    if (hasError) return null;
+    const score = data[0].sentiment_score;
+    return score === SENTIMENT_PLACEHOLDER ? null : score;
   }
 
   return {
