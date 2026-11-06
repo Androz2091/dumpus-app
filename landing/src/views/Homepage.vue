@@ -308,7 +308,7 @@ const features: { icon: IconName; title: string; text: string }[] = [
     {
         icon: 'users',
         title: 'Your people and places',
-        text: 'Your top DMs, servers and channels, with a page for each and a sentiment score for your DMs.',
+        text: 'Your top DMs, servers and channels, with a page for each.',
     },
     {
         icon: 'chart',
