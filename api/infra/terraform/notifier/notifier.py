@@ -24,6 +24,10 @@ def handler(event, context):
         req = urllib.request.Request(
             wh_url,
             data=body,
-            headers={"content-type": "application/json"},
+            # Discord's firewall answers urllib's default User-Agent with a 403.
+            headers={
+                "content-type": "application/json",
+                "user-agent": "dumpus-alert-notifier (https://dumpus.app, 1.0)",
+            },
         )
         urllib.request.urlopen(req, timeout=10).read()
