@@ -56,14 +56,13 @@ class PackageProcessStatus(Base):
     is_cancelled = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, onupdate=func.now(), default=func.now())
+    # The dumpus-processor version that made the package, set when the row
+    # reaches PROCESSED. A reprocess run has it from the start, as the version it
+    # runs for: see `is_pending_reprocess`. `create_all` doesn't add a column to
+    # an existing table: `scripts/add-package-version-column.sh` did.
+    package_version = Column(String(255), nullable=True)
 
 Base.metadata.create_all(engine)
-
-# One-shot migration: drop the legacy encrypted_data blob column on the
-# saved_package_data table. Encrypted bytes live in S3 now; only iv stays
-# in the DB. IF EXISTS makes this idempotent across cold starts.
-with engine.begin() as conn:
-    conn.execute(text("ALTER TABLE saved_package_data DROP COLUMN IF EXISTS encrypted_data;"))
 
 Session = sessionmaker(bind=engine)
 
@@ -115,9 +114,53 @@ def fetch_package_rank (package_id, package_status, session):
 
     return (total_upgraded_row_count, total_row_count, upgraded_row_count, row_count)
 
+def fetch_package_runs(package_id, session):
+    return session.query(PackageProcessStatus).filter_by(package_id=package_id).order_by(PackageProcessStatus.created_at.desc()).all()
+
+def is_pending_reprocess(package_status):
+    """A reprocess run that hasn't replaced the package: running, or failed."""
+    return package_status.package_version is not None and package_status.step != 'PROCESSED'
+
+def current_run(runs):
+    """The row that says how a package stands. A reprocess run counts once it
+    has replaced the package, so while one runs or if it fails, a working package
+    still reads as working."""
+    return next((run for run in runs if not is_pending_reprocess(run)), None)
+
 def fetch_package_status(package_id, session):
-    status = session.query(PackageProcessStatus).filter_by(package_id=package_id).order_by(PackageProcessStatus.created_at.desc()).first()
-    return status
+    return current_run(fetch_package_runs(package_id, session))
+
+def version_key(version):
+    """`0.10.0` sorts after `0.9.0`, and no recorded version before any."""
+    return tuple(int(part) for part in version.split('.')) if version else ()
+
+def reprocess_block(runs, current_version):
+    """Why a reprocess can't start, or None when it can: `UP_TO_DATE`, which a
+    server that doesn't know its version always is, `RUNNING` or `ALREADY_RAN`."""
+    package_status = current_run(runs)
+    if (not package_status or package_status.step != 'PROCESSED' or not current_version
+            or version_key(package_status.package_version) >= version_key(current_version)):
+        return 'UP_TO_DATE'
+    pending = [run for run in runs if is_pending_reprocess(run)]
+    if any(not run.is_errored and not run.is_cancelled and not is_abandoned(run) for run in pending):
+        return 'RUNNING'
+    # One run per package per version: a failed one isn't tried again.
+    if any(run.package_version == current_version for run in pending):
+        return 'ALREADY_RAN'
+    return None
+
+def claim_reprocess(package_id, current_version, session):
+    """Add the status row of a reprocess run and return it, or return None when
+    `reprocess_block` says no. Concurrent requests take turns on a lock on the
+    package's oldest row, so only the first of them finds nothing in the way."""
+    session.query(PackageProcessStatus.id).filter_by(package_id=package_id).order_by(PackageProcessStatus.id).with_for_update().first()
+    if reprocess_block(fetch_package_runs(package_id, session), current_version):
+        session.rollback()
+        return None
+    run = PackageProcessStatus(package_id=package_id, step='LOCKED', package_version=current_version)
+    session.add(run)
+    session.commit()
+    return run
 
 def get_cached_discord_user(user_id, session):
     """Return the cached upstream user dict, or None if absent or stale."""

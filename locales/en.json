@@ -473,6 +473,18 @@
     "days_one": "{{- value}} day with messages",
     "days_other": "{{- value}} days with messages"
   },
+  "reprocess": {
+    "title": "A newer version can read more from your package",
+    "description": "Dumpus will read it again with the link saved on this device, so there's nothing to paste. Your current stats stay until the new ones are ready, and our server deletes the link as soon as it starts.",
+    "update": "Update my stats",
+    "notNow": "Not now",
+    "errors": {
+      "title": "Your stats weren't updated",
+      "expired": "The link from Discord's email has expired, so Dumpus can't read your package again. To get the new stats, request a new export from Discord. Your current stats stay as they are.",
+      "failed": "Dumpus couldn't read your package again. Your current stats stay as they are.",
+      "back": "Back to my stats"
+    }
+  },
   "noData": "No data available",
   "noDataTip": "Select another time range to view data",
   "notAvailable": "N/A",

@@ -302,5 +302,17 @@
   "topChannels": "Salons principaux",
   "firstMessages": "Vos premiers messages",
   "relatedGuild": "Serveur associé",
-  "notAvailable": "N/D"
+  "notAvailable": "N/D",
+  "reprocess": {
+    "title": "Une version plus récente peut lire davantage de votre paquet",
+    "description": "Dumpus va le relire avec le lien enregistré sur cet appareil, vous n'avez rien à coller. Vos statistiques actuelles restent en place jusqu'à ce que les nouvelles soient prêtes, et notre serveur supprime le lien dès le début du traitement.",
+    "update": "Mettre à jour mes statistiques",
+    "notNow": "Pas maintenant",
+    "errors": {
+      "title": "Vos statistiques n'ont pas été mises à jour",
+      "expired": "Le lien de l'e-mail de Discord a expiré, Dumpus ne peut donc pas relire votre paquet. Pour obtenir les nouvelles statistiques, demandez un nouvel export à Discord. Vos statistiques actuelles restent en place.",
+      "failed": "Dumpus n'a pas pu relire votre paquet. Vos statistiques actuelles restent en place.",
+      "back": "Retour à mes statistiques"
+    }
+  }
 }

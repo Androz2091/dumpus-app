@@ -60,7 +60,11 @@ export function countsChannelOpenings(sql: ReturnType<typeof useSQL>) {
   return !!row?.activity_stream && row.package_version !== "0.1.0";
 }
 
-function fromVersion(sql: ReturnType<typeof useSQL>, version: string) {
+/**
+ * Whether the database was made by `version` or later, comparing only the
+ * parts `version` has: `0.4` holds for `0.4.0` and `0.4.2`.
+ */
+export function fromVersion(sql: ReturnType<typeof useSQL>, version: string) {
   const { data } = sql<PackageData>`SELECT * FROM package_data LIMIT 1;`;
   const have = (data?.[0]?.package_version ?? "0").split(".").map(Number);
   const want = version.split(".").map(Number);

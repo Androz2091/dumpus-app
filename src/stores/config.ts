@@ -22,6 +22,8 @@ type Package = {
   UPNKey: string;
   dateAdded: string;
   backendURL: string;
+  /** The processor major.minor the banner no longer offers a reprocess for. */
+  reprocessDismissedVersion?: string;
 } & PackageData;
 
 type State = {
@@ -32,6 +34,8 @@ type State = {
   loadingData?: {
     packageLink: string;
     backendURL?: string;
+    /** The processor major.minor the banner offered, for a reprocess. */
+    reprocess?: string;
   };
   packages: Package[];
   selectedID: null | string;

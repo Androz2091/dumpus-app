@@ -2,6 +2,7 @@ import hashlib
 import re
 from datetime import datetime
 from collections import Counter
+from functools import lru_cache
 import os
 from urllib.parse import urlparse
 import base64
@@ -41,6 +42,21 @@ def extract_key_from_discord_link (link):
     upn = extract_upn_from_discord_link(link)
     encrypt_key = upn
     return encrypt_key
+
+# The images copy `processor.go` to this same place relative to this file, so
+# the API reads the version its worker is built from, in the same commit.
+PROCESSOR_SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'processor', 'processor.go')
+
+@lru_cache(maxsize=1)
+def current_processor_version():
+    """`PackageVersion` in `processor/processor.go`, or None for a server
+    installed without that file, which then offers no reprocess."""
+    try:
+        with open(PROCESSOR_SOURCE) as f:
+            match = re.search(r'^const PackageVersion = "(\d+\.\d+\.\d+)"$', f.read(), re.M)
+    except FileNotFoundError:
+        return None
+    return match.group(1) if match else None
 
 def get_package_zip_path (package_id):
     return os.path.join('..', os.getenv('DL_ZIP_TMP_PATH'), f'{package_id}.zip')

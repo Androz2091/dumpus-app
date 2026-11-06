@@ -45,6 +45,8 @@ The worker no longer runs as a separate Celery process — set `QUEUE_BACKEND=sy
     - fill the .env file with your PostgreSQL creds
     - start the API: `QUEUE_BACKEND=sync waitress-serve --port=5000 app:app`
 
+`db.py` creates missing tables but adds no column to an existing one. Before updating a server older than the `package_version` column, run `ALTER TABLE package_process_status ADD COLUMN IF NOT EXISTS package_version varchar(255);` on its database, or its package calls fail.
+
 By default, Dumpus API will only treat zip files sent from `https://discord.click`. You can specify a `DL_ZIP_WHITELISTED_DOMAINS` environment variable to add other allowed domains.
 
 ## Deploy to AWS
@@ -105,7 +107,8 @@ Authorization: Bearer <UPN_KEY>
 Request body:
 ```js
 {
-    "package_link": "https://click.discord.com/ls/click?upn=<UPN_KEY>"
+    "package_link": "https://click.discord.com/ls/click?upn=<UPN_KEY>",
+    "reprocess": true // optional: read a package the server already has again, see below
 }
 ```
 
@@ -124,6 +127,11 @@ Current error message codes:
 
 Note: if the package was already processed previously, the API will not return a specific response. You will see that the isDataAvailable will be true in the first status response.
 
+With `"reprocess": true`, a package made by an older `dumpus-processor` version than the current one gets a new run, one per package per version. Its blob and iv keep being served until the run has replaced them, and a failed run changes nothing. If no run starts because one is going or the package is up to date, the request is still accepted. Follow the run with `?reprocess=true` on the status. Further error message codes:
+* `EXPIRED_LINK`: the link has expired, and no run started.
+* `ALREADY_REPROCESSED`: this version's run already happened, and failed.
+* `UNKNOWN_ERROR`: the link couldn't be checked. Nothing changed, so it can be tried again.
+
 ### Fetch a package status
 
 * `GET /process/<package_id>/status`
@@ -132,6 +140,10 @@ Response:
 ```js
 {
     "isDataAvailable": false, // whether or not the data is available (meaning the processing is ended)
+
+    "packageVersion": "0.3.0", // the dumpus-processor version that made the data the API serves, null if not recorded
+    "currentVersion": "0.4.0", // the version a run makes today
+    "canReprocess": true, // false once the package is 30 days old, or this version's run failed
 
     "isUpgraded": false, // whether or not the user has paid for the "queue skip" feature
 

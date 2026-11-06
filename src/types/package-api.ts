@@ -3,12 +3,24 @@ import { Prettify } from ".";
 export type PackageAPIProcessResponse = Prettify<
   { packageId: string } & (
     | { isAccepted: true; errorMessageCode: null }
-    | { isAccepted: false; errorMessageCode: "INVALID_LINK" }
+    | {
+        isAccepted: false;
+        errorMessageCode:
+          | "INVALID_LINK"
+          // Only when a reprocess was asked for.
+          | "EXPIRED_LINK"
+          | "UNKNOWN_ERROR"
+          | "ALREADY_REPROCESSED";
+      }
   )
 >;
 
 export type PackageAPIStatusResponse = Prettify<
   {
+    // Missing from a self-hosted server older than them.
+    packageVersion?: string | null;
+    currentVersion?: string | null;
+    canReprocess?: boolean;
     isUpgraded: boolean;
     processingQueuePosition: {
       premiumQueueTotal: number;

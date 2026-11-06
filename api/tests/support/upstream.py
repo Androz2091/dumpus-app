@@ -74,6 +74,8 @@ class Upstream:
 
 class _Server(ThreadingHTTPServer):
     daemon_threads = True
+    # The default of 5 resets connections when a test sends more at once.
+    request_queue_size = 64
 
     def server_bind(self):
         # `HTTPServer.server_bind` resolves the host name, a DNS lookup the

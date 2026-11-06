@@ -5,6 +5,9 @@ import traceback
 
 import time
 
+import contextlib
+import sqlite3
+
 # Read JSON
 import orjson
 
@@ -18,7 +21,7 @@ import os
 import subprocess
 import requests
 
-from db import update_step, fetch_package_status, SavedPackageData, Session, PackageProcessStatus
+from db import update_step, SavedPackageData, Session, PackageProcessStatus
 from util import (
     # discord utilities
     extract_key_from_discord_link,
@@ -28,6 +31,33 @@ from util import (
 )
 
 from wh import send_internal_notification
+
+def link_problem(link, timeout=None):
+    """Why `link` can't be downloaded, as an error code, or None when it can.
+    A failed request's message quotes the link, whose UPN is the key of the
+    blob, so that message goes no further than here."""
+    print('checking content type')
+    try:
+        r = requests.head(link, allow_redirects=True, timeout=timeout)
+    except requests.RequestException as e:
+        print(f'Could not check the link: {type(e).__name__}')
+        return 'UNKNOWN_ERROR'
+    print(r.status_code, r.headers.get('content-type'))
+    # A busy upstream says nothing about the link.
+    if r.status_code == 429:
+        return 'UNKNOWN_ERROR'
+    # Discord download URLs are signed and short-lived: click.discord.com
+    # 302s to a Google Cloud Storage signed URL, which returns 4xx (most
+    # commonly 400) once the signature TTL is up. Surface that as
+    # EXPIRED_LINK so the user sees a useful message instead of the
+    # generic UNKNOWN_ERROR fallback.
+    if 400 <= r.status_code < 500:
+        print(f'Link is expired (upstream returned {r.status_code}).')
+        return 'EXPIRED_LINK'
+    if r.status_code != 200 or 'content-type' not in r.headers or 'application/octet-stream' not in r.headers['content-type']:
+        print('The link does not point to a valid file.')
+        return 'INVALID_LINK'
+    return None
 
 def download_file(package_status_id, package_id, link, session):
     # check if file exists in tmp
@@ -39,28 +69,20 @@ def download_file(package_status_id, package_id, link, session):
         pass
 
     if not check_whitelisted_link(link):
-        print('checking content type')
-        r = requests.head(link, allow_redirects=True)
-        print(r.status_code)
-        print(r.headers)
-        # Discord download URLs are signed and short-lived: click.discord.com
-        # 302s to a Google Cloud Storage signed URL, which returns 4xx (most
-        # commonly 400) once the signature TTL is up. Surface that as
-        # EXPIRED_LINK so the user sees a useful message instead of the
-        # generic UNKNOWN_ERROR fallback.
-        if 400 <= r.status_code < 500:
-            print(f'Link is expired (upstream returned {r.status_code}).')
-            raise Exception('EXPIRED_LINK')
-        if r.status_code != 200 or 'content-type' not in r.headers or 'application/octet-stream' not in r.headers['content-type']:
-            print('The link does not point to a valid file.')
-            raise Exception('INVALID_LINK')
+        problem = link_problem(link)
+        if problem:
+            raise Exception(problem)
 
     print('downloading')
     update_step(package_status_id, package_id, 'DOWNLOADING', session)
-    r = requests.get(link, allow_redirects=True, stream=True)
-    with open(path, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=10*1024):
-            f.write(chunk)
+    try:
+        r = requests.get(link, allow_redirects=True, stream=True)
+        with open(path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=10*1024):
+                f.write(chunk)
+    except requests.RequestException as e:
+        # Its message quotes the link, see `link_problem`.
+        raise Exception(f'download failed: {type(e).__name__}') from None
 
     return path
 
@@ -72,9 +94,18 @@ def remove_file(package_id):
     else:
         print(f'File {path} does not exist')
 
-def save_package_data(package_status_id, package_id, link, zipped_buffer, start, session):
-    """Encrypt the gzipped database with the link's key, upload it, keep its
-    iv and mark the package processed."""
+def save_package_data(package_status_id, package_id, link, zipped_buffer, package_version, start, session):
+    """Encrypt the gzipped database with the link's key, upload it, and make it
+    the package's in one commit: until then the API serves the blob and iv it
+    had, so a run that fails anywhere before it breaks nothing."""
+    package_status = session.query(PackageProcessStatus).filter(PackageProcessStatus.id == package_status_id).first()
+    if not package_status:
+        print('package was deleted while it ran, not saving it')
+        return
+    created_at = package_status.created_at
+    # No transaction stays open over the upload.
+    session.commit()
+
     key = extract_key_from_discord_link(link)
     (data, iv) = encrypt_sqlite_data(zipped_buffer, key)
 
@@ -84,16 +115,16 @@ def save_package_data(package_status_id, package_id, link, zipped_buffer, start,
     # PostgreSQL serialize it as the BYTEA literal "\x..." which leaks
     # straight to the client.
     import blob_storage
-    blob_storage.upload(package_id, data)
-    session.add(SavedPackageData(package_id=package_id, iv=iv.hex()))
-    session.commit()
+    blob_storage.upload(package_id, data, iv=iv.hex())
 
     print(f'SQLite serialization: {time.time() - start}')
 
-    update_step(package_status_id, package_id, 'PROCESSED', session)
+    package_status.step = 'PROCESSED'
+    package_status.package_version = package_version
+    session.add(SavedPackageData(package_id=package_id, iv=iv.hex()))
+    session.commit()
 
-    package_status_updated = fetch_package_status(package_id, session)
-    time_diff = time.time() - package_status_updated.created_at.timestamp()
+    time_diff = time.time() - created_at.timestamp()
     formatted_time = time.strftime('%H:%M:%S', time.gmtime(time_diff))
 
     send_internal_notification({
@@ -105,6 +136,12 @@ def save_package_data(package_status_id, package_id, link, zipped_buffer, start,
             }
         ]
     })
+
+def read_package_version(sqlite_path):
+    """The version stamped on the database: what made the package, even if a
+    worker older than the API's current version ran it."""
+    with contextlib.closing(sqlite3.connect(sqlite_path)) as conn:
+        return conn.execute('SELECT package_version FROM package_data').fetchone()[0]
 
 # dumpus-processor is stopped past this, many times what the largest exports take.
 PROCESSOR_TIMEOUT_SECONDS = 600
@@ -135,6 +172,7 @@ def process_with_go(package_status_id, package_id, link, session):
         if result.returncode not in (0, 4):
             raise Exception(f'dumpus-processor exited {result.returncode}')
 
+        package_version = read_package_version(output)
         with open(output, 'rb') as f:
             sqlite_buffer = f.read()
         if result.returncode == 4:
@@ -148,7 +186,7 @@ def process_with_go(package_status_id, package_id, link, session):
             summary = f'{len(issues)} issues, problems {problems}'
 
     print(f'dumpus-processor: {time.time() - start:.1f} s, report: {summary}')
-    save_package_data(package_status_id, package_id, link, gzip.compress(sqlite_buffer), start, session)
+    save_package_data(package_status_id, package_id, link, gzip.compress(sqlite_buffer), package_version, start, session)
 
 def process_package(package_status_id, package_id, link, worker_name='regular_process'):
     """Process a package end-to-end.
@@ -179,6 +217,7 @@ def process_package(package_status_id, package_id, link, worker_name='regular_pr
         download_file(package_status_id, package_id, link, session)
         process_with_go(package_status_id, package_id, link, session)
     except Exception as e:
+        session.rollback()
         # Always log the full trace to CloudWatch — print(e) alone gives just
         # the exception message and no line numbers, which makes the failure
         # impossible to debug from logs.

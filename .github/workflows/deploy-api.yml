@@ -71,6 +71,8 @@ jobs:
         with:
           context: api
           file: api/Dockerfile.lambda
+          # Dockerfile.lambda reads PackageVersion from this named context.
+          build-contexts: processor=processor
           push: true
           # Lambda only runs amd64 unless the function is configured for arm64.
           platforms: linux/amd64
@@ -97,22 +99,8 @@ jobs:
           cache-from: type=gha,scope=worker
           cache-to: type=gha,scope=worker,mode=max
 
-      - name: Update Lambdas
-        env:
-          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_LAMBDA_REPO }}:${{ steps.meta.outputs.image_tag }}
-        run: |
-          set -euo pipefail
-          for fn in "${API_FUNCTION}" "${FORWARDER_FUNCTION}"; do
-            echo "::group::Updating $fn"
-            aws lambda update-function-code \
-              --function-name "$fn" \
-              --image-uri "$IMAGE_URI" \
-              --publish \
-              > /dev/null
-            aws lambda wait function-updated --function-name "$fn"
-            echo "::endgroup::"
-          done
-
+      # Before the API, which announces the new processor version once it rolls:
+      # a reprocess it accepts must not reach a worker that makes the old one.
       - name: Register new worker task definition revision
         env:
           IMAGE_URI: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}
@@ -145,16 +133,36 @@ jobs:
             --cli-input-json file:///tmp/td-new.json \
             > /dev/null
 
+      - name: Update Lambdas
+        env:
+          IMAGE_URI: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_LAMBDA_REPO }}:${{ steps.meta.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+          for fn in "${API_FUNCTION}" "${FORWARDER_FUNCTION}"; do
+            echo "::group::Updating $fn"
+            aws lambda update-function-code \
+              --function-name "$fn" \
+              --image-uri "$IMAGE_URI" \
+              --publish \
+              > /dev/null
+            aws lambda wait function-updated --function-name "$fn"
+            echo "::endgroup::"
+          done
+
+      # `/health` doesn't touch PostgreSQL. The status of a made-up package does,
+      # so it fails when the code reads a column the database doesn't have yet.
       - name: Smoke test API
         run: |
           set -euo pipefail
           for i in 1 2 3 4 5; do
             code=$(curl -s -o /dev/null -w "%{http_code}" https://api.dumpus.app/health || echo "000")
-            if [ "$code" = "200" ]; then
+            status=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer smoke-test" \
+              "https://api.dumpus.app/process/$(printf smoke-test | md5sum | cut -d' ' -f1)/status" || echo "000")
+            if [ "$code" = "200" ] && [ "$status" = "200" ]; then
               echo "API healthy"
               exit 0
             fi
-            echo "attempt $i: $code, retrying..."
+            echo "attempt $i: $code, $status, retrying..."
             sleep 5
           done
           echo "API never returned 200" >&2

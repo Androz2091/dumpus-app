@@ -19,22 +19,28 @@ function useURLParams() {
   const UPNKey = packageLink
     ? new URL(packageLink).searchParams.get("upn") || undefined
     : undefined;
+  // The processor major.minor offered, when the banner asked to read again a
+  // package the app already has. It's in the queries' keys: a package imported
+  // earlier in the session has answers cached under the same link and id.
+  const reprocess = searchParams?.get("reprocess") || undefined;
 
-  return { packageLink, backendURL, UPNKey };
+  return { packageLink, backendURL, UPNKey, reprocess };
 }
 
 function useProcess({
   api,
   packageLink,
+  reprocess,
   enabled,
 }: {
   api: API;
   packageLink: string;
+  reprocess?: string;
   enabled: boolean;
 }) {
   const { data, status } = useQuery({
-    queryKey: ["package-api", "process", packageLink],
-    queryFn: () => api.process({ packageLink }),
+    queryKey: ["package-api", "process", packageLink, reprocess],
+    queryFn: () => api.process({ packageLink, reprocess: !!reprocess }),
     enabled,
     staleTime: Infinity,
   });
@@ -46,21 +52,24 @@ function useStatus({
   api,
   packageID,
   UPNKey,
+  reprocess,
   enabled,
 }: {
   api: API;
   packageID: string;
   UPNKey: string;
+  reprocess?: string;
   enabled: boolean;
 }) {
   const [erroredStatus, setErroredStatus] = useState(false);
 
   const { data, status } = useQuery({
-    queryKey: ["package-api", "status", packageID],
+    queryKey: ["package-api", "status", packageID, reprocess],
     queryFn: () =>
       api.status({
         packageID,
         UPNKey,
+        reprocess: !!reprocess,
       }),
     enabled: enabled && !erroredStatus,
     refetchInterval: 1000, // 1s
@@ -77,15 +86,17 @@ function useData({
   api,
   packageID,
   UPNKey,
+  reprocess,
   enabled,
 }: {
   api: API;
   packageID: string;
   UPNKey: string;
+  reprocess?: string;
   enabled: boolean;
 }) {
   const { data, status } = useQuery({
-    queryKey: ["package-api", "data", packageID],
+    queryKey: ["package-api", "data", packageID, reprocess],
     queryFn: () => api.data({ packageID, UPNKey }),
     enabled,
     staleTime: Infinity,
@@ -100,6 +111,7 @@ function useRedirect({
   packageLink,
   UPNKey,
   backendURL,
+  reprocess,
   afterInit,
 }: {
   packageID: string;
@@ -107,6 +119,7 @@ function useRedirect({
   packageLink: string;
   UPNKey: string;
   backendURL?: string;
+  reprocess?: string;
   afterInit: () => void;
 }) {
   const router = useRouter();
@@ -121,7 +134,7 @@ function useRedirect({
   const nextID = getNextID(selectedID);
 
   const { error } = useQuery({
-    queryKey: ["package-loading", "redirect", packageID],
+    queryKey: ["package-loading", "redirect", packageID, reprocess],
     queryFn: async () => {
       await init({
         id: nextID,
@@ -146,13 +159,20 @@ function useRedirect({
 }
 
 export default function useLogic() {
-  const { packageLink, backendURL, UPNKey } = useURLParams();
+  const { packageLink, backendURL, UPNKey, reprocess } = useURLParams();
   const api = usePackageAPI({ baseURL: backendURL });
-  const setLoadingData = useAppStore(({ config }) => config.setLoadingData);
+  const [setLoadingData, setPackage, selectedID] = useAppStore(
+    useShallow(({ config }) => [
+      config.setLoadingData,
+      config.setPackage,
+      config.selectedID,
+    ]),
+  );
 
   const process = useProcess({
     api,
     packageLink: packageLink || "",
+    reprocess,
     enabled: !!packageLink,
   });
 
@@ -162,9 +182,9 @@ export default function useLogic() {
   // Keyed by what was submitted, so a second link in the same session is
   // saved too, and a reload comes back to its loading page.
   useQuery({
-    queryKey: ["package-api", "save-state", packageLink, backendURL],
+    queryKey: ["package-api", "save-state", packageLink, backendURL, reprocess],
     queryFn: () => {
-      setLoadingData({ packageLink: packageLink!, backendURL });
+      setLoadingData({ packageLink: packageLink!, backendURL, reprocess });
       return null;
     },
     staleTime: Infinity,
@@ -175,6 +195,7 @@ export default function useLogic() {
     api,
     packageID: packageID || "",
     UPNKey: UPNKey || "",
+    reprocess,
     enabled: processValid,
   });
 
@@ -182,6 +203,7 @@ export default function useLogic() {
     api,
     packageID: packageID || "",
     UPNKey: UPNKey || "",
+    reprocess,
     enabled: status.data?.processingStep === "PROCESSED",
   });
 
@@ -191,6 +213,7 @@ export default function useLogic() {
     packageLink: packageLink || "",
     UPNKey: UPNKey || "",
     backendURL,
+    reprocess,
     afterInit: () => {
       setLoadingData(undefined);
     },
@@ -211,7 +234,11 @@ export default function useLogic() {
     if (error) {
       setLoadingData(undefined);
     }
-  }, [error, setLoadingData]);
+    // That link won't work again, so the banner stops offering this version.
+    if (error === "EXPIRED_LINK" && reprocess && selectedID) {
+      setPackage(selectedID, { reprocessDismissedVersion: reprocess });
+    }
+  }, [error, setLoadingData, reprocess, selectedID, setPackage]);
 
-  return { process, status, data, error };
+  return { process, status, data, error, reprocess };
 }

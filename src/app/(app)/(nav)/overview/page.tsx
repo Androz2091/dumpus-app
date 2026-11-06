@@ -8,12 +8,14 @@ import UsageStats from "./_components/UsageStats";
 import Profile from "./_components/Profile";
 import Share from "./_components/Share";
 import MissingStats from "../_components/MissingStats";
+import ReprocessBanner from "../_components/ReprocessBanner";
 
 export default function Page() {
   return (
     <>
       <PageHeader />
       <Profile />
+      <ReprocessBanner />
       <MissingStats />
       <Share />
       <UsageStats />

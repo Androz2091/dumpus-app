@@ -34,7 +34,13 @@ export default function usePackageAPI({
     });
   }
 
-  async function process({ packageLink }: { packageLink: string }) {
+  async function process({
+    packageLink,
+    reprocess = false,
+  }: {
+    packageLink: string;
+    reprocess?: boolean;
+  }) {
     const data = (await api({
       path: "/process",
       method: "POST",
@@ -42,7 +48,7 @@ export default function usePackageAPI({
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: { package_link: packageLink },
+      body: { package_link: packageLink, ...(reprocess && { reprocess }) },
     }).then((res) => res.json())) as PackageAPIProcessResponse;
     return data;
   }
@@ -50,12 +56,14 @@ export default function usePackageAPI({
   async function status({
     packageID,
     UPNKey,
+    reprocess = false,
   }: {
     packageID: string;
     UPNKey: string;
+    reprocess?: boolean;
   }) {
     const data = (await api({
-      path: `/process/${packageID}/status`,
+      path: `/process/${packageID}/status${reprocess ? "?reprocess=true" : ""}`,
       method: "GET",
       headers: {
         Accept: "application/json",

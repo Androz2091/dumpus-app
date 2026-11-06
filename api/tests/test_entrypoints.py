@@ -5,7 +5,6 @@ import json
 import socket
 import sys
 
-import boto3
 import pytest
 import requests
 from botocore.stub import Stubber
@@ -47,15 +46,6 @@ def http_api_event(method, path, *, headers=None, body=None):
 @pytest.fixture
 def lambda_api(api):
     return importlib.import_module('lambda_handlers.api').handler
-
-
-@pytest.fixture
-def queue(monkeypatch):
-    sqs = boto3.client('sqs', region_name=env.REGION)
-    url = sqs.create_queue(QueueName='dumpus-test-packages')['QueueUrl']
-    monkeypatch.setenv('QUEUE_BACKEND', 'sqs')
-    monkeypatch.setenv('SQS_QUEUE_URL', url)
-    return sqs, url
 
 
 @pytest.fixture

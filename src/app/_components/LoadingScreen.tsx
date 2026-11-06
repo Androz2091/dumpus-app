@@ -57,10 +57,12 @@ export default function LoadingScreen({
         if (!!loadingData) {
           logger.info("go to loading");
 
-          const { packageLink, backendURL } = loadingData;
+          const { packageLink, backendURL, reprocess } = loadingData;
           pathname = `/onboarding/loading/?packageLink=${encodeURIComponent(
             packageLink,
-          )}&backendURL=${encodeURIComponent(backendURL || "")}`;
+          )}&backendURL=${encodeURIComponent(backendURL || "")}${
+            reprocess ? `&reprocess=${encodeURIComponent(reprocess)}` : ""
+          }`;
         } else if (goToOnboardingAccess) {
           logger.info("go to access");
 
