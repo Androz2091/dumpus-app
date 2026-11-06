@@ -64,12 +64,6 @@ class PackageProcessStatus(Base):
 
 Base.metadata.create_all(engine)
 
-# One-shot migration: drop the legacy encrypted_data blob column on the
-# saved_package_data table. Encrypted bytes live in S3 now; only iv stays
-# in the DB. IF EXISTS makes this idempotent across cold starts.
-with engine.begin() as conn:
-    conn.execute(text("ALTER TABLE saved_package_data DROP COLUMN IF EXISTS encrypted_data;"))
-
 Session = sessionmaker(bind=engine)
 
 def update_step (package_status_id, package_id, step, session):
