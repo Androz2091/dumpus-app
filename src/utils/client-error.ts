@@ -76,11 +76,65 @@ export function failureCode(error: unknown, step: FailureStep) {
   return [failed, status ?? name].filter(Boolean).join("-");
 }
 
+async function reach(name: string, url: string, init: RequestInit) {
+  const start = performance.now();
+  const took = () => `${Math.round(performance.now() - start)}ms`;
+  try {
+    const response = await fetch(url, {
+      ...init,
+      cache: "no-store",
+      referrerPolicy: "no-referrer",
+      signal: AbortSignal.timeout(10_000),
+    });
+    return `${name}=${response.type}:${response.status}:${took()}`;
+  } catch (err) {
+    return `${name}=${err instanceof Error ? err.name : "failed"}:${took()}`;
+  }
+}
+
+async function runDownloadChecks(url: string, failedAfter: number) {
+  const { connection } = navigator as Navigator & {
+    connection?: { type?: string; effectiveType?: string };
+  };
+  const reached = await Promise.all([
+    // `no-cors` needs no answer from S3's CORS rules, so this one getting
+    // through while the download failed means it was CORS, not the network.
+    reach("link", url, { mode: "no-cors" }),
+    reach("s3-region", "https://s3.eu-west-1.amazonaws.com/", {
+      mode: "no-cors",
+    }),
+    reach("s3-other-region", "https://s3.us-east-1.amazonaws.com/", {
+      mode: "no-cors",
+    }),
+    reach("api", `${DEFAULT_PACKAGE_API_URL}/health`, {}),
+  ]);
+  return [
+    `failed-after=${Math.round(failedAfter)}ms`,
+    `online=${navigator.onLine}`,
+    connection?.type && `network=${connection.type}`,
+    connection?.effectiveType && `speed=${connection.effectiveType}`,
+    ...reached,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+let downloadChecks: Promise<string> | undefined;
+
+/**
+ * A browser hides why a download failed: DNS, a firewall and CORS all read as
+ * the same `TypeError`. So what can still be reached is the report's evidence.
+ * The first failure of a page load runs them, as the retries would repeat them.
+ */
+export function checkFailedDownload(url: string, failedAfter: number) {
+  downloadChecks ??= runDownloadChecks(url, failedAfter);
+}
+
 // A screen can fail the same way on each poll or each try.
 const reported = new Set<string>();
 
 /** Tells the API what failed here, which it can't see for itself. */
-export function reportClientError({
+export async function reportClientError({
   error,
   step,
   packageID,
@@ -99,6 +153,9 @@ export function reportClientError({
   if (reported.has(key)) return;
   reported.add(key);
 
+  const details =
+    failure.step === "download" ? await downloadChecks : undefined;
+
   fetch(`${baseURL}/client-error`, {
     method: "POST",
     // Plain text runs no preflight, and `keepalive` outlives the page.
@@ -106,6 +163,7 @@ export function reportClientError({
     keepalive: true,
     body: JSON.stringify({
       ...failure,
+      details,
       package: packageID,
       version: VERSION,
       platform: OS,

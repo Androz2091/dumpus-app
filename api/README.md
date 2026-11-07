@@ -247,7 +247,7 @@ Current error message codes:
 
 * `POST /client-error`
 
-For what only the device can see, like its download from S3 or its decryption. It takes JSON sent as plain text, so that no CORS preflight runs, with `step`, `status`, `name`, `message`, `version`, `platform`, `path` and `package`, all optional. Free text is scrubbed of URLs and long tokens, so a report can't put a link's key in the logs. It answers `204`, `400` for a body it can't read, `413` past 8 KB, or `429` past 10 a minute from one address on one Lambda instance.
+For what only the device can see, like its download from S3 or its decryption. It takes JSON sent as plain text, so that no CORS preflight runs, with `step`, `status`, `name`, `message`, `details`, `version`, `platform`, `path` and `package`, all optional. After a download that got no answer, `details` says what the device could still reach, for eg. `link=opaque:0:230ms s3-region=TypeError:12ms`: the `link` is the same URL without CORS. Free text is scrubbed of URLs and long tokens, so a report can't put a link's key in the logs. It answers `204`, `400` for a body it can't read, `413` past 8 KB, or `429` past 10 a minute from one address on one Lambda instance.
 
 ### [SQLite Database Documentation can be found here](./docs/sqlite_database_structure.md)
 
