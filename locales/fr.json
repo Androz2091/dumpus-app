@@ -333,6 +333,9 @@
     "description": "Partagez vos statistiques avec vos amis !",
     "generating": "Génération...",
     "download": "Télécharger",
+    "copy": "Copier",
+    "copied": "Copié",
+    "copyFailed": "Copie impossible",
     "recap": "Partager votre récapitulatif",
     "recapDescription": "Partagez votre récapitulatif avec vos amis sur Twitter, Instagram, Reddit, Discord...! :)",
     "popup": {
