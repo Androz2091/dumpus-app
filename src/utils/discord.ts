@@ -1,10 +1,53 @@
 import CRC32 from "crc-32";
+import type { TFunction } from "i18next";
 import type { Range } from "~/types";
+import type { GroupDmChannelsData } from "~/types/sql";
 import { tailwindColors } from ".";
+import { formatNumber } from "./format";
 
 /** A DM with a deleted account has no user id, see `DM_KEY`. */
 export function isUserID(id: string) {
   return /^\d+$/.test(id);
+}
+
+/**
+ * A group DM's name: its own, else the names of its members, as in "Alex, Sam
+ * and 3 others", else its size, as in "Group of 5". `names` are the members'
+ * that have one, from `groupMemberNames`.
+ */
+export function groupName(
+  group: Pick<GroupDmChannelsData, "channel_name" | "member_count"> & {
+    names: string[];
+  },
+  t: TFunction,
+) {
+  const { channel_name, member_count, names } = group;
+  if (channel_name) return channel_name;
+  if (names.length === 0) {
+    return member_count > 0
+      ? t("groupDM.groupOf", { value: formatNumber(member_count) })
+      : t("groupDM.group");
+  }
+
+  // Up to three names when that's everyone, rather than "and 1 other".
+  const shown =
+    names.length === member_count && names.length <= 3
+      ? names
+      : names.slice(0, 2);
+  const others = member_count - shown.length;
+  if (others > 0) {
+    return t("groupDM.others", {
+      names: shown.join(", "),
+      count: others,
+      value: formatNumber(others),
+    });
+  }
+  return shown.length === 1
+    ? shown[0]
+    : t("groupDM.and", {
+        first: shown.slice(0, -1).join(", "),
+        last: shown[shown.length - 1],
+      });
 }
 
 const fallbackAvatarURLsMap = new Map<string, string>();

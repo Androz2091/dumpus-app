@@ -13,6 +13,8 @@ export type Props = {
   messages: number;
   rank: number;
   id?: string;
+  /** A line under the messages, for eg. a group's member count. */
+  detail?: string;
 };
 
 export default function AvatarCard({
@@ -22,6 +24,7 @@ export default function AvatarCard({
   messages,
   rank,
   id,
+  detail,
 }: Props) {
   const { t } = useTranslation();
   return (
@@ -41,6 +44,11 @@ export default function AvatarCard({
           value: formatNumber(messages),
         })}
       </div>
+      {detail && (
+        <div className="overflow-hidden text-sm text-ellipsis whitespace-nowrap text-gray-400 sm:text-lg">
+          {detail}
+        </div>
+      )}
     </Link>
   );
 }

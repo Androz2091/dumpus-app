@@ -21,6 +21,31 @@ export type DmChannelsData = {
   sentiment_score: number;
 };
 
+/** From `package_version` 0.4.0 on, see `countsGroupDMs`. */
+export type GroupDmChannelsData = {
+  channel_id: string;
+  /** Null for a group nobody named, see `groupName`. */
+  channel_name: string | null;
+  /** The recipients but the owner, deleted accounts included. */
+  member_count: number;
+  total_message_count: number;
+};
+
+/**
+ * A member of a group DM with a real user id, never the owner. From
+ * `package_version` 0.4.0 on, see `countsGroupDMs`.
+ */
+export type GroupDmMember = {
+  channel_id: string;
+  user_id: string;
+  /** A friend's username, else the name of the owner's DM with them. */
+  user_name: string | null;
+  /** A friend's display name. */
+  display_name: string | null;
+  /** A friend's avatar. */
+  user_avatar_url: string | null;
+};
+
 export type GuildChannelsData = {
   channel_id: string;
   channel_name: string;

@@ -25,6 +25,74 @@ export function dmWhere(key: string) {
     : `dm_user_id = '${key}'`;
 }
 
+// A group goes by its channel under a prefix, never a bare number, which the
+// app looks up and opens as a person (`isUserID`).
+const GROUP_PREFIX = "group:";
+
+/** Which group a row of `group_dm_channels_data`, as `g`, is. */
+export const GROUP_KEY = `'${GROUP_PREFIX}' || g.channel_id`;
+
+/** Whether a key of the DMs list is a group's, see `GROUP_KEY`. */
+export function isGroupKey(key: string) {
+  return key.startsWith(GROUP_PREFIX);
+}
+
+/**
+ * The channel of a group's key, null unless it is digits: a key comes from a
+ * link, and only an id goes into a query.
+ */
+export function groupChannelID(key: string) {
+  const id = key.slice(GROUP_PREFIX.length);
+  return isGroupKey(key) && /^\d+$/.test(id) ? id : null;
+}
+
+// A member's name, for a row of `group_dm_members` as `m`.
+const MEMBER_NAME = "COALESCE(m.display_name, m.user_name)";
+
+/**
+ * The order of a group's members, as `m`: the members with a name first, by
+ * name, as `groupName` lists them.
+ */
+export const MEMBER_ORDER = `${MEMBER_NAME} IS NULL, ${MEMBER_NAME} COLLATE NOCASE, m.user_id`;
+
+/**
+ * The names of the members of each group of `channelIDs`, for `groupName`. A
+ * group whose members have no name has none.
+ */
+export function groupMemberNames(
+  sql: ReturnType<typeof useSQL>,
+  channelIDs: string[],
+) {
+  const names = new Map<string, string[]>();
+  if (channelIDs.length === 0) return names;
+
+  const { data } = sql.rows<{ channel_id: string; name: string }>`
+    SELECT m.channel_id, ${MEMBER_NAME} AS name
+    FROM group_dm_members m
+    WHERE m.channel_id IN (${channelIDs.map((id) => `'${id}'`).join(", ")})
+    AND ${MEMBER_NAME} IS NOT NULL
+    ORDER BY ${MEMBER_ORDER};
+  `;
+  for (const { channel_id, name } of data ?? []) {
+    names.set(channel_id, [...(names.get(channel_id) ?? []), name]);
+  }
+  return names;
+}
+
+const DAY_SECONDS = 86_400;
+
+/**
+ * The range in the Unix seconds `voice_sessions` stores as text, which compare
+ * as numbers at 10 digits. The last day counts whole, as it does for the
+ * activity's days.
+ */
+export function rangeSeconds(start: string, end: string) {
+  return {
+    from: Date.parse(`${start}T00:00:00Z`) / 1000,
+    to: Date.parse(`${end}T00:00:00Z`) / 1000 + DAY_SECONDS,
+  };
+}
+
 export function sqlOffset(offset: number) {
   return offset * SQL_DEFAULT_LIMIT;
 }

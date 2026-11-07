@@ -32,7 +32,7 @@ async function restartApp(page: Page) {
   const answered = page.waitForResponse(/\/status$/);
   await page.reload();
   await answered;
-  await expect(stat(page, "messages sent")).toHaveText("104,805");
+  await expect(stat(page, "messages sent")).toHaveText("109,734");
   // Long enough for that answer to reach the page, or a hidden banner says nothing.
   await page.waitForTimeout(250);
 }
@@ -85,6 +85,14 @@ test("the banner reads the package again and replaces it in place", async ({
   await page.reload();
   await expect(stat(page, "joined servers")).toHaveText("7");
   await expect(page.getByText(TITLE)).toBeHidden();
+
+  // A 0.4.0 database lists its groups with the DMs, each with a page.
+  await nav("Top");
+  await page
+    .getByRole("link", { name: /Brindle Fox, Pixel Otter and 3 others/ })
+    .filter({ visible: true })
+    .click();
+  await expect(stat(page, "total messages sent")).toHaveText("4,929");
 });
 
 test("a reload during the run stays on the run", async ({ page, api }) => {

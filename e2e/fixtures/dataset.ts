@@ -77,6 +77,21 @@ export type PackageDataRow = {
   package_is_partial: number;
 };
 
+export type GroupDmChannelRow = {
+  channel_id: string;
+  channel_name: string | null;
+  member_count: number;
+  total_message_count: number;
+};
+
+export type GroupDmMemberRow = {
+  channel_id: string;
+  user_id: string;
+  user_name: string | null;
+  display_name: string | null;
+  user_avatar_url: string | null;
+};
+
 /** Body of the mocked `GET /process/:id/user/:userID` for a known user. */
 export type ApiUser = {
   user_id: string;
@@ -105,6 +120,8 @@ export type Dataset = {
     voice_sessions: VoiceSessionRow[];
     sessions: SessionRow[];
     package_data: PackageDataRow[];
+    group_dm_channels_data: GroupDmChannelRow[];
+    group_dm_members: GroupDmMemberRow[];
   };
   apiUsers: Map<string, ApiUser>;
   widgets: Map<string, ApiWidget>;
@@ -197,6 +214,26 @@ type Community = {
 
 type Bot = { username: string; displayName: string };
 
+type Group = {
+  /** `null` for a group nobody named, which the app names after its members. */
+  name: string | null;
+  /** Talkers in it, by username: friends, whom the export names. */
+  friends: string[];
+  /**
+   * Members the export doesn't name, `displayName` `null` when the mocked
+   * user API can't resolve the account.
+   */
+  strangers: { username: string; displayName: string | null }[];
+  /** Deleted accounts, counted as members but without a row. */
+  deleted: number;
+  from: string;
+  to: string;
+  chance: number;
+  hour: number;
+  /** The length of the group's one call, on its last day with messages. */
+  callMinutes: number;
+};
+
 type Owner = {
   id: string;
   username: string;
@@ -219,6 +256,7 @@ type Recipe = {
   communities: Community[];
   bots: Bot[];
   payments: PaymentRow[];
+  groups: Group[];
 };
 
 const EMOJIS = ["👍", "😂", "🔥", "❤️", "👀", "🎉"];
@@ -517,6 +555,57 @@ function build(recipe: Recipe): Dataset {
     }
   }
 
+  // Last, so every row above comes out of the PRNG as before there were groups.
+  const groupChannels: GroupDmChannelRow[] = [];
+  const groupMembers: GroupDmMemberRow[] = [];
+  recipe.groups.forEach((group, i) => {
+    const channelID = id(7, i + 1);
+    for (const username of group.friends) {
+      const dm = dmChannels.find((c) => c.user_name === username)!;
+      groupMembers.push({
+        channel_id: channelID,
+        user_id: dm.dm_user_id,
+        user_name: dm.user_name,
+        display_name: dm.display_name,
+        user_avatar_url: dm.user_avatar_url,
+      });
+    }
+    for (const stranger of group.strangers) {
+      const userID = id(8, groupMembers.length + 1);
+      if (recipe.resolvesUsers && stranger.displayName !== null) {
+        apiUsers.set(userID, {
+          user_id: userID,
+          username: stranger.username,
+          display_name: stranger.displayName,
+          avatar_url: avatarURL(userID),
+        });
+      }
+      groupMembers.push({
+        channel_id: channelID,
+        user_id: userID,
+        user_name: null,
+        display_name: null,
+        user_avatar_url: null,
+      });
+    }
+    groupChannels.push({
+      channel_id: channelID,
+      channel_name: group.name,
+      member_count:
+        group.friends.length + group.strangers.length + group.deleted,
+      total_message_count: 0,
+    });
+    const days = chat({ channelID, guildID: null, ...group });
+    const started = daySeconds(days[days.length - 1]) + 21 * 3600;
+    voiceSessions.push({
+      channel_id: channelID,
+      guild_id: null,
+      duration_mins: group.callMinutes,
+      started_date: timestampText(started),
+      ended_date: timestampText(started + group.callMinutes * 60),
+    });
+  });
+
   const rows = Array.from(activity.values());
   for (const row of rows) {
     if (row.event_name !== "message_sent") continue;
@@ -524,6 +613,10 @@ function build(recipe: Recipe): Dataset {
       (c) => c.channel_id === row.associated_channel_id,
     );
     if (dm) dm.total_message_count += row.occurence_count;
+    const group = groupChannels.find(
+      (c) => c.channel_id === row.associated_channel_id,
+    );
+    if (group) group.total_message_count += row.occurence_count;
     const channel = guildChannels.find(
       (c) => c.channel_id === row.associated_channel_id,
     );
@@ -554,6 +647,8 @@ function build(recipe: Recipe): Dataset {
           package_is_partial: 0,
         },
       ],
+      group_dm_channels_data: groupChannels,
+      group_dm_members: groupMembers,
     },
     apiUsers,
     widgets,
@@ -739,6 +834,22 @@ export function buildMainDataset() {
       payment_currency: "usd",
       payment_description: description,
     })),
+    groups: [
+      {
+        name: null,
+        friends: ["pixel_otter", "brindlefox"],
+        strangers: [
+          { username: "wisp.hollow", displayName: "Wisp Hollow" },
+          { username: "gone.astray", displayName: null },
+        ],
+        deleted: 1,
+        from: "2023-06-01",
+        to: LAST_DAY,
+        chance: 0.5,
+        hour: 22,
+        callMinutes: 95,
+      },
+    ],
   });
 }
 
@@ -792,5 +903,7 @@ export function buildDemoDataset() {
     communities,
     bots: [{ username: "helper", displayName: "Helper" }],
     payments: [],
+    // The demo database has no groups, see `generate_demo_database()`.
+    groups: [],
   });
 }

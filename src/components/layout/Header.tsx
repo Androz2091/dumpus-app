@@ -81,7 +81,9 @@ export default function Header({
         {title && (
           <div
             className={clsx(
-              "text-xl font-bold text-white transition-opacity",
+              // Clear of the icons on each side, which a long name, as a
+              // group DM's often is, would otherwise run under.
+              "min-w-0 truncate px-8 text-xl font-bold text-white transition-opacity",
               showTitle ? "opacity-100" : "opacity-0",
             )}
           >

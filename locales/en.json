@@ -191,6 +191,9 @@
     "commands": "{{- value}} commands",
     "callTime_one": "{{- duration}} in {{- value}} call",
     "callTime_other": "{{- duration}} in {{- value}} calls",
+    "calls_one": "call",
+    "calls_other": "calls",
+    "timeInCalls": "time in calls",
     "noCalls": "No calls in your DMs in this time range",
     "top": {
       "dms": "DMs",
@@ -453,6 +456,17 @@
   "exitDemo": "Exit demo and get started!",
   "members": "{{- value}} members",
   "avatar": "{{- name}}'s avatar",
+  "groupDM": {
+    "group": "Group",
+    "groupOf": "Group of {{- value}}",
+    "and": "{{- first}} and {{- last}}",
+    "others_one": "{{- names}} and {{- value}} other",
+    "others_other": "{{- names}} and {{- value}} others",
+    "memberCount_one": "{{- value}} member",
+    "memberCount_other": "{{- value}} members",
+    "members": "Members",
+    "unknownMember": "Unknown user"
+  },
   "nav": {
     "overview": "Overview",
     "top": "Top",

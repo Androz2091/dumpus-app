@@ -4,19 +4,18 @@ import { useNetworkState } from "react-use";
 import ScrollArea from "~/components/ScrollArea";
 import Section from "~/components/Section";
 import AvatarCard from "~/components/data/AvatarCard";
-import useTopDMsData from "~/hooks/data/use-top-dms-data";
+import useTopConversationsData, {
+  type DMConversation,
+  type GroupConversation,
+} from "~/hooks/data/use-top-conversations-data";
 import useUserDetails from "~/hooks/use-user-details";
-import { avatarURLFallback } from "~/utils/discord";
+import { avatarURLFallback, groupName } from "~/utils/discord";
+import { formatNumber } from "~/utils/format";
 import { useTranslation } from "~/i18n/client";
 import DiscordImage from "~/components/DiscordImage";
+import GroupDMIcon from "~/components/GroupDMIcon";
 
-function DMCard({
-  dm,
-  size,
-}: {
-  dm: NonNullable<ReturnType<ReturnType<typeof useTopDMsData>["getData"]>>[0];
-  size: number;
-}) {
+function DMCard({ dm, size }: { dm: DMConversation; size: number }) {
   const { t } = useTranslation();
   const data = useUserDetails({ userID: dm.dm_user_id });
 
@@ -53,10 +52,37 @@ function DMCard({
   );
 }
 
+function GroupCard({ group }: { group: GroupConversation }) {
+  const { t } = useTranslation();
+
+  const id = `group-${group.channel_id}`;
+
+  return (
+    <AvatarCard
+      id={id}
+      name={groupName(group, t)}
+      messages={group.message_count}
+      rank={group.rank}
+      href={{
+        pathname: "/top/dms/details",
+        query: {
+          id: group.key,
+          redirect: `/overview#${id}`,
+        },
+      }}
+      image={<GroupDMIcon channelID={group.channel_id} className="w-full" />}
+      detail={t("groupDM.memberCount", {
+        count: group.member_count,
+        value: formatNumber(group.member_count),
+      })}
+    />
+  );
+}
+
 export default function TopDMs() {
   const { t } = useTranslation();
 
-  const data = useTopDMsData().getData({});
+  const data = useTopConversationsData().getData({});
   const networkState = useNetworkState();
 
   const size = (() => {
@@ -76,9 +102,13 @@ export default function TopDMs() {
     <Section title={t("mostActiveDMs")} href="/top/dms">
       <ScrollArea orientation="horizontal">
         <div className="flex">
-          {(data || []).map((dm) => (
-            <DMCard key={dm.rank} dm={dm} size={size} />
-          ))}
+          {(data || []).map((row) =>
+            row.kind === "group" ? (
+              <GroupCard key={row.rank} group={row} />
+            ) : (
+              <DMCard key={row.rank} dm={row} size={size} />
+            ),
+          )}
           <ScrollArea.Spacer />
         </div>
       </ScrollArea>

@@ -14,7 +14,7 @@ test("navigating between the main pages", async ({ page }) => {
 
   await nav("Stats");
   await expect(page).toHaveURL(/\/stats\/$/);
-  await expect(page.getByText("104,805 messages sent")).toBeVisible();
+  await expect(page.getByText("109,734 messages sent")).toBeVisible();
 
   await nav("Top");
   await expect(page).toHaveURL(/\/top\/dms\/$/);

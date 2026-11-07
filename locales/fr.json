@@ -193,6 +193,10 @@
     "callTime_one": "{{- duration}} en {{- value}} appel",
     "callTime_many": "{{- duration}} en {{- value}} appels",
     "callTime_other": "{{- duration}} en {{- value}} appels",
+    "calls_one": "appel",
+    "calls_many": "appels",
+    "calls_other": "appels",
+    "timeInCalls": "temps en appel",
     "noCalls": "Aucun appel dans vos messages privés sur cette période",
     "top": {
       "dms": "Messages privés",
@@ -469,6 +473,19 @@
   "exitDemo": "Quitter la démo et commencer !",
   "members": "{{- value}} membres",
   "avatar": "Avatar de {{- name}}",
+  "groupDM": {
+    "group": "Groupe",
+    "groupOf": "Groupe de {{- value}}",
+    "and": "{{- first}} et {{- last}}",
+    "others_one": "{{- names}} et {{- value}} autre",
+    "others_many": "{{- names}} et {{- value}} autres",
+    "others_other": "{{- names}} et {{- value}} autres",
+    "memberCount_one": "{{- value}} membre",
+    "memberCount_many": "{{- value}} membres",
+    "memberCount_other": "{{- value}} membres",
+    "members": "Membres",
+    "unknownMember": "Utilisateur inconnu"
+  },
   "nav": {
     "overview": "Aperçu",
     "top": "Classement",
