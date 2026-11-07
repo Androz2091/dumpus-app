@@ -73,7 +73,9 @@ function useStatus({
         reprocess: !!reprocess,
       }),
     enabled: enabled && !erroredStatus,
-    refetchInterval: 1000, // 1s
+    // Once it's processed, nothing here changes.
+    refetchInterval: (query) =>
+      query.state.data?.processingStep === "PROCESSED" ? false : 2000,
   });
 
   useEffect(() => {

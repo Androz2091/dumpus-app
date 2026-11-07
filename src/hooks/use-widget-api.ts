@@ -3,6 +3,7 @@
 import { DEFAULT_WIDGET_API_URL } from "~/constants";
 import { useSelectedPackage } from "~/stores";
 import { WidgetAPIGuildResponse } from "~/types/widget-api";
+import { lookup } from "~/utils/lookups";
 
 export default function useWidgetAPI({
   baseURL = DEFAULT_WIDGET_API_URL,
@@ -34,11 +35,13 @@ export default function useWidgetAPI({
       return { error: "guild not found or bot lacks access" };
     }
 
-    const data = (await api({
-      path: `/${id}`,
-      method: "GET",
-      headers: { Accept: "application/json" },
-    }).then((res) => res.json())) as WidgetAPIGuildResponse;
+    const data = (await lookup(() =>
+      api({
+        path: `/${id}`,
+        method: "GET",
+        headers: { Accept: "application/json" },
+      }).then((res) => res.json()),
+    )) as WidgetAPIGuildResponse;
 
     return data;
   }
