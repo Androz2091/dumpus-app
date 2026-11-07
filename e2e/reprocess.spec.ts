@@ -9,7 +9,14 @@ const TITLE = "A newer version can read more from your package";
 /** Ends the run with the package it makes, with a server less to tell it by. */
 async function finishRun(api: FakeApi) {
   const dataset = buildMainDataset();
-  dataset.tables.guilds = dataset.tables.guilds.slice(1);
+  const [gone, ...guilds] = dataset.tables.guilds;
+  dataset.tables.guilds = guilds;
+  // Its joins too, or it would count as a server the account left.
+  dataset.tables.activity = dataset.tables.activity.filter(
+    (row) =>
+      row.event_name !== "guild_joined" ||
+      row.associated_guild_id !== gone.guild_id,
+  );
   dataset.tables.package_data = dataset.tables.package_data.map((row) => ({
     ...row,
     package_version: "0.4.0",
