@@ -86,13 +86,16 @@ test("the banner reads the package again and replaces it in place", async ({
   await expect(stat(page, "joined servers")).toHaveText("7");
   await expect(page.getByText(TITLE)).toBeHidden();
 
-  // A 0.4.0 database lists its groups with the DMs, each with a page.
-  await nav("Top");
-  await page
+  // A 0.4.0 database lists its groups with the DMs, each with a page, and
+  // credits a group's calls to the group.
+  const group = page
     .getByRole("link", { name: /Brindle Fox, Pixel Otter and 3 others/ })
-    .filter({ visible: true })
-    .click();
+    .filter({ visible: true });
+  await nav("Top");
+  await group.click();
   await expect(stat(page, "total messages sent")).toHaveText("4,929");
+  await nav("Stats");
+  await expect(group).toContainText("1 h 35 min in 1 call");
 });
 
 test("a reload during the run stays on the run", async ({ page, api }) => {
