@@ -6,9 +6,10 @@ import { md5, type Dataset } from "./dataset";
 
 const API_ORIGIN = "https://api.dumpus.app";
 const BLOB_ORIGIN = "https://dumpus-packages.s3.eu-west-1.amazonaws.com";
-const S3_ORIGINS = [
+const AWS_ORIGINS = [
   "https://s3.eu-west-1.amazonaws.com",
   "https://s3.us-east-1.amazonaws.com",
+  "https://ec2.eu-west-1.amazonaws.com",
 ];
 const CDN_ORIGIN = "https://cdn.discordapp.com";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
@@ -109,7 +110,7 @@ export class FakeApi {
     );
     await context.route(`${API_ORIGIN}/**`, (route) => this.api(route));
     await context.route(`${BLOB_ORIGIN}/**`, (route) => this.blob(route));
-    for (const origin of S3_ORIGINS) {
+    for (const origin of AWS_ORIGINS) {
       await context.route(`${origin}/**`, (route) => empty(route, 403));
     }
     await context.route(`${CDN_ORIGIN}/**`, (route) =>

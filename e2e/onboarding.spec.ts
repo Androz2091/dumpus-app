@@ -75,6 +75,8 @@ test("a download that gets no answer reports what the device can still reach", a
   const details = String(api.clientErrors[0].details);
   expect(details).toMatch(/link=TypeError:\d+ms/);
   expect(details).toMatch(/s3-region=opaque:0:\d+ms/);
+  expect(details).toMatch(/s3-us=opaque:0:\d+ms/);
+  expect(details).toMatch(/ec2=opaque:0:\d+ms/);
   expect(details).toMatch(/api=cors:200:\d+ms/);
   const upn = new URL(FAKE_PACKAGE_LINK).searchParams.get("upn")!;
   expect(JSON.stringify(api.clientErrors)).not.toContain(upn);

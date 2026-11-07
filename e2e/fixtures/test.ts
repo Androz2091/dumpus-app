@@ -38,7 +38,7 @@ const HARMLESS: { text: RegExp; url: RegExp; reason: string }[] = [
   },
   {
     text: /ERR_CONNECTION_REFUSED|status of 403\b/,
-    url: /^https:\/\/[\w.-]*s3\.[\w-]+\.amazonaws\.com\//,
+    url: /^https:\/\/[\w.-]*\.amazonaws\.com\//,
     reason:
       "A blocked download and the checks that follow, which `downloadBlocked` asks for.",
   },
