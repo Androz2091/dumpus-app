@@ -21,6 +21,9 @@ Here's the requested documentation in markdown format, providing a description f
 ---
 
 **dm_channels_data table**
+
+Before '0.4.0', a group DM listing two recipients was also written here, as a DM with the other member under the group's name.
+
 | Column                   | Description                                                                                   |
 |-------------------------|-----------------------------------------------------------------------------------------------|
 | channel_id              | The unique identifier for the direct message channel.                                         |
@@ -91,13 +94,40 @@ Here's the requested documentation in markdown format, providing a description f
 | Column                   | Description                                                                                   |
 |-------------------------|-----------------------------------------------------------------------------------------------|
 | package_id              | The unique identifier for the package.                                                       |
-| package_version         | The version of the database's format: '0.2.0' and later count 'channel_opened' in `activity` for the channels of `guild_channels_data`, '0.3.0' and later have `guilds.member_count`, '0.1.0' has neither. |
+| package_version         | The version of the database's format: '0.2.0' and later count 'channel_opened' in `activity` for the channels of `guild_channels_data`, '0.3.0' and later have `guilds.member_count`, '0.4.0' and later have `group_dm_channels_data` and `group_dm_members`, '0.1.0' has none of these. |
 | package_owner_id        | The ID of the user who owns the package.                                                    |
 | package_owner_name      | The username of the package owner.                                                           |
 | package_owner_display_name | The display name of the package owner.                                                    |
 | package_owner_avatar_url | The URL of the package owner's avatar image.                                                |
 | package_is_partial      | Indicates if the package is partial (1 for true, 0 for false).                               |
 | activity_stream         | The activity stream read: 'analytics', 'reporting' (a reduced stream, which lacks a dozen event types), or NULL when the package has none. Absent from databases processed before it existed. |
+
+---
+
+**group_dm_channels_data table**
+
+One row per group DM, a channel typed `GROUP_DM` (or 3) in the export. Absent from databases before '0.4.0'.
+
+| Column                   | Description                                                                                   |
+|-------------------------|-----------------------------------------------------------------------------------------------|
+| channel_id              | The unique identifier for the group DM channel.                                              |
+| channel_name            | The group's name in its `channel.json`, NULL when nobody named it. The messages index gives every unnamed group the same placeholder, so it isn't used. |
+| member_count            | The number of recipients other than the package owner, deleted accounts included.            |
+| total_message_count     | The total number of messages sent in the group DM.                                           |
+
+---
+
+**group_dm_members table**
+
+One row per member of a group DM with a user ID, the package owner left out. Exports write every deleted account as the same "Deleted User", so those only count in `member_count`. Absent from databases before '0.4.0'.
+
+| Column                   | Description                                                                                   |
+|-------------------------|-----------------------------------------------------------------------------------------------|
+| channel_id              | The ID of the group DM channel.                                                              |
+| user_id                 | The ID of the member.                                                                        |
+| user_name               | A friend's username, else the name of the package owner's direct message with them, else NULL. |
+| display_name            | A friend's display name, NULL for anyone else.                                               |
+| user_avatar_url         | The URL of a friend's avatar image, NULL for anyone else.                                    |
 
 ---
 
