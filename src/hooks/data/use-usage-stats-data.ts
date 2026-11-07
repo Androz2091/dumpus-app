@@ -26,14 +26,21 @@ export default function useUsageStatsData(forceLifetime?: boolean) {
   }
 
   /**
-   * The servers the account is in come from the servers index, which has no
-   * dates, so a range shorter than the lifetime counts the servers joined in
-   * it instead, from `guild_joined`.
+   * Over the lifetime, the servers of the servers index, which lists only
+   * those the account is still in, together with every server `guild_joined`
+   * saw it join, left since or not. The index has no dates, so a shorter
+   * range counts the servers joined in it, from `guild_joined` alone.
    */
   function getServers() {
     const { data, hasError } = lifetime
       ? sql<{ server_count: number }>`
-          SELECT COUNT(*) AS server_count FROM guilds;
+          SELECT COUNT(*) AS server_count FROM (
+            SELECT guild_id FROM guilds
+            UNION
+            SELECT associated_guild_id FROM activity
+            WHERE event_name = 'guild_joined'
+            AND associated_guild_id IS NOT NULL
+          );
         `
       : sql<{ server_count: number }>`
           SELECT COUNT(DISTINCT associated_guild_id) AS server_count
