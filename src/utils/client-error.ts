@@ -103,9 +103,11 @@ async function runDownloadChecks(url: string, failedAfter: number) {
     reach("s3-region", "https://s3.eu-west-1.amazonaws.com/", {
       mode: "no-cors",
     }),
-    reach("s3-other-region", "https://s3.us-east-1.amazonaws.com/", {
+    reach("s3-us", "https://s3.us-east-1.amazonaws.com/", {
       mode: "no-cors",
     }),
+    // Tells a block on all of AWS from one on S3.
+    reach("ec2", "https://ec2.eu-west-1.amazonaws.com/", { mode: "no-cors" }),
     reach("api", `${DEFAULT_PACKAGE_API_URL}/health`, {}),
   ]);
   return [
