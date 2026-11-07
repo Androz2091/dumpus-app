@@ -44,6 +44,8 @@ def api(postgres, upstream, tmp_path_factory):
     env.configure(postgres_url=postgres.url, upstream_base=upstream.base, zip_dir=tmp_path_factory.mktemp('zips'))
     modules = env.import_api()
     modules.tasks.requests = RoutedRequests(requests, upstream.base)
+    # Makes the tables, which the step log's trigger needs.
+    modules.db.Session().close()
     postgres.install_step_log()
     # Keeps the per-test `gc.collect()` below from rescanning everything imported so far.
     gc.freeze()
@@ -57,8 +59,8 @@ def s3(api):
 
 @pytest.fixture(autouse=True)
 def isolation(api, postgres, upstream, s3, tmp_path, monkeypatch):
-    # The API leaves some sessions open; collecting them hands their
-    # connections back to the pool before the tables are cleared.
+    # The API leaves some sessions open; collecting them closes their
+    # connections before the tables are cleared.
     gc.collect()
     postgres.clear()
     upstream.reset()

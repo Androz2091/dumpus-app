@@ -248,6 +248,8 @@ def process_link():
         return jsonify(res), 200
 
     log_fields(outcome='queued')
+    # No connection stays open over the webhook.
+    session.rollback()
     send_internal_notification({
         'embeds': [
             {
@@ -459,6 +461,8 @@ def get_avatar(package_id, user_id):
             user = get_cached_discord_user(user_id, session)
             log_fields(cached=bool(user))
             if not user:
+                # No connection stays open over the call to Discord.
+                session.rollback()
                 user = fetch_diswho_user(user_id)
                 if user and user.get('username'):
                     cache_discord_user(user_id, user, session)

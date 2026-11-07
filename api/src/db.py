@@ -3,11 +3,15 @@ import os
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import func, text
 
 import orjson
 
-engine = create_engine(os.getenv('POSTGRES_URL'), pool_recycle=3600, pool_pre_ping=True)
+# No pool, so a connection lasts as long as its session. A Lambda instance stays
+# warm for minutes between calls, and pooled connections filled PostgreSQL's
+# limit, about 80 on db.t4g.micro, when 82 instances ran in one burst.
+engine = create_engine(os.getenv('POSTGRES_URL'), poolclass=NullPool)
 
 Base = declarative_base()
 
@@ -62,9 +66,18 @@ class PackageProcessStatus(Base):
     # an existing table: `scripts/add-package-version-column.sh` did.
     package_version = Column(String(255), nullable=True)
 
-Base.metadata.create_all(engine)
+_session_factory = sessionmaker(bind=engine)
+_tables_exist = False
 
-Session = sessionmaker(bind=engine)
+def Session():
+    """A new session. The tables are made here rather than at import, so that a
+    cold start for a call that needs no database, like a CORS preflight, doesn't
+    connect to it."""
+    global _tables_exist
+    if not _tables_exist:
+        Base.metadata.create_all(engine)
+        _tables_exist = True
+    return _session_factory()
 
 def update_step (package_status_id, package_id, step, session):
     package = session.query(PackageProcessStatus).filter_by(id=package_status_id).first()
