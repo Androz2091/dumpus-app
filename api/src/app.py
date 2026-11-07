@@ -547,6 +547,7 @@ def report_client_error():
         'status': status if isinstance(status, int) and 100 <= status < 600 else None,
         'name': scrub(report.get('name'), 40),
         'message': scrub(report.get('message'), 200),
+        'details': scrub(report.get('details'), 400),
         'version': scrub(report.get('version'), 40),
         'platform': scrub(report.get('platform'), 20),
         'path': scrub(report.get('path'), 80),
@@ -562,6 +563,7 @@ def report_client_error():
                 'description': '\n'.join([
                     f"Step: {fields['step']}" + (f" (HTTP {fields['status']})" if fields['status'] else ''),
                     f"Error: {fields['name']}: {fields['message']}",
+                    f"Checks: {fields['details']}",
                     f"App: {fields['platform']} {fields['version']}, {fields['path']}",
                     f"Device: {fields['user_agent']}",
                     f"Package ID: {fields['package']}",

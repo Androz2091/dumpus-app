@@ -149,6 +149,7 @@ def test_a_report_from_a_device_keeps_links_and_keys_out_of_the_logs(api, client
         'status': 403,
         'name': key,
         'message': f'bad link https://click.discord.com/ls/click?upn={key}, or just {key}',
+        'details': f'link=TypeError:12ms {key}',
         'path': f'/onboarding/loading/?packageLink={key}',
         'package': key,
     }

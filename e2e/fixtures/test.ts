@@ -36,6 +36,12 @@ const HARMLESS: { text: RegExp; url: RegExp; reason: string }[] = [
     url: /^https:\/\/dumpus-packages\.s3\.eu-west-1\.amazonaws\.com\//,
     reason: "S3 refuses a presigned download, which `downloadStatus` asks for.",
   },
+  {
+    text: /ERR_CONNECTION_REFUSED|status of 403\b/,
+    url: /^https:\/\/[\w.-]*s3\.[\w-]+\.amazonaws\.com\//,
+    reason:
+      "A blocked download and the checks that follow, which `downloadBlocked` asks for.",
+  },
 ];
 
 export const test = base.extend<{ api: FakeApi }>({

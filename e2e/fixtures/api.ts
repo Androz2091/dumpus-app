@@ -6,6 +6,10 @@ import { md5, type Dataset } from "./dataset";
 
 const API_ORIGIN = "https://api.dumpus.app";
 const BLOB_ORIGIN = "https://dumpus-packages.s3.eu-west-1.amazonaws.com";
+const S3_ORIGINS = [
+  "https://s3.eu-west-1.amazonaws.com",
+  "https://s3.us-east-1.amazonaws.com",
+];
 const CDN_ORIGIN = "https://cdn.discordapp.com";
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1"]);
 const CORS = { "access-control-allow-origin": "*" };
@@ -69,6 +73,8 @@ export class FakeApi {
   readonly clientErrors: Record<string, unknown>[] = [];
   /** What the presigned download answers instead of the blob. */
   downloadStatus: number | null = null;
+  /** The presigned download gets no answer at all, as under a network block. */
+  downloadBlocked = false;
 
   private readonly packages: Package[];
 
@@ -103,6 +109,9 @@ export class FakeApi {
     );
     await context.route(`${API_ORIGIN}/**`, (route) => this.api(route));
     await context.route(`${BLOB_ORIGIN}/**`, (route) => this.blob(route));
+    for (const origin of S3_ORIGINS) {
+      await context.route(`${origin}/**`, (route) => empty(route, 403));
+    }
     await context.route(`${CDN_ORIGIN}/**`, (route) =>
       route.fulfill({ headers: CORS, contentType: "image/png", body: PNG }),
     );
@@ -153,6 +162,10 @@ export class FakeApi {
     if (method === "POST" && pathname === "/client-error") {
       this.clientErrors.push(request.postDataJSON());
       return empty(route, 204);
+    }
+
+    if (method === "GET" && pathname === "/health") {
+      return json(route, { status: "alive" });
     }
 
     if (method === "GET" && resource === "widget" && id && !action) {
@@ -236,6 +249,7 @@ export class FakeApi {
   }
 
   private blob(route: Route) {
+    if (this.downloadBlocked) return route.abort("connectionrefused");
     if (this.downloadStatus) return empty(route, this.downloadStatus);
     const id = new URL(route.request().url()).pathname.slice(1);
     const pkg = this.packages.find(({ dataset }) => dataset.packageId === id);

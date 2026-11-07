@@ -9,7 +9,7 @@ import type {
   PackageAPIStatusResponse,
   PackageAPIUserResponse,
 } from "~/types/package-api";
-import { inStep, StepError } from "~/utils/client-error";
+import { checkFailedDownload, inStep, StepError } from "~/utils/client-error";
 import { decryptPackageBlob } from "~/utils/crypto";
 import { lookup } from "~/utils/lookups";
 
@@ -113,8 +113,12 @@ export default function usePackageAPI({
     );
 
     // S3's access logs keep the referrer, and this page's URL holds the link.
+    const downloadStart = performance.now();
     const objectResponse = await inStep("download", () =>
-      fetch(url, { referrerPolicy: "no-referrer" }),
+      fetch(url, { referrerPolicy: "no-referrer" }).catch((err) => {
+        checkFailedDownload(url, performance.now() - downloadStart);
+        throw err;
+      }),
     );
     if (!objectResponse.ok) {
       throw new StepError("download", { status: objectResponse.status });
