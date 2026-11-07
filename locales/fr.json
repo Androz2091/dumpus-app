@@ -9,6 +9,27 @@
       "description": "Veuillez patienter."
     }
   },
+  "premium": {
+    "premium": "Premium",
+    "buy": "Acheter Premium",
+    "success": "Vous êtes un Early Supporter",
+    "thanks": "Merci de nous soutenir !",
+    "supportUs": "Soutenez-nous !",
+    "earlySupporter": "Early Supporter",
+    "reduction": "-60 %",
+    "oneTime": "paiement unique",
+    "supporter": "Supporter",
+    "soon": "Bientôt",
+    "notSupported": "Paiements non pris en charge",
+    "maybeLater": "Plus tard peut-être",
+    "proceed": "Continuer",
+    "unavailable": "Indisponible",
+    "content": [
+      "Rôle Supporter sur Discord",
+      "Classement de plus de 100 messages privés",
+      "Accès anticipé aux nouvelles fonctionnalités"
+    ]
+  },
   "onboarding": {
     "routesLabels": {
       "/": "Allons-y",
@@ -26,7 +47,8 @@
         "L'application fonctionne sans aucune donnée lisible stockée sur l'API externe. Si vous avez encore des questions, n'hésitez pas à nous contacter à l'email suivant contact@dumpus.app."
       ],
       "30DaysDelay": "N'oubliez pas qu'il peut s'écouler jusqu'à 30 jours avant que vous ne receviez l'e-mail. Soyez patient !",
-      "getData": "Comment obtenir mes données ?"
+      "getData": "Comment obtenir mes données ?",
+      "gotIt": "Compris !"
     },
     "/": {
       "welcome": "Bienvenue sur Dumpus",
@@ -36,7 +58,8 @@
         "Briefing",
         "Demandez vos données",
         "Démarrez l'analyse"
-      ]
+      ],
+      "selectFavoriteLanguage": "Choisissez votre langue préférée"
     },
     "slides": [
       {
@@ -86,7 +109,8 @@
             "required": "Obligatoire",
             "url": "URL invalide",
             "startWith": "Le lien doit commencer par {{url}}",
-            "emptyKey": "La clé UPN ne peut pas être vide"
+            "emptyKey": "La clé UPN ne peut pas être vide",
+            "noBackend": "Aucun backend Dumpus ne répond à cette URL"
           }
         },
         "email": {
@@ -117,6 +141,8 @@
       "progress": {
         "downloading": "Téléchargement...",
         "analyzing": "Analyse...",
+        "processing": "Traitement...",
+        "importing": "Importation...",
         "processed": "Traité",
         "loading": {
           "title": "Nous chargeons vos données...",
@@ -133,15 +159,19 @@
       "invalidLink": "Lien invalide.",
       "unknownError": "Une erreur inconnue est survenue.",
       "expiredLink": "Lien expiré.",
+      "missingUserData": "Votre export Discord ne contient pas vos données utilisateur. Quand vous redemandez vos données, vérifiez que l'option \"User data\" (données utilisateur) est cochée.",
+      "comeBackLater": "Vous pouvez fermer et revenir plus tard.",
       "downloadBlocked": "Un DNS privé, un bloqueur de publicités ou un VPN peut bloquer le téléchargement. Si vous en utilisez un, désactivez-le, puis réessayez."
     }
   },
   "stats": {
+    "messages": "{{- value}} messages",
     "messagesSent": "messages envoyés",
     "messagesSentPerDay": "C'est environ {{- value}} messages par jour !",
     "titleMessagesSentPerDay": "Messages envoyés par jour",
     "totalMessagesSent": "messages total envoyés",
     "joinedServers": "serveurs rejoints",
+    "newServers": "nouveaux serveurs",
     "joinedServersDesc": "Nous avons un vrai explorateur de serveur Discord !",
     "knownUsers": "utilisateurs connus",
     "knownUsersDesc": "Eh bien, vous connaissez beaucoup de monde !",
@@ -160,6 +190,10 @@
     "channelOpenings": "salons ouverts",
     "guildJoins": "serveurs rejoints",
     "commands": "{{- value}} commandes",
+    "callTime_one": "{{- duration}} en {{- value}} appel",
+    "callTime_many": "{{- duration}} en {{- value}} appels",
+    "callTime_other": "{{- duration}} en {{- value}} appels",
+    "noCalls": "Aucun appel dans vos messages privés sur cette période",
     "top": {
       "dms": "Messages privés",
       "guilds": "Serveurs",
@@ -215,6 +249,13 @@
       "title": "Langues",
       "description": "{{- value}} disponibles"
     },
+    "theme": {
+      "title": "Thème",
+      "blue": "Bleu",
+      "green": "Vert",
+      "purple": "Violet",
+      "orange": "Orange"
+    },
     "dangerZone": {
       "title": "Zone dangereuse",
       "description": "Vos données seront supprimées de cet appareil et de nos serveurs, mais vous pouvez toujours y accéder en utilisant l'e-mail envoyé par Discord. Merci d'avoir essayé l'application, faites-nous part de vos commentaires sur GitHub !",
@@ -230,7 +271,8 @@
       "deleting": "Suppression...",
       "delete": "Supprimer le paquet actuel",
       "restoring": "Restauration...",
-      "restorePurchases": "Restaurer les achats"
+      "restorePurchases": "Restaurer les achats",
+      "addPackage": "Ajouter un nouveau paquet"
     },
     "about": {
       "title": "À propos",
@@ -239,7 +281,8 @@
       "community": "Communauté",
       "contribute": "Contribuer",
       "contributors": "Contributeurs du projet",
-      "credits": "Crédits"
+      "credits": "Crédits",
+      "rate": "Noter Dumpus"
     }
   },
   "credits": {
@@ -264,6 +307,7 @@
     "contributions": "{{- value}} contributions"
   },
   "error": {
+    "error": "Une erreur est survenue...",
     "title": "Tournure surprenante des événements... Voici votre chemin vers la récupération:",
     "retry": "Réessayer",
     "report": "Signaler sur GitHub",
@@ -274,9 +318,16 @@
   "mostActiveDMs": "Messages privés les plus actifs",
   "mostActiveServers": "Serveurs les plus actifs",
   "mostActiveChannels": "Salons les plus actifs",
+  "mostCalled": "Les plus appelés",
   "discordHours": "Votre nombre d'heures Discord",
   "activityTime": "Activité dans le temps",
   "messageSentCount": "Nombre de messages envoyés",
+  "minutesOnDiscord": "Minutes passées sur Discord dans le temps",
+  "minuteCount": "Nombre de minutes",
+  "graphViews": {
+    "period": "Par période",
+    "cumulative": "Cumulé"
+  },
   "share": {
     "title": "Partager",
     "description": "Partagez vos statistiques avec vos amis !",
@@ -287,6 +338,128 @@
     "popup": {
       "title": "Voici mon récapitulatif Discord !",
       "description": "Généré sur https://dumpus.app, essayez vous-même !"
+    },
+    "error": "Une erreur est survenue...",
+    "close": "Fermer",
+    "previous": "Carte précédente",
+    "next": "Carte suivante",
+    "cardsLabel": "Vos cartes de récapitulatif",
+    "cards": {
+      "cover": "Couverture",
+      "messages": "Messages",
+      "topDMs": "Top messages privés",
+      "topServers": "Top serveurs",
+      "peakHour": "Heure de pointe",
+      "time": "Temps sur Discord",
+      "habits": "Petites habitudes",
+      "summary": "Résumé",
+      "summarySquare": "Résumé carré"
+    },
+    "range": {
+      "4weeks": "4 dernières semaines",
+      "6months": "6 derniers mois",
+      "year": "12 derniers mois",
+      "lifetime": "Depuis toujours"
+    },
+    "units": {
+      "hours": "{{- value}} h",
+      "minutes": "{{- value}} min",
+      "hoursMinutes": "{{- hours}} h {{- minutes}} min"
+    },
+    "cover": {
+      "eyebrow": "Récap Discord · {{- range}}",
+      "years_one": "{{count}} an de Discord, <accent>décortiqué.</accent>",
+      "years_many": "{{count}} ans de Discord, <accent>décortiqués.</accent>",
+      "years_other": "{{count}} ans de Discord, <accent>décortiqués.</accent>",
+      "lifetime": "Votre Discord jusqu'ici, <accent>décortiqué.</accent>",
+      "4weeks": "Vos 4 dernières semaines sur Discord, <accent>décortiquées.</accent>",
+      "6months": "Vos 6 derniers mois sur Discord, <accent>décortiqués.</accent>",
+      "year": "Vos 12 derniers mois sur Discord, <accent>décortiqués.</accent>"
+    },
+    "messages": {
+      "eyebrow": "Messages envoyés",
+      "unit_one": "message",
+      "unit_many": "messages",
+      "unit_other": "messages",
+      "perDay": "Soit <b>{{- value}} par jour</b>, chaque jour depuis {{- since}}.",
+      "perDay_day": "Soit <b>{{- value}} par jour</b>, chaque jour depuis le {{- since}}.",
+      "busiest": "Pic : {{- period}}",
+      "weekOf": "semaine du {{- date}}"
+    },
+    "topDMs": {
+      "eyebrow": "Votre top messages privés",
+      "headline": "Vos proches",
+      "count_one": "{{- value}} message",
+      "count_many": "{{- value}} messages",
+      "count_other": "{{- value}} messages"
+    },
+    "topServers": {
+      "eyebrow": "Votre top serveurs",
+      "headline": "Vos repaires"
+    },
+    "peakHour": {
+      "eyebrow": "Heure de pointe",
+      "caption": "votre heure la plus active",
+      "nightOwl": "Vous êtes un oiseau de nuit",
+      "earlyBird": "Vous êtes un lève-tôt",
+      "daylight": "Vous écrivez en plein jour",
+      "evening": "Vous êtes du soir",
+      "share": "<b>{{- share}}</b> de vos messages sont envoyés entre {{- from}} et {{- to}}."
+    },
+    "time": {
+      "eyebrow": "Temps sur Discord",
+      "unit_one": "heure",
+      "unit_many": "heures",
+      "unit_other": "heures",
+      "days_one": "Soit <b>{{- value}} jour entier.</b>",
+      "days_many": "Soit <b>{{- value}} jours entiers.</b>",
+      "days_other": "Soit <b>{{- value}} jours entiers.</b>",
+      "appOpens_one": "ouverture de l'appli",
+      "appOpens_many": "ouvertures de l'appli",
+      "appOpens_other": "ouvertures de l'appli",
+      "voice": "en vocal",
+      "avgSession": "Session moyenne"
+    },
+    "habits": {
+      "eyebrow": "Petites habitudes",
+      "headline": "Les petits détails",
+      "reactions_one": "réaction ajoutée",
+      "reactions_many": "réactions ajoutées",
+      "reactions_other": "réactions ajoutées",
+      "edits_one": "message modifié",
+      "edits_many": "messages modifiés",
+      "edits_other": "messages modifiés",
+      "notifications_one": "notification cliquée",
+      "notifications_many": "notifications cliquées",
+      "notifications_other": "notifications cliquées",
+      "slashCommands_one": "commande slash",
+      "slashCommands_many": "commandes slash",
+      "slashCommands_other": "commandes slash",
+      "voiceMessages_one": "message vocal",
+      "voiceMessages_many": "messages vocaux",
+      "voiceMessages_other": "messages vocaux",
+      "captchas_one": "captcha résolu",
+      "captchas_many": "captchas résolus",
+      "captchas_other": "captchas résolus",
+      "logins_one": "connexion",
+      "logins_many": "connexions",
+      "logins_other": "connexions",
+      "appsAuthorized_one": "appli autorisée",
+      "appsAuthorized_many": "applis autorisées",
+      "appsAuthorized_other": "applis autorisées",
+      "missingTitle": "Absent de votre export",
+      "missing": "{{- list}}. Discord ne les a pas inclus, donc Dumpus ne peut pas les compter."
+    },
+    "summary": {
+      "eyebrow": "Récap · {{- range}}",
+      "messages": "messages envoyés",
+      "messagesShort": "messages",
+      "hours": "sur Discord",
+      "peakHour": "heure de pointe",
+      "people": "personnes en MP",
+      "servers": "serveurs où vous avez parlé",
+      "topDMs": "Top MP",
+      "topServers": "Top serveurs"
     }
   },
   "exitingDemo": "Sortie...",
@@ -299,11 +472,32 @@
     "stats": "Statistiques",
     "settings": "Paramètres"
   },
+  "timeRanges": {
+    "4weeks": "4 semaines",
+    "6months": "6 mois",
+    "year": "Année",
+    "lifetime": "Tout"
+  },
   "topUsedBot": "Robots les plus utilisés",
   "topChannels": "Salons principaux",
   "firstMessages": "Vos premiers messages",
   "relatedGuild": "Serveur associé",
+  "more": "Voir plus",
+  "missingStats": {
+    "title": "Certaines statistiques manquent",
+    "summary_one": "Votre export ne contient aucune activité pour {{- value}} jour où vous avez envoyé des messages",
+    "summary_many": "Votre export ne contient aucune activité pour {{- value}} jours où vous avez envoyé des messages",
+    "summary_other": "Votre export ne contient aucune activité pour {{- value}} jours où vous avez envoyé des messages",
+    "details": "Les statistiques tirées de votre activité, comme le temps sur Discord, les appels, les ouvertures de l'appli et les réactions, ne couvrent pas ces périodes. Les messages ne sont pas concernés.",
+    "days_one": "{{- value}} jour avec des messages",
+    "days_many": "{{- value}} jours avec des messages",
+    "days_other": "{{- value}} jours avec des messages"
+  },
   "notAvailable": "N/D",
+  "notFound": {
+    "title": "Introuvable",
+    "description": "La page que vous cherchez n'existe pas."
+  },
   "reprocess": {
     "title": "Une version plus récente peut lire davantage de votre paquet",
     "description": "Dumpus va le relire avec le lien enregistré sur cet appareil, vous n'avez rien à coller. Vos statistiques actuelles restent en place jusqu'à ce que les nouvelles soient prêtes, et notre serveur supprime le lien dès le début du traitement.",
@@ -315,5 +509,7 @@
       "failed": "Dumpus n'a pas pu relire votre paquet. Vos statistiques actuelles restent en place.",
       "back": "Retour à mes statistiques"
     }
-  }
+  },
+  "noData": "Aucune donnée disponible",
+  "noDataTip": "Choisissez une autre période pour voir des données"
 }

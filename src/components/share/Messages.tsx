@@ -85,6 +85,9 @@ export default forwardRef<HTMLDivElement, { data: ShareData }>(
           <div className="mt-[56px] max-w-[880px] text-[50px] leading-[1.25] font-medium tracking-[-0.005em] text-gray-300">
             <Trans
               i18nKey="share.messages.perDay"
+              // Over 4 weeks `since` is a day, which some languages put after
+              // an article: French says "depuis le 12 octobre".
+              context={range.id === "4weeks" ? "day" : undefined}
               values={{ value: format.number(messages.perDay), since }}
               components={{ b: <b className="font-extrabold text-white" /> }}
             />
