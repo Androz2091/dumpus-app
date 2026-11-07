@@ -115,7 +115,33 @@ data "aws_iam_policy_document" "github_deploy" {
     resources = ["*"]
   }
 
-  # CI re-passes the same task / execution roles when registering revisions.
+  # One task of the worker's image per deploy, for the database migrations:
+  # PostgreSQL is in private subnets. It only starts on the workers' cluster.
+  statement {
+    sid       = "EcsRunMigrations"
+    actions   = ["ecs:RunTask"]
+    resources = ["${aws_ecs_task_definition.worker.arn_without_revision}:*"]
+    condition {
+      test     = "ArnEquals"
+      variable = "ecs:cluster"
+      values   = [aws_ecs_cluster.main.arn]
+    }
+  }
+
+  statement {
+    sid       = "EcsWatchMigrations"
+    actions   = ["ecs:DescribeTasks"]
+    resources = ["arn:aws:ecs:${var.region}:${data.aws_caller_identity.current.account_id}:task/${aws_ecs_cluster.main.name}/*"]
+  }
+
+  statement {
+    sid       = "ReadMigrationLogs"
+    actions   = ["logs:GetLogEvents"]
+    resources = ["${aws_cloudwatch_log_group.worker.arn}:log-stream:task/*"]
+  }
+
+  # CI re-passes the same task / execution roles when registering revisions,
+  # and when starting a task.
   statement {
     sid     = "EcsPassTaskRoles"
     actions = ["iam:PassRole"]
