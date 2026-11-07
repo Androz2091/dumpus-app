@@ -159,7 +159,8 @@
       "unknownError": "An unknown error occurred.",
       "expiredLink": "Link expired.",
       "missingUserData": "Your Discord export is missing your User data. When requesting your data again, make sure the \"User data\" option is ticked.",
-      "comeBackLater": "You can close and come back later."
+      "comeBackLater": "You can close and come back later.",
+      "downloadBlocked": "A Private DNS, an ad blocker or a VPN can block the download. If you use one, turn it off and try again."
     }
   },
   "stats": {
