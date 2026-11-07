@@ -20,7 +20,7 @@ PROCESSOR = os.environ.get('DUMPUS_PROCESSOR')
 REGION = 'eu-west-1'
 BUCKET = 'dumpus-test-packages'
 
-API_MODULES = ('app', 'tasks', 'db', 'util', 'crypto', 'blob_storage', 'enqueue', 'sqlite', 'wh')
+API_MODULES = ('app', 'tasks', 'db', 'util', 'crypto', 'blob_storage', 'enqueue', 'sqlite', 'wh', 'migrate')
 
 # Read by the code under test or by botocore, and meant to be unset. They are
 # set to "" while the API is imported, so `load_dotenv()` can't fill them from

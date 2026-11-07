@@ -38,4 +38,4 @@ RUN python -c "from util import current_processor_version as version; assert ver
 
 # Start the API server
 # waitress-serve --port=5000 app:app
-CMD ["waitress-serve", "--port=5000", "app:app"]
+CMD ["sh", "-c", "python migrate.py && exec waitress-serve --port=5000 app:app"]

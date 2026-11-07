@@ -19,7 +19,7 @@ class SavedPackageData(Base):
     __tablename__ = 'saved_package_data'
 
     id = Column(Integer, primary_key=True)
-    package_id = Column(String(255), nullable=False)
+    package_id = Column(String(255), nullable=False, index=True)
     iv = Column(String(255), nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, onupdate=func.now(), default=func.now())
@@ -46,7 +46,7 @@ class PackageProcessStatus(Base):
     __tablename__ = 'package_process_status'
 
     id = Column(Integer, primary_key=True)
-    package_id = Column(String(255), nullable=False)
+    package_id = Column(String(255), nullable=False, index=True)
     step = Column(String(255), nullable=False)
     progress = Column(Integer, nullable=True)
     queue_standard_total_when_started = Column(Integer, nullable=True)
