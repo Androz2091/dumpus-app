@@ -1,7 +1,7 @@
 // Package sqlitedb writes a `processor.Model` to the SQLite file the Dumpus app
 // opens, with the Python worker's schema (the same DDL text, index names and
-// column storage classes) plus `package_data.activity_stream` and
-// `guilds.member_count`.
+// column storage classes) plus `package_data.activity_stream`,
+// `guilds.member_count` and the group DM tables.
 package sqlitedb
 
 import (
@@ -23,7 +23,9 @@ import (
 
 // The DDL is the worker's text as is, so `sqlite_master` reads the same,
 // except for the columns the worker never wrote, `package_data.activity_stream`
-// and `guilds.member_count`, each added after the worker's own.
+// and `guilds.member_count`, each added after the worker's own, and the tables
+// it never wrote, `group_dm_channels_data` and `group_dm_members`, added after
+// its tables.
 var tables = []string{`
         CREATE TABLE activity (
             event_name TEXT NOT NULL,
@@ -102,6 +104,23 @@ var tables = []string{`
             package_is_partial BOOLEAN NOT NULL DEFAULT 0,
             activity_stream TEXT
         )
+    `, `
+        CREATE TABLE group_dm_channels_data (
+            channel_id TEXT NOT NULL,
+            channel_name TEXT,
+            member_count INTEGER NOT NULL,
+            total_message_count INTEGER NOT NULL,
+            PRIMARY KEY (channel_id)
+        )
+    `, `
+        CREATE TABLE group_dm_members (
+            channel_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            user_name TEXT,
+            display_name TEXT,
+            user_avatar_url TEXT,
+            PRIMARY KEY (channel_id, user_id)
+        )
     `}
 
 var indexes = []string{
@@ -170,7 +189,17 @@ func inserts(m *processor.Model, dropped *DroppedRows) []insert {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, 1, func(ctx context.Context, stmt *sql.Stmt, _ int) (sql.Result, error) {
 		return stmt.ExecContext(ctx, pk.PackageID, pk.PackageVersion, pk.OwnerID, pk.OwnerName, pk.OwnerDisplayName,
 			pk.OwnerAvatarURL, partial, pk.ActivityStream)
-	}, &dropped.PackageData}}
+	}, &dropped.PackageData}, {"group_dm_channels_data", `INSERT INTO group_dm_channels_data
+        (channel_id, channel_name, member_count, total_message_count)
+        VALUES (?, ?, ?, ?)`, len(m.GroupDMChannels), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
+		r := m.GroupDMChannels[i]
+		return stmt.ExecContext(ctx, r.ChannelID, r.ChannelName, r.MemberCount, r.TotalMessageCount)
+	}, &dropped.GroupDMChannels}, {"group_dm_members", `INSERT INTO group_dm_members
+        (channel_id, user_id, user_name, display_name, user_avatar_url)
+        VALUES (?, ?, ?, ?, ?)`, len(m.GroupDMMembers), func(ctx context.Context, stmt *sql.Stmt, i int) (sql.Result, error) {
+		r := m.GroupDMMembers[i]
+		return stmt.ExecContext(ctx, r.ChannelID, r.UserID, r.UserName, r.DisplayName, r.UserAvatarURL)
+	}, &dropped.GroupDMMembers}}
 }
 
 // amount binds a payment amount as the Go type of its JSON type, the one the
@@ -202,14 +231,16 @@ type Result struct {
 // DroppedRows has a count per table, under the table's name; a table with
 // none is left out.
 type DroppedRows struct {
-	Activity      int `json:"activity,omitempty"`
-	DMChannels    int `json:"dm_channels_data,omitempty"`
-	GuildChannels int `json:"guild_channels_data,omitempty"`
-	Guilds        int `json:"guilds,omitempty"`
-	PackageData   int `json:"package_data,omitempty"`
-	Payments      int `json:"payments,omitempty"`
-	Sessions      int `json:"sessions,omitempty"`
-	VoiceSessions int `json:"voice_sessions,omitempty"`
+	Activity        int `json:"activity,omitempty"`
+	DMChannels      int `json:"dm_channels_data,omitempty"`
+	GroupDMChannels int `json:"group_dm_channels_data,omitempty"`
+	GroupDMMembers  int `json:"group_dm_members,omitempty"`
+	GuildChannels   int `json:"guild_channels_data,omitempty"`
+	Guilds          int `json:"guilds,omitempty"`
+	PackageData     int `json:"package_data,omitempty"`
+	Payments        int `json:"payments,omitempty"`
+	Sessions        int `json:"sessions,omitempty"`
+	VoiceSessions   int `json:"voice_sessions,omitempty"`
 }
 
 // Write creates the database at path, replacing any file there, and syncs it

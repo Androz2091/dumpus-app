@@ -13,6 +13,7 @@ type owner struct {
 
 type relationship struct {
 	id          string
+	username    *string
 	displayName *string
 	avatarURL   *string
 }
@@ -151,9 +152,8 @@ func readRelationship(v []byte, path string, iss *issues) (relationship, bool) {
 		iss.add(path, field+".user", ProblemMalformed, 1)
 		return r, false
 	}
-	// Read and unused, like the owner's `email`.
-	if _, has := u.get("username"); !has {
-		iss.add(path, field+".user.username", ProblemMissing, 1)
+	if username, ok := requiredString(u, "username", path, field+".user.username", iss); ok {
+		r.username = &username
 	}
 	if av, has := u.get("avatar"); !has {
 		iss.add(path, field+".user.avatar", ProblemMissing, 1)

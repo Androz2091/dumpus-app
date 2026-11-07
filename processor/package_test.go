@@ -257,6 +257,13 @@ func tables(m *Model) map[string][]string {
 		add("guild_channels_data", fmt.Sprintf("%s|%s|%s|%d|%d", r.ChannelID, ptr(r.GuildID), r.ChannelName,
 			r.TotalMessageCount, r.TotalVoiceChannelDuration))
 	}
+	for _, r := range m.GroupDMChannels {
+		add("group_dm_channels_data", fmt.Sprintf("%s|%s|%d|%d", r.ChannelID, ptr(r.ChannelName), r.MemberCount, r.TotalMessageCount))
+	}
+	for _, r := range m.GroupDMMembers {
+		add("group_dm_members", fmt.Sprintf("%s|%s|%s|%s|%s", r.ChannelID, r.UserID, ptr(r.UserName),
+			ptr(r.DisplayName), ptr(r.UserAvatarURL)))
+	}
 	for _, r := range m.Guilds {
 		members := "NULL"
 		if r.MemberCount != nil {
@@ -326,13 +333,20 @@ func fullTables() map[string][]string {
 			// The cut drops the last five characters wherever "#0000" is.
 			news+"|"+guildTwo+"|news#000|1|0",
 		),
+		// An unnamed group has no name, whatever the index calls it.
+		"group_dm_channels_data": sorted(group+"|Group Chat|2|1", pairGroup+"|NULL|1|2", bareGroup+"|NULL|0|1"),
+		"group_dm_members": sorted(
+			group+"|"+friend+"|friend_one|Friend One|https://cdn.discordapp.com/avatars/"+friend+"/friendhash.jpg",
+			// Not a friend: the name of the owner's DM with them.
+			pairGroup+"|"+stranger+"|stranger|NULL|NULL",
+		),
 		// Guild One counts the channel missing from the index, and has the
 		// member count of its latest opening, not of its last line.
 		"guilds":         sorted(guildOne+"|Guild One|7|42", guildTwo+"|Guild Two|1|NULL"),
 		"payments":       sorted("p1|2022-03-04|999|usd|Nitro", "p4|2022-12-31|4.5|eur|Boost"),
 		"sessions":       {"90|1617703200.0|1617708600.0|Windows"},
 		"voice_sessions": {voiceChan + "|" + guildOne + "|44|1617739260.0|1617741900.0"},
-		"package_data": {"pkg-test|0.3.0|" + ownerID + "|owner_user|Owner Name|https://cdn.discordapp.com/avatars/" +
+		"package_data": {"pkg-test|0.4.0|" + ownerID + "|owner_user|Owner Name|https://cdn.discordapp.com/avatars/" +
 			ownerID + "/a_ownerhash.gif|false|analytics"},
 	}
 }

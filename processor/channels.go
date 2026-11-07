@@ -94,8 +94,16 @@ type channelResult struct {
 	channelID string
 	dmUserID  *string
 	guildID   *string
+	group     groupDM
 	total     int64
 	hours     map[int64]int64 // message count per wall-clock hour
+}
+
+// groupDM is what a group DM's `channel.json` gives its rows.
+type groupDM struct {
+	name        *string  // nil when nobody named the group
+	memberIDs   []string // the members with a user id, the owner left out
+	memberCount int64    // the recipients but the owner, deleted accounts included
 }
 
 type channelInput struct {
@@ -167,7 +175,7 @@ func classifyChannel(in *channelInput, ownerID string, iss *issues) channelResul
 	}
 	switch {
 	case group:
-		res.kind = channelGroupDM
+		res.kind, res.group = channelGroupDM, readGroupDM(in.channel, recipients, ownerID, in.channelPath, iss)
 	case len(recipients) == 2:
 		id, ok := dmUserID(recipients, ownerID, in.channelPath, iss)
 		if !ok {
@@ -205,6 +213,54 @@ func groupType(channel members, path string, iss *issues) (group, typed bool) {
 		iss.add(path, "type", ProblemWrongType, 1)
 		return false, true
 	}
+}
+
+// readGroupDM reads a group's name from `channel.json`, since the messages index
+// gives every unnamed group the same placeholder, and an empty name is none.
+// Exports write every deleted account's id as the same localized "Deleted
+// User", so such a member counts but gets no row, and a member listed twice
+// counts once.
+func readGroupDM(channel members, recipients [][]byte, ownerID, path string, iss *issues) groupDM {
+	var g groupDM
+	switch name, present, ok := optionalString(channel, "name"); {
+	case !ok:
+		iss.add(path, "name", ProblemWrongType, 1)
+	case present && name != "":
+		g.name = &name
+	}
+	seen := make(map[string]bool, len(recipients))
+	for _, v := range recipients {
+		switch kindOf(v) {
+		case kindString:
+		case kindNull:
+			iss.add(path, "recipients[]", ProblemNull, 1)
+			continue
+		default:
+			iss.add(path, "recipients[]", ProblemWrongType, 1)
+			continue
+		}
+		id, _ := decodeString(v)
+		switch {
+		case id == ownerID, seen[id]:
+			continue
+		case isUserID(id):
+			seen[id] = true
+			g.memberIDs = append(g.memberIDs, id)
+		}
+		g.memberCount++
+	}
+	return g
+}
+
+// isUserID tells a user id, all digits, from what exports write in place of a
+// deleted account's id.
+func isUserID(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return s != ""
 }
 
 // dmUserID picks the first recipient that isn't the owner. A DM with yourself
