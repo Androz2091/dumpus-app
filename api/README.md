@@ -251,6 +251,10 @@ For what only the device can see, like its download from S3 or its decryption. I
 
 ### [SQLite Database Documentation can be found here](./docs/sqlite_database_structure.md)
 
+## Database migrations
+
+`create_all` only makes missing tables, so changing an existing one takes a migration: a new numbered file in `src/migrations/`, with one statement that's safe to run twice. `deploy-api` applies new files after building the images and before the new code goes live, and a failure stops the deploy there. The old code is still running at that point, so a migration must keep it working. A self-hosted server applies them when its container starts.
+
 ## Logs
 
 Kept 30 days. None of them holds a link, a UPN or anything from a package. The S3 logs do hold each presigned URL, whose signature lasts 5 minutes and fetches an encrypted blob.

@@ -102,6 +102,7 @@ jobs:
       # Before the API, which announces the new processor version once it rolls:
       # a reprocess it accepts must not reach a worker that makes the old one.
       - name: Register new worker task definition revision
+        id: worker
         env:
           IMAGE_URI: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_WORKER_REPO }}:${{ steps.meta.outputs.image_tag }}
         run: |
@@ -129,9 +130,54 @@ jobs:
               }
             | with_entries(select(.value != null))
           ' /tmp/td.json > /tmp/td-new.json
-          aws ecs register-task-definition \
+          arn=$(aws ecs register-task-definition \
             --cli-input-json file:///tmp/td-new.json \
-            > /dev/null
+            --query taskDefinition.taskDefinitionArn \
+            --output text)
+          echo "task_definition=$arn" >> "$GITHUB_OUTPUT"
+
+      # Before the new code goes live, so a failure stops the deploy here.
+      # PostgreSQL is in private subnets, so this is a task of the revision
+      # above, with `migrate` as the argument of the worker's entrypoint.
+      - name: Run database migrations
+        env:
+          TASK_DEFINITION: ${{ steps.worker.outputs.task_definition }}
+        run: |
+          set -euo pipefail
+          network=$(aws lambda get-function-configuration \
+            --function-name "$FORWARDER_FUNCTION" \
+            --query Environment.Variables)
+          cluster=$(jq -r .ECS_CLUSTER <<<"$network")
+          container=$(jq -r .ECS_CONTAINER_NAME <<<"$network")
+          subnets=$(jq -r .ECS_SUBNETS <<<"$network")
+          security_groups=$(jq -r .ECS_SECURITY_GROUPS <<<"$network")
+          task=$(aws ecs run-task \
+            --cluster "$cluster" \
+            --launch-type FARGATE \
+            --task-definition "$TASK_DEFINITION" \
+            --network-configuration "awsvpcConfiguration={subnets=[$subnets],securityGroups=[$security_groups],assignPublicIp=DISABLED}" \
+            --overrides "$(jq -n --arg name "$container" '{containerOverrides: [{name: $name, command: ["migrate"]}]}')" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+          if [ "$task" = "None" ]; then
+            echo "::error::The migration task didn't start."
+            exit 1
+          fi
+          aws ecs wait tasks-stopped --cluster "$cluster" --tasks "$task"
+          aws logs get-log-events \
+            --log-group-name "/aws/ecs/$WORKER_TASK_FAMILY" \
+            --log-stream-name "task/$container/${task##*/}" \
+            --query 'events[].message' \
+            --output text | tr '\t' '\n' || true
+          code=$(aws ecs describe-tasks \
+            --cluster "$cluster" \
+            --tasks "$task" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+          if [ "$code" != "0" ]; then
+            echo "::error::The migrations failed with exit code $code, so the new code isn't live."
+            exit 1
+          fi
 
       - name: Update Lambdas
         env:

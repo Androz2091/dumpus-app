@@ -19,6 +19,7 @@ from botocore.exceptions import ClientError
 
 import secrets_loader  # noqa: F401  -- side effect: hydrate env from SM
 import blob_storage
+import migrate
 from tasks import process_package
 
 
@@ -49,4 +50,8 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    # `deploy-api` starts a task with this argument before the new code goes live.
+    if sys.argv[1:] == ['migrate']:
+        migrate.main()
+    else:
+        sys.exit(main())
