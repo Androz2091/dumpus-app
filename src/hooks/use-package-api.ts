@@ -11,6 +11,7 @@ import type {
 } from "~/types/package-api";
 import { inStep, StepError } from "~/utils/client-error";
 import { decryptPackageBlob } from "~/utils/crypto";
+import { lookup } from "~/utils/lookups";
 
 export default function usePackageAPI({
   baseURL = DEFAULT_PACKAGE_API_URL,
@@ -163,14 +164,16 @@ export default function usePackageAPI({
     const response =
       packageID === "demo"
         ? new Response(null, { status: 401 })
-        : await api({
-            path: `/process/${packageID}/user/${userID}`,
-            method: "GET",
-            headers: {
-              Accept: "text/plain",
-              Authorization: `Bearer ${UPNKey}`,
-            },
-          });
+        : await lookup(() =>
+            api({
+              path: `/process/${packageID}/user/${userID}`,
+              method: "GET",
+              headers: {
+                Accept: "text/plain",
+                Authorization: `Bearer ${UPNKey}`,
+              },
+            }),
+          );
 
     const data: PackageAPIUserResponse =
       response.status === 401
@@ -179,7 +182,7 @@ export default function usePackageAPI({
           ? { errorMessageCode: "UNKNOWN_USER_ID" }
           : response.status === 429
             ? { errorMessageCode: "RATE_LIMITED" }
-            : response.status === 500
+            : !response.ok
               ? { errorMessageCode: "FETCH_ERROR" }
               : { ...(await response.json()), errorMessageCode: null };
 

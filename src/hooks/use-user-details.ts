@@ -26,9 +26,10 @@ export default function useUserDetails({ userID }: { userID: string }) {
         userID,
       }),
     staleTime: Infinity,
+    // A gateway turning calls away needs fewer of them, not more.
     refetchInterval: (query) => {
       if (query.state.data?.errorMessageCode === "RATE_LIMITED") {
-        return 500;
+        return Math.min(1000 * 2 ** query.state.dataUpdateCount, 60_000);
       }
 
       return false;
