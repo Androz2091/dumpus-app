@@ -80,6 +80,8 @@ const (
 	group     = "400000000000000005"
 	noMsgs    = "400000000000000007"
 	news      = "400000000000000008"
+	pairGroup = "400000000000000009"
+	bareGroup = "400000000000000010"
 	app       = "600000000000000001"
 	voiceChan = "700000000000000001"
 )
@@ -121,6 +123,17 @@ func channelFolder(l folders, id, channelJSON, messagesJSON string) []entry {
 
 func dmChannel(id string, recipients ...string) string {
 	return `{"id": "` + id + `", "type": 1, "recipients": ["` + strings.Join(recipients, `", "`) + `"]}`
+}
+
+// groupChannel is a group DM typed as real exports type it, `"GROUP_DM"`, or
+// as synthetic ones do, `3`. typ and name are raw JSON, and a group given no
+// recipients is written without the key, as real exports write some groups.
+func groupChannel(id, typ, name string, recipients ...string) string {
+	c := `{"id": "` + id + `", "type": ` + typ + `, "name": ` + name
+	if len(recipients) > 0 {
+		c += `, "recipients": ["` + strings.Join(recipients, `", "`) + `"]`
+	}
+	return c + "}"
 }
 
 func guildChannel(id, guild string) string {
@@ -179,6 +192,8 @@ func fullPackage(l folders) []entry {
 			"` + dmOther + `": "Direct Message with stranger",
 			"` + general + `": "general",
 			"` + group + `": "Group Chat",
+			"` + pairGroup + `": "Unnamed Group",
+			"` + bareGroup + `": "Unnamed Group",
 			"` + news + `": "news#0000-old",
 			"400000000000000006": null}`},
 	},
@@ -189,7 +204,13 @@ func fullPackage(l folders) []entry {
 			messages("2021-04-06 23:59:59.500", "2021-04-06 23:00:00.000")),
 		channelFolder(l, unindexed, guildChannel(unindexed, guildOne),
 			messages("2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00")),
-		channelFolder(l, group, dmChannel(group, ownerID, friend, stranger), messages("2021-04-06 12:00:00")),
+		// Exports write a deleted account's id as "Deleted User", and a group
+		// of two is still a group, not a DM.
+		channelFolder(l, group, groupChannel(group, `"GROUP_DM"`, `"Group Chat"`, ownerID, friend, "Deleted User"),
+			messages("2021-04-06 12:00:00")),
+		channelFolder(l, pairGroup, groupChannel(pairGroup, "3", "null", stranger, ownerID),
+			messages("2021-04-07 10:00:00", "2021-04-07 10:30:00")),
+		channelFolder(l, bareGroup, groupChannel(bareGroup, `"GROUP_DM"`, "null"), messages("2021-04-08 09:00:00")),
 		channelFolder(l, noMsgs, guildChannel(noMsgs, guildOne), ""),
 		channelFolder(l, news, guildChannel(news, guildTwo), messages("2021-04-06 12:00:00")),
 		[]entry{
@@ -273,6 +294,8 @@ var messageSentRows = []string{
 	"message_sent|2021-04-06|23|2|" + general + "|" + guildOne + "|NULL|NULL|NULL",
 	"message_sent|2021-04-06|12|1|" + news + "|" + guildTwo + "|NULL|NULL|NULL",
 	"message_sent|2021-04-06|12|1|" + group + "|NULL|NULL|NULL|NULL",
+	"message_sent|2021-04-07|10|2|" + pairGroup + "|NULL|NULL|NULL|NULL",
+	"message_sent|2021-04-08|9|1|" + bareGroup + "|NULL|NULL|NULL|NULL",
 }
 
 var eventRows = []string{

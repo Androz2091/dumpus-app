@@ -19,11 +19,11 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 	}
 
 	// DMs come before guild channels. A channel missing from the messages index
-	// is dropped from both tables, with its messages. The other channels, group
-	// DMs and those of servers the owner left, which exports write without
+	// is dropped from both tables, with its messages. Group DMs and the other
+	// channels, those of servers the owner left, which exports write without
 	// their server, have no page, but their messages were sent all the same.
 	ordered := make([]*channelResult, 0, len(pf.channels))
-	for _, kind := range []channelKind{channelDM, channelGuild, channelOther} {
+	for _, kind := range []channelKind{channelDM, channelGuild, channelGroupDM, channelOther} {
 		for i := range pf.channels {
 			if pf.channels[i].kind == kind {
 				ordered = append(ordered, &pf.channels[i])
@@ -59,7 +59,7 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 				ChannelName:       name,
 				TotalMessageCount: c.total,
 			})
-		case channelOther:
+		case channelGroupDM, channelOther:
 			// No row of its own, only its messages.
 		}
 		for _, hour := range slices.Sorted(maps.Keys(c.hours)) {
