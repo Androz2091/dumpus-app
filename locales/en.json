@@ -331,6 +331,9 @@
     "description": "Share your stats with your friends!",
     "generating": "Generating...",
     "download": "Download",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyFailed": "Couldn't copy",
     "recap": "Share your recap",
     "recapDescription": "Share your recap with your friends on Twitter, Instagram, Reddit, Discord...! :)",
     "popup": {

@@ -25,7 +25,18 @@ const DRAW_DELAY = 250;
 const DATA_TIMEOUT = 2_000;
 
 type Drawing =
-  { status: "pending" } | { status: "ready"; blob: Blob } | { status: "error" };
+  | { status: "pending" }
+  | { status: "ready"; blob: Blob; url: string }
+  | { status: "error" };
+
+/** Whether the browser can put a PNG on the clipboard. */
+function canCopyImages() {
+  if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
+    return false;
+  }
+  // Browsers from before `supports` copy PNGs.
+  return ClipboardItem.supports?.("image/png") ?? true;
+}
 
 function canShareFiles() {
   if (Capacitor.isNativePlatform()) return true;
@@ -78,6 +89,10 @@ export default function ShareSheet() {
   const { generate } = useGenerateImg();
   const native = Capacitor.isNativePlatform();
   const [shareable] = useState(canShareFiles);
+  // Copy takes Share's place where the browser can't share files: a third
+  // button wouldn't fit on a phone, and the image over the card copies from
+  // the browser's own menu anyway.
+  const [copyable] = useState(() => !native && !shareable && canCopyImages());
 
   const cards = CARDS.filter((card) => card.shown(data));
   const [index, setIndex] = useState(0);
@@ -93,10 +108,16 @@ export default function ShareSheet() {
   const dataKey = useMemo(() => CRC32.str(JSON.stringify(data)), [data]);
   const key = `${card.kind}:${dataKey}`;
   const drawing = drawings[key];
+  const urls = useRef<string[]>([]);
 
   useEffect(() => {
     const timer = setTimeout(() => setWaited(true), DATA_TIMEOUT);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const made = urls.current;
+    return () => made.forEach((url) => URL.revokeObjectURL(url));
   }, []);
 
   useEffect(() => {
@@ -109,7 +130,12 @@ export default function ShareSheet() {
         try {
           if (!node) throw new Error(`no node for the ${card.kind} card`);
           const blob = await generate(node, "square" in card ? SQUARE : STORY);
-          setDrawings((all) => ({ ...all, [key]: { status: "ready", blob } }));
+          const url = URL.createObjectURL(blob);
+          urls.current.push(url);
+          setDrawings((all) => ({
+            ...all,
+            [key]: { status: "ready", blob, url },
+          }));
         } catch (error) {
           logger.error(error);
           setDrawings((all) => ({ ...all, [key]: { status: "error" } }));
@@ -195,6 +221,27 @@ export default function ShareSheet() {
     if (drawing?.status === "ready") download(drawing.blob, name);
   }
 
+  // What the last copy did, said on its card's button for a moment.
+  const [copied, setCopied] = useState<{ key: string; ok: boolean }>();
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(undefined), 2_000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+
+  async function onCopy() {
+    if (drawing?.status !== "ready") return;
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": drawing.blob }),
+      ]);
+      setCopied({ key, ok: true });
+    } catch (error) {
+      logger.warn(error);
+      setCopied({ key, ok: false });
+    }
+  }
+
   function retry() {
     setDrawings((all) => {
       const others = { ...all };
@@ -224,6 +271,7 @@ export default function ShareSheet() {
         >
           {cards.map(({ kind, Card, ...rest }, i) => {
             const square = "square" in rest;
+            const shown = drawings[`${kind}:${dataKey}`];
             return (
               <div
                 key={kind}
@@ -232,11 +280,7 @@ export default function ShareSheet() {
                 aria-label={t(`share.cards.${kind}`)}
                 aria-current={i === selected}
                 data-card={kind}
-                data-image={
-                  i === selected
-                    ? status
-                    : drawings[`${kind}:${dataKey}`]?.status
-                }
+                data-image={i === selected ? status : shown?.status}
                 className="relative shrink-0 snap-center snap-always overflow-hidden rounded-xl bg-gray-800 shadow-lg"
                 style={{
                   width: slideWidth,
@@ -258,6 +302,17 @@ export default function ShareSheet() {
                     }}
                   />
                 </div>
+                {!native && shown?.status === "ready" && (
+                  // The drawn image over its live card, so that the
+                  // browser's own menu, from a right-click or a long press,
+                  // can copy or save it. Screen readers still read the card.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={shown.url}
+                    alt=""
+                    className="absolute inset-0 h-full w-full"
+                  />
+                )}
               </div>
             );
           })}
@@ -319,15 +374,30 @@ export default function ShareSheet() {
                   : t("share.title")}
               </Button>
             )}
+            {copyable && (
+              <Button
+                className="flex-1"
+                onClick={onCopy}
+                disabled={status !== "ready"}
+                aria-busy={status === "pending"}
+                aria-live="polite"
+              >
+                {status === "pending"
+                  ? t("share.generating")
+                  : copied?.key === key
+                    ? t(copied.ok ? "share.copied" : "share.copyFailed")
+                    : t("share.copy")}
+              </Button>
+            )}
             {!native && (
               <Button
-                variant={shareable ? "gray" : "brand"}
+                variant={shareable || copyable ? "gray" : "brand"}
                 className="flex-1"
                 onClick={onDownload}
                 disabled={status !== "ready"}
                 aria-busy={status === "pending"}
               >
-                {status === "pending" && !shareable
+                {status === "pending" && !shareable && !copyable
                   ? t("share.generating")
                   : t("share.download")}
               </Button>
