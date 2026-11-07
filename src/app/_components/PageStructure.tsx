@@ -29,6 +29,9 @@ export default function PageStructure({
       lang={fallbackLocale}
       dir="ltr"
       data-theme={theme}
+      // Next 16 keeps our `scroll-smooth` while it changes pages unless this
+      // is set, so going back would slide down to the row instead of landing.
+      data-scroll-behavior="smooth"
       className="h-full bg-gray-950 text-gray-400"
       style={
         {
