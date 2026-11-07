@@ -1,13 +1,19 @@
 "use client";
 
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
+import { useEffect } from "react";
 import Button from "~/components/Button";
 import { OS, VERSION } from "~/constants";
 import { NextErrorProps } from "~/types";
 import { useTranslation } from "~/i18n/client";
+import { reportClientError } from "~/utils/client-error";
 
 export default function Error({ error, reset }: NextErrorProps) {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    reportClientError({ error, step: "crash" });
+  }, [error]);
 
   return (
     <div className="my-auto flex flex-col items-center space-y-4 px-2">
@@ -39,7 +45,7 @@ Stack: ${error.stack || "none"}
 
 ## Infos
 
-- Location: ${window.location.href}
+- Location: ${window.location.pathname}
 - Platform: ${OS}
 `)}`}
               target="_blank"

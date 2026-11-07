@@ -13,6 +13,7 @@ import useSQLInit from "~/hooks/use-sql-init";
 import useToast from "~/hooks/use-toast";
 import { useTranslation } from "~/i18n/client";
 import { useAppStore } from "~/stores";
+import { reportClientError } from "~/utils/client-error";
 import { formatDate } from "~/utils/format";
 import { queryClient } from "~/utils/react-query";
 
@@ -74,7 +75,8 @@ export default function PackageSwitch() {
                     .then(() => {
                       router.push("/overview/");
                     })
-                    .catch(() => {
+                    .catch((err) => {
+                      reportClientError({ error: err, step: "switch" });
                       // The open database is still the previous package's.
                       setSelectedID(from);
                       setSwitching(null);

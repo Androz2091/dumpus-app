@@ -95,7 +95,7 @@ Things to keep in mind:
 
 ## API Documentation
 
-One header is required for all the requests except the `POST /process` one:
+One header is required for all the requests except `POST /process` and `POST /client-error`:
 ```
 Authorization: Bearer <UPN_KEY>
 ```
@@ -243,7 +243,26 @@ Current error message codes:
 * `UNKNOWN_PACKAGE_ID`: for some reason, you are asking for the status of a package that does not exist in the database.
 * `UNAUTHORIZED`: the UPN KEY provided in the Authorization header is not valid.
 
+### Report a failure on a device
+
+* `POST /client-error`
+
+For what only the device can see, like its download from S3 or its decryption. It takes JSON sent as plain text, so that no CORS preflight runs, with `step`, `status`, `name`, `message`, `version`, `platform`, `path` and `package`, all optional. Free text is scrubbed of URLs and long tokens, so a report can't put a link's key in the logs. It answers `204`, `400` for a body it can't read, `413` past 8 KB, or `429` past 10 a minute from one address on one Lambda instance.
+
 ### [SQLite Database Documentation can be found here](./docs/sqlite_database_structure.md)
+
+## Logs
+
+Kept 30 days. None of them holds a link, a UPN or anything from a package. The S3 logs do hold each presigned URL, whose signature lasts 5 minutes and fetches an encrypted blob.
+
+| Where | What |
+| --- | --- |
+| `/aws/lambda/<name>-api` | A `request:` line per call: method, route's pattern, status, duration, then `id`, `package`, `cold` and what the route decided, for eg. `outcome=existing`. A `client-error:` line per report from a device. |
+| `/aws/apigw/<name>` | Each call by `requestId`, the `id` above, with its IP, device and the gateway's own errors, for eg. a throttled call. |
+| `<name>-package-data-logs`, an S3 bucket | Each request for a blob, with its IP, device and answer, a few hours later. It shows whether a phone reached S3 at all. |
+| `/aws/ecs/<name>-worker` | Each worker's steps, sizes, processor report and traceback. |
+
+A package's events and a device's reports also go to the Discord webhook, `WH_URL`.
 
 ## Tests
 

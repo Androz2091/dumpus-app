@@ -9,6 +9,7 @@ import type {
   PackageAPIStatusResponse,
   PackageAPIUserResponse,
 } from "~/types/package-api";
+import { inStep, StepError } from "~/utils/client-error";
 import { decryptPackageBlob } from "~/utils/crypto";
 
 export default function usePackageAPI({
@@ -84,14 +85,16 @@ export default function usePackageAPI({
     // bypassing the API Gateway slow path. The blob is encrypted; we
     // decrypt here using the UPN so the key never reaches the server.
     // Demo packages are unencrypted (iv=null).
-    const blobResponse = await api({
-      path: `/process/${packageID}/blob`,
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${UPNKey}`,
-      },
-    });
+    const blobResponse = await inStep("blob", () =>
+      api({
+        path: `/process/${packageID}/blob`,
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${UPNKey}`,
+        },
+      }),
+    );
 
     if (blobResponse.status === 401) {
       return { data: null, errorMessageCode: "UNAUTHORIZED" };
@@ -100,21 +103,29 @@ export default function usePackageAPI({
       return { data: null, errorMessageCode: "UNKNOWN_PACKAGE_ID" };
     }
     if (!blobResponse.ok) {
-      throw new Error(`/blob ${packageID} failed: HTTP ${blobResponse.status}`);
+      throw new StepError("blob", { status: blobResponse.status });
     }
 
-    const { url, iv } = (await blobResponse.json()) as PackageAPIBlobResponse;
+    const { url, iv } = await inStep(
+      "blob",
+      () => blobResponse.json() as Promise<PackageAPIBlobResponse>,
+    );
 
-    const objectResponse = await fetch(url);
+    // S3's access logs keep the referrer, and this page's URL holds the link.
+    const objectResponse = await inStep("download", () =>
+      fetch(url, { referrerPolicy: "no-referrer" }),
+    );
     if (!objectResponse.ok) {
-      throw new Error(
-        `presigned download for ${packageID} failed: HTTP ${objectResponse.status}`,
-      );
+      throw new StepError("download", { status: objectResponse.status });
     }
-    const downloaded = await objectResponse.arrayBuffer();
+    const downloaded = await inStep("download", () =>
+      objectResponse.arrayBuffer(),
+    );
 
     const decrypted = iv
-      ? await decryptPackageBlob(downloaded, iv, UPNKey)
+      ? await inStep("decrypt", () =>
+          decryptPackageBlob(downloaded, iv, UPNKey),
+        )
       : downloaded;
 
     return { data: decrypted, errorMessageCode: null };

@@ -9,6 +9,7 @@ import usePackageAPI from "~/hooks/use-package-api";
 import useSQLInit from "~/hooks/use-sql-init";
 import { useTranslation } from "~/i18n/client";
 import { useAppStore } from "~/stores";
+import { failureCode, useFailureReport } from "~/utils/client-error";
 import Error from "../../loading/_components/Error";
 
 const packageID = "demo";
@@ -28,9 +29,9 @@ export default function Page() {
   const nextID = getNextID(selectedID);
   const { init } = useSQLInit();
   const api = usePackageAPI({});
-  const [initFailed, setInitFailed] = useState(false);
+  const [importFailure, setImportFailure] = useState<Error | null>(null);
 
-  const { data } = useQuery({
+  const { data, error: downloadFailure } = useQuery({
     queryKey: ["demo", "data"],
     queryFn: () => api.data({ packageID, UPNKey }),
     staleTime: Infinity,
@@ -51,15 +52,23 @@ export default function Page() {
         .then(() => {
           router.replace("/overview/");
         })
-        .catch(() => setInitFailed(true));
+        .catch((err: Error) => setImportFailure(err));
       return null;
     },
     staleTime: Infinity,
     enabled: !!data?.data,
   });
 
+  useFailureReport("download", downloadFailure, packageID);
+  useFailureReport("import", importFailure, packageID);
+
+  const failure =
+    (downloadFailure && failureCode(downloadFailure, "download")) ||
+    (importFailure && failureCode(importFailure, "import")) ||
+    null;
+
   const error =
-    data?.errorMessageCode || (initFailed ? "UNKNOWN_ERROR" : undefined);
+    data?.errorMessageCode || (failure ? "UNKNOWN_ERROR" : undefined);
 
   if (error) {
     return (
@@ -72,6 +81,7 @@ export default function Page() {
           }[error]
         }
         url="/onboarding/access/"
+        failure={failure}
       />
     );
   }

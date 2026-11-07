@@ -6,6 +6,7 @@ import { useScrollTop } from "~/hooks/use-layout";
 import useStoreInit from "~/hooks/use-store-init";
 import { fallbackLocale } from "~/i18n/settings";
 import { useAppStore } from "~/stores";
+import { useUncaughtErrorReports } from "~/utils/client-error";
 import { monoFamily, sansFamily } from "../_fonts";
 import SafeArea from "./SafeArea";
 import Scripts from "./Scripts";
@@ -20,6 +21,7 @@ export default function PageStructure({
   const init = useStoreInit();
   const theme = useAppStore(({ config }) => config.theme);
   useScrollTop();
+  useUncaughtErrorReports();
 
   return (
     <html

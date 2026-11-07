@@ -23,9 +23,11 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 export default function Page() {
   const { t } = useTranslation();
 
-  const { process, status, data, error, reprocess } = useLogic();
+  const { process, status, data, error, failure, reprocess } = useLogic();
 
-  if (error && reprocess) return <ReprocessError error={error} />;
+  if (error && reprocess) {
+    return <ReprocessError error={error} failure={failure} />;
+  }
 
   if (error) {
     return (
@@ -44,6 +46,7 @@ export default function Page() {
           }[error]
         }
         url="/onboarding/access/link/"
+        failure={failure}
       />
     );
   }

@@ -36,3 +36,25 @@ test("onboarding, from the welcome screen to the overview", async ({
   await expect(stat(page, "known users")).toHaveText("28");
   await expect(stat(page, "Discord app started")).toHaveText("4,802");
 });
+
+test("a failed download says which step failed, and reports it without the key", async ({
+  page,
+  api,
+}) => {
+  api.downloadStatus = 403;
+  await page.goto("/onboarding/access/link/");
+  await page.getByLabel("Discord link").fill(FAKE_PACKAGE_LINK);
+  await page.getByRole("button", { name: "Explore!" }).click();
+
+  // Past the app's retries, which take 7 seconds.
+  await expect(page.getByText("download-403")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("An unknown error occurred.")).toBeVisible();
+  await expect.poll(() => api.clientErrors).toHaveLength(1);
+  expect(api.clientErrors[0]).toMatchObject({
+    step: "download",
+    status: 403,
+    path: "/onboarding/loading/",
+  });
+  const upn = new URL(FAKE_PACKAGE_LINK).searchParams.get("upn")!;
+  expect(JSON.stringify(api.clientErrors)).not.toContain(upn);
+});
