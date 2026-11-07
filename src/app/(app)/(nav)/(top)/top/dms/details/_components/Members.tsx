@@ -26,7 +26,9 @@ function MemberCard({ member }: { member: Member }) {
   return (
     <DetailCard
       title={displayName}
-      description={username || member.user_id}
+      // The username only when the title isn't it already, and the id for a
+      // member nobody could name.
+      description={username === displayName ? "" : (username ?? member.user_id)}
       leftSlot={
         <div className="relative aspect-square w-10">
           <DiscordImage

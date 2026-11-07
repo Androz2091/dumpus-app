@@ -75,12 +75,17 @@ function GroupCard({ group }: { group: GroupConversation }) {
       rank={group.rank}
       title={groupName(group, t)}
       // Shorter than a DM's "messages sent", to fit the member count at 375px.
-      description={`${t("stats.messages", {
-        value: formatNumber(group.message_count),
-      })} · ${t("groupDM.memberCount", {
-        count: group.member_count,
-        value: formatNumber(group.member_count),
-      })}`}
+      // A group whose export lists no recipients has no count to give.
+      description={[
+        t("stats.messages", { value: formatNumber(group.message_count) }),
+        group.member_count > 0 &&
+          t("groupDM.memberCount", {
+            count: group.member_count,
+            value: formatNumber(group.member_count),
+          }),
+      ]
+        .filter(Boolean)
+        .join(" · ")}
       leftSlot={<GroupDMIcon channelID={group.channel_id} className="w-10" />}
       rightIcon={ChevronRightIcon}
     />

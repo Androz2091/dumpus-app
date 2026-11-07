@@ -35,10 +35,16 @@ export default function GroupDetails({ groupKey }: { groupKey: string }) {
     <>
       <PageHeader title={name} discordLink={discordLink} />
       <ProfileHeader
-        description={t("groupDM.memberCount", {
-          count: group.member_count,
-          value: formatNumber(group.member_count, { notation: "standard" }),
-        })}
+        description={
+          group.member_count > 0
+            ? t("groupDM.memberCount", {
+                count: group.member_count,
+                value: formatNumber(group.member_count, {
+                  notation: "standard",
+                }),
+              })
+            : null
+        }
         title={name}
         imageSlot={
           <GroupDMIcon

@@ -71,10 +71,14 @@ function GroupCard({ group }: { group: GroupConversation }) {
         },
       }}
       image={<GroupDMIcon channelID={group.channel_id} className="w-full" />}
-      detail={t("groupDM.memberCount", {
-        count: group.member_count,
-        value: formatNumber(group.member_count),
-      })}
+      detail={
+        group.member_count > 0
+          ? t("groupDM.memberCount", {
+              count: group.member_count,
+              value: formatNumber(group.member_count),
+            })
+          : undefined
+      }
     />
   );
 }
