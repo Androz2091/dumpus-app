@@ -5,6 +5,13 @@ resource "aws_cloudfront_origin_access_control" "site" {
   signing_protocol                  = "sigv4"
 }
 
+resource "aws_cloudfront_function" "rewrite" {
+  name    = "${local.name}-${var.environment}-rewrite"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = file("${path.module}/cloudfront-rewrite.js")
+}
+
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -28,11 +35,15 @@ resource "aws_cloudfront_distribution" "site" {
 
     # AWS managed CachingOptimized — best defaults for static assets.
     cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.rewrite.arn
+    }
   }
 
-  # Next.js static export uses extensionless URLs (e.g. /overview/index.html
-  # served at /overview/). Map any 403/404 from S3 back to /index.html so
-  # client-side routing works on direct deep-links.
+  # S3 answers 403 for a file it doesn't have: a path that matches no page
+  # gets the root page.
   custom_error_response {
     error_code         = 403
     response_code      = 200
