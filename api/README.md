@@ -87,7 +87,7 @@ aws sqs receive-message --queue-url "$(terraform output -raw sqs_dlq_url)"
 
 Things to keep in mind:
 
-- **API cold start** imports the app and connects to Postgres (`db.py` creates its tables at import). Invisible on the async submit/poll flow; use provisioned concurrency if a sync endpoint must be sub-second.
+- **API cold start** imports the app, and the first call that needs Postgres also checks that its tables exist (`Session` in `db.py`). Invisible on the async submit/poll flow; use provisioned concurrency if a sync endpoint must be sub-second.
 - **Worker `/tmp` cap** defaults to 30 GiB. Bump `worker_task_ephemeral_storage_gib` if users upload very large Discord exports (Fargate ceiling is 200 GiB).
 - **Worker has no time cap**, except 10 minutes for `dumpus-processor` (`PROCESSOR_TIMEOUT_SECONDS` in `src/tasks.py`). Heavy packages just take as long as they need to download; failures show up as ERRORED package rows + a Discord webhook from `process_package`, not in the DLQ.
 - **Forwarder DLQ.** If the forwarder Lambda itself fails to launch a Fargate task twice (capacity / IAM / network), the SQS message lands in the DLQ — alarmed via Discord through `monitoring.tf`. A package's link waits for its worker under `links/` in the package bucket, which expires it after a day: a message sent back to the queue later than that may find none.

@@ -30,9 +30,9 @@ resource "aws_cloudwatch_metric_alarm" "worker_dlq_depth" {
   ok_actions    = [aws_sns_topic.alerts.arn]
 }
 
-# An API Lambda that fails outright: a cold start that can't reach PostgreSQL,
-# or an exception no view catches. Views answer their own errors with a 500,
-# which this doesn't count.
+# An API Lambda that fails outright: a cold start that can't load, or an
+# exception no view catches. Views answer their own errors with a 500, which
+# `api_5xx` counts.
 resource "aws_cloudwatch_metric_alarm" "api_errors" {
   alarm_name          = "${local.name}-api-errors"
   alarm_description   = "The API Lambda failed. Check /aws/lambda/${aws_lambda_function.api.function_name}."
@@ -47,6 +47,28 @@ resource "aws_cloudwatch_metric_alarm" "api_errors" {
 
   dimensions = {
     FunctionName = aws_lambda_function.api.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
+# What Lambda's own errors don't count, like PostgreSQL refusing a connection. A
+# lookup answers 500 now and then when Discord doesn't answer, hence the margin.
+resource "aws_cloudwatch_metric_alarm" "api_5xx" {
+  alarm_name          = "${local.name}-api-5xx"
+  alarm_description   = "The API answered 5xx several times. Check the \"request:\" lines in /aws/lambda/${aws_lambda_function.api.function_name} and the gateway's in ${aws_cloudwatch_log_group.apigw.name}."
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "5xx"
+  namespace           = "AWS/ApiGateway"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 5
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    ApiId = aws_apigatewayv2_api.api.id
   }
 
   alarm_actions = [aws_sns_topic.alerts.arn]
@@ -68,6 +90,28 @@ resource "aws_cloudwatch_metric_alarm" "api_throttles" {
 
   dimensions = {
     FunctionName = aws_lambda_function.api.function_name
+  }
+
+  alarm_actions = [aws_sns_topic.alerts.arn]
+  ok_actions    = [aws_sns_topic.alerts.arn]
+}
+
+# PostgreSQL takes about 80 connections on db.t4g.micro, and past them calls
+# fail. API instances only hold one during a call (`db.py`).
+resource "aws_cloudwatch_metric_alarm" "db_connections" {
+  alarm_name          = "${local.name}-db-connections"
+  alarm_description   = "PostgreSQL is close to its connection limit. Check the \"request:\" lines in /aws/lambda/${aws_lambda_function.api.function_name} and the running worker tasks."
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "DatabaseConnections"
+  namespace           = "AWS/RDS"
+  period              = 60
+  statistic           = "Maximum"
+  threshold           = 60
+  treat_missing_data  = "notBreaching"
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.main.identifier
   }
 
   alarm_actions = [aws_sns_topic.alerts.arn]

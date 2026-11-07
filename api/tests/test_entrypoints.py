@@ -172,3 +172,13 @@ def test_a_report_the_api_cannot_read_is_refused_rather_than_failing(client):
     assert post('[' * 5000) == 400
     # Half an emoji, as an error's message cut short can end.
     assert post('{"message": "\\ud83d"}') == 400
+
+
+def test_no_connection_stays_open_between_calls(client, submit, postgres):
+    package = submit('full')
+
+    client.get(f'/process/{package.package_id}/status', headers=package.auth)
+    client.get(f'/process/{package.package_id}/blob', headers=package.auth)
+
+    assert postgres.rows(
+        'SELECT pid FROM pg_stat_activity WHERE datname = current_database() AND pid <> pg_backend_pid()') == []
