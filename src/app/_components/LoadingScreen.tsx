@@ -7,13 +7,12 @@ import { useEffectOnce } from "react-use";
 import { useShallow } from "zustand/react/shallow";
 import Button from "~/components/Button";
 import EmptyState from "~/components/EmptyState";
+import FailureCode from "~/components/FailureCode";
 import { VERSION } from "~/constants";
-import useSQLInit, {
-  loadErrorCode,
-  type PackageLoadErrorCode,
-} from "~/hooks/use-sql-init";
+import useSQLInit, { loadErrorCode } from "~/hooks/use-sql-init";
 import { useTranslation } from "~/i18n/client";
 import { useAppStore } from "~/stores";
+import { failureCode, reportClientError } from "~/utils/client-error";
 import { createLogger } from "~/utils/logger";
 
 const logger = createLogger({ tag: "loading screen" });
@@ -25,7 +24,7 @@ export default function LoadingScreen({
 }) {
   const [loading, setLoading] = useState(true);
   const [shouldHaveDB, setShouldHaveDB] = useState(false);
-  const [failure, setFailure] = useState<PackageLoadErrorCode | null>(null);
+  const [failure, setFailure] = useState<unknown>(null);
   const { t } = useTranslation();
   const pathname = usePathname() || "/";
   const router = useRouter();
@@ -101,7 +100,8 @@ export default function LoadingScreen({
         }
       } catch (err) {
         logger.error("couldn't open the package", err);
-        setFailure(loadErrorCode(err));
+        setFailure(err);
+        reportClientError({ error: err, step: "open" });
       }
     })();
 
@@ -122,9 +122,10 @@ export default function LoadingScreen({
               UNKNOWN_PACKAGE_ID: t("onboarding.loading.unknownPackageId"),
               UNAUTHORIZED: t("onboarding.loading.unauthorized"),
               UNKNOWN_ERROR: t("onboarding.loading.unknownError"),
-            }[failure]
+            }[loadErrorCode(failure)]
           }
         />
+        <FailureCode code={failureCode(failure, "open")} />
         <div className="flex flex-col space-y-2">
           <Button onClick={() => window.location.reload()}>
             {t("error.retry")}

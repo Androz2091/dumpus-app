@@ -65,6 +65,10 @@ export class FakeApi {
   readonly reprocessLinks: string[] = [];
   /** How many times `/status` was asked outside a run. */
   statusChecks = 0;
+  /** The bodies of `POST /client-error`. */
+  readonly clientErrors: Record<string, unknown>[] = [];
+  /** What the presigned download answers instead of the blob. */
+  downloadStatus: number | null = null;
 
   private readonly packages: Package[];
 
@@ -144,6 +148,11 @@ export class FakeApi {
               errorMessageCode: "INVALID_LINK",
             },
       );
+    }
+
+    if (method === "POST" && pathname === "/client-error") {
+      this.clientErrors.push(request.postDataJSON());
+      return empty(route, 204);
     }
 
     if (method === "GET" && resource === "widget" && id && !action) {
@@ -227,6 +236,7 @@ export class FakeApi {
   }
 
   private blob(route: Route) {
+    if (this.downloadStatus) return empty(route, this.downloadStatus);
     const id = new URL(route.request().url()).pathname.slice(1);
     const pkg = this.packages.find(({ dataset }) => dataset.packageId === id);
     if (!pkg) {

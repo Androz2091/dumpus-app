@@ -75,6 +75,7 @@ def download_file(package_status_id, package_id, link, session):
 
     print('downloading')
     update_step(package_status_id, package_id, 'DOWNLOADING', session)
+    start = time.time()
     try:
         r = requests.get(link, allow_redirects=True, stream=True)
         with open(path, 'wb') as f:
@@ -83,6 +84,7 @@ def download_file(package_status_id, package_id, link, session):
     except requests.RequestException as e:
         # Its message quotes the link, see `link_problem`.
         raise Exception(f'download failed: {type(e).__name__}') from None
+    print(f'downloaded: HTTP {r.status_code}, {os.path.getsize(path)} bytes, {time.time() - start:.1f} s')
 
     return path
 
@@ -117,7 +119,7 @@ def save_package_data(package_status_id, package_id, link, zipped_buffer, packag
     import blob_storage
     blob_storage.upload(package_id, data, iv=iv.hex())
 
-    print(f'SQLite serialization: {time.time() - start}')
+    print(f'SQLite serialization: {time.time() - start}, blob {len(data)} bytes')
 
     package_status.step = 'PROCESSED'
     package_status.package_version = package_version
@@ -186,6 +188,7 @@ def process_with_go(package_status_id, package_id, link, session):
             summary = f'{len(issues)} issues, problems {problems}'
 
     print(f'dumpus-processor: {time.time() - start:.1f} s, report: {summary}')
+    print(f'database: {len(sqlite_buffer)} bytes')
     save_package_data(package_status_id, package_id, link, gzip.compress(sqlite_buffer), package_version, start, session)
 
 def process_package(package_status_id, package_id, link, worker_name='regular_process'):

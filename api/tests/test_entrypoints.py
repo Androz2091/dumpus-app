@@ -78,11 +78,13 @@ def run_task_params(status_id, package):
     }
 
 
-def test_lambda_handler_answers_api_gateway(lambda_api):
+def test_lambda_handler_answers_api_gateway(lambda_api, capsys):
     response = lambda_api(http_api_event('GET', '/health'), None)
 
     assert response['statusCode'] == 200
     assert json.loads(response['body']) == {'status': 'alive', 'hostname': socket.gethostname()}
+    # The line a call can be found by in the gateway's access log.
+    assert 'id=synthetic-request' in capsys.readouterr().out
 
 
 def test_package_goes_from_api_gateway_through_sqs_and_ecs_to_the_worker(
@@ -136,3 +138,37 @@ def test_a_package_whose_worker_died_shows_an_error_and_can_be_sent_again(client
     client.post('/process', json={'package_link': link})
     assert status() == (False, None, 1)
     assert len(sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)['Messages']) == 2
+
+
+def test_a_report_from_a_device_keeps_links_and_keys_out_of_the_logs(api, client, capsys, monkeypatch):
+    sent = []
+    monkeypatch.setattr(api.app, 'send_internal_notification', sent.append)
+    key = 'u001.' + 'a1B-' * 40
+    report = {
+        'step': 'download',
+        'status': 403,
+        'name': key,
+        'message': f'bad link https://click.discord.com/ls/click?upn={key}, or just {key}',
+        'path': f'/onboarding/loading/?packageLink={key}',
+        'package': key,
+    }
+
+    response = client.post('/client-error', data=json.dumps(report), content_type='text/plain',
+                           headers={'User-Agent': key})
+
+    assert response.status_code == 204
+    out = capsys.readouterr().out
+    assert 'client-error: {"step":"download","status":403' in out
+    assert key not in out
+    assert key not in json.dumps(sent)
+
+
+def test_a_report_the_api_cannot_read_is_refused_rather_than_failing(client):
+    def post(body):
+        return client.post('/client-error', data=body, content_type='text/plain').status_code
+
+    assert post('x' * 9000) == 413
+    assert post('not json') == 400
+    assert post('[' * 5000) == 400
+    # Half an emoji, as an error's message cut short can end.
+    assert post('{"message": "\\ud83d"}') == 400

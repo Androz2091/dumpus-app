@@ -31,6 +31,11 @@ const HARMLESS: { text: RegExp; url: RegExp; reason: string }[] = [
     url: /^https:\/\/api\.dumpus\.app\/process\/[0-9a-f]{32}\/user\/\d+$/,
     reason: "The user lookup answers 500 for an account Discord can't find.",
   },
+  {
+    text: /status of 403\b/,
+    url: /^https:\/\/dumpus-packages\.s3\.eu-west-1\.amazonaws\.com\//,
+    reason: "S3 refuses a presigned download, which `downloadStatus` asks for.",
+  },
 ];
 
 export const test = base.extend<{ api: FakeApi }>({

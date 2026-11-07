@@ -8,6 +8,7 @@ import { DEFAULT_PACKAGE_API_URL } from "~/constants";
 import usePackageAPI from "~/hooks/use-package-api";
 import useSQLInit, { loadErrorCode } from "~/hooks/use-sql-init";
 import { useAppStore } from "~/stores";
+import { failureCode, useFailureReport } from "~/utils/client-error";
 
 type API = ReturnType<typeof usePackageAPI>;
 
@@ -38,14 +39,14 @@ function useProcess({
   reprocess?: string;
   enabled: boolean;
 }) {
-  const { data, status } = useQuery({
+  const { data, status, error } = useQuery({
     queryKey: ["package-api", "process", packageLink, reprocess],
     queryFn: () => api.process({ packageLink, reprocess: !!reprocess }),
     enabled,
     staleTime: Infinity,
   });
 
-  return { data, status };
+  return { data, status, error };
 }
 
 function useStatus({
@@ -63,7 +64,7 @@ function useStatus({
 }) {
   const [erroredStatus, setErroredStatus] = useState(false);
 
-  const { data, status } = useQuery({
+  const { data, status, error } = useQuery({
     queryKey: ["package-api", "status", packageID, reprocess],
     queryFn: () =>
       api.status({
@@ -79,7 +80,7 @@ function useStatus({
     setErroredStatus(!!data?.isErrored);
   }, [data]);
 
-  return { data, status };
+  return { data, status, error };
 }
 
 function useData({
@@ -95,14 +96,14 @@ function useData({
   reprocess?: string;
   enabled: boolean;
 }) {
-  const { data, status } = useQuery({
+  const { data, status, error } = useQuery({
     queryKey: ["package-api", "data", packageID, reprocess],
     queryFn: () => api.data({ packageID, UPNKey }),
     enabled,
     staleTime: Infinity,
   });
 
-  return { data, status };
+  return { data, status, error };
 }
 
 function useRedirect({
@@ -155,7 +156,7 @@ function useRedirect({
     retry: false,
   });
 
-  return error ? loadErrorCode(error) : null;
+  return error;
 }
 
 export default function useLogic() {
@@ -207,7 +208,7 @@ export default function useLogic() {
     enabled: status.data?.processingStep === "PROCESSED",
   });
 
-  const importError = useRedirect({
+  const importFailure = useRedirect({
     packageID: packageID || "",
     initialData: data.data?.data || undefined,
     packageLink: packageLink || "",
@@ -227,7 +228,18 @@ export default function useLogic() {
     data.data?.errorMessageCode ||
     // The download or its decryption failed.
     (data.status === "error" ? "UNKNOWN_ERROR" : null) ||
-    importError ||
+    (importFailure ? loadErrorCode(importFailure) : null) ||
+    null;
+
+  useFailureReport("process", process.error, packageID, backendURL);
+  useFailureReport("status", status.error, packageID, backendURL);
+  useFailureReport("download", data.error, packageID, backendURL);
+  useFailureReport("import", importFailure, packageID, backendURL);
+
+  const failure =
+    (process.error && failureCode(process.error, "process")) ||
+    (data.error && failureCode(data.error, "download")) ||
+    (importFailure && failureCode(importFailure, "import")) ||
     null;
 
   useEffect(() => {
@@ -240,5 +252,5 @@ export default function useLogic() {
     }
   }, [error, setLoadingData, reprocess, selectedID, setPackage]);
 
-  return { process, status, data, error, reprocess };
+  return { process, status, data, error, failure, reprocess };
 }

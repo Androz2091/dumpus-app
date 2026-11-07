@@ -1,7 +1,9 @@
+import re
 import socket
 import time
 from datetime import datetime, timedelta
 
+import orjson
 from flask import Flask, g, jsonify, request, make_response
 from flask_cors import CORS
 
@@ -25,13 +27,34 @@ CORS(app)
 def start_timer():
     g.started = time.monotonic()
 
+# This instance's first call also waited for its cold start.
+instance_is_cold = True
+
+PACKAGE_ID = re.compile(r'[0-9a-f]{32}|demo')
+
+def log_fields(**fields):
+    """Adds to this call's `request:` line."""
+    g.setdefault('log_fields', {}).update(fields)
+
 # One line per call, with the route's pattern rather than its path, so that no
-# package or user id lands in the logs.
+# user id lands in the logs. `id` finds the call in the gateway's access log,
+# which has its IP and device.
 @app.after_request
 def log_request(response):
+    global instance_is_cold
     rule = request.url_rule.rule if request.url_rule else '(no route)'
     ms = (time.monotonic() - g.get('started', time.monotonic())) * 1000
-    print(f'request: {request.method} {rule} {response.status_code} {ms:.0f} ms')
+    # Anyone can put anything in a path, for eg. a line break to forge a log line.
+    package_id = (request.view_args or {}).get('package_id')
+    fields = {
+        'id': request.environ.get('apig_wsgi.request_context', {}).get('requestId'),
+        'package': package_id if package_id and PACKAGE_ID.fullmatch(package_id) else None,
+        'cold': True if instance_is_cold else None,
+        **g.get('log_fields', {}),
+    }
+    instance_is_cold = False
+    details = ''.join(f' {name}={value}' for name, value in fields.items() if value is not None)
+    print(f'request: {request.method} {rule} {response.status_code} {ms:.0f} ms{details}')
     return response
 
 def get_request_package_id():
@@ -94,12 +117,14 @@ def check_authorization_bearer(req, package_id):
     auth_header = req.headers.get('Authorization')
 
     if not auth_header:
+        log_fields(auth='missing')
         return (False, None)
 
     auth_token = auth_header.split(' ')[1]
     expected_package_id = extract_package_id_from_upn(auth_token)
 
     if not expected_package_id or package_id != expected_package_id:
+        log_fields(auth='mismatch')
         return (False, None)
 
     return (True, auth_token)
@@ -138,6 +163,7 @@ def reprocess_package(package_id, link, res, session):
     # No transaction stays open while the link is checked.
     session.close()
 
+    log_fields(outcome='reprocess_refused', reason=block)
     if block == 'ALREADY_RAN':
         res['isAccepted'] = False
         res['errorMessageCode'] = 'ALREADY_REPROCESSED'
@@ -147,15 +173,18 @@ def reprocess_package(package_id, link, res, session):
 
     problem = None if check_whitelisted_link(link) else tasks.link_problem(link, timeout=LINK_CHECK_TIMEOUT_SECONDS)
     if problem:
+        log_fields(reason=problem)
         res['isAccepted'] = False
         res['errorMessageCode'] = problem
         return jsonify(res), 200
 
     run = claim_reprocess(package_id, current_version, session)
     if not run:
+        log_fields(reason='CLAIMED')
         session.close()
         return jsonify(res), 200
 
+    log_fields(outcome='reprocess', reason=None)
     send_internal_notification({
         'embeds': [
             {
@@ -186,18 +215,17 @@ def process_link():
     link = request.json['package_link']
 
     if not link or (not check_discord_link(link) and not check_whitelisted_link(link)):
+        log_fields(outcome='invalid_link')
         res = get_base_process_response()
         res['errorMessageCode'] = 'INVALID_LINK'
         return jsonify(res), 200
 
     package_id = extract_package_id_from_discord_link(link)
+    log_fields(package=package_id)
 
     res = get_base_process_response()
     res['isAccepted'] = True
     res['packageId'] = package_id
-
-    print(
-        f'Order taken, package added to the queue. (package_id: {package_id})')
 
     session = Session()
 
@@ -206,6 +234,7 @@ def process_link():
         if request.json.get('reprocess') is True and existing_package_process_status.step == 'PROCESSED':
             return reprocess_package(package_id, link, res, session)
 
+        log_fields(outcome='existing')
         session.close()
         send_internal_notification({
             'embeds': [
@@ -217,7 +246,8 @@ def process_link():
             ]
         })
         return jsonify(res), 200
-    
+
+    log_fields(outcome='queued')
     send_internal_notification({
         'embeds': [
             {
@@ -261,6 +291,7 @@ def get_package_status(package_id):
     session.close()
 
     if not package_status:
+        log_fields(code='UNKNOWN_PACKAGE_ID')
         res['errorMessageCode'] = 'UNKNOWN_PACKAGE_ID'
         return jsonify(res), 200
 
@@ -296,6 +327,7 @@ def get_package_status(package_id):
         res['processingQueuePosition']['standardWhenJoined'] = package_status.queue_standard_total_when_started
         res['processingQueuePosition']['premiumWhenJoined'] = package_status.queue_premium_total_when_started
 
+    log_fields(step=package_status.step, code=res['errorMessageCode'], version=working.package_version)
     return jsonify(res), 200
 
 
@@ -340,13 +372,16 @@ def get_package_blob(package_id):
     session.close()
 
     if not row:
+        log_fields(outcome='no_row')
         return make_response('', 404)
 
     # A blob from before keys held the iv has none in its key.
     key_iv = row.iv if blob_storage.exists(package_id, row.iv) else None
     if not key_iv and not blob_storage.exists(package_id):
+        log_fields(outcome='no_blob')
         return make_response('', 404)
 
+    log_fields(iv_in_key=bool(key_iv))
     return jsonify({
         'url': blob_storage.presigned_url(package_id, ttl_seconds=ttl, iv=key_iv),
         'iv': row.iv,
@@ -367,6 +402,7 @@ def cancel_package(package_id):
     package_status = fetch_package_status(package_id, session)
 
     if not package_status:
+        log_fields(code='UNKNOWN_PACKAGE_ID')
         res['errorMessageCode'] = 'UNKNOWN_PACKAGE_ID'
         session.close()
         return jsonify(res), 200
@@ -413,6 +449,7 @@ def get_avatar(package_id, user_id):
             data = fetch_package_status(package_id, session)
 
             if not data:
+                log_fields(outcome='no_package')
                 return make_response('', 401)
 
             # Hit the upstream only on a cache miss / stale entry. Then
@@ -420,6 +457,7 @@ def get_avatar(package_id, user_id):
             # is the cheapest signal that we got past auth/404/5xx and
             # have something worth handing back to a future caller.
             user = get_cached_discord_user(user_id, session)
+            log_fields(cached=bool(user))
             if not user:
                 user = fetch_diswho_user(user_id)
                 if user and user.get('username'):
@@ -474,6 +512,64 @@ def get_widget(guild_id):
     }), 200
 
 
+def scrub(text, limit):
+    """Free text from a device could quote a link, whose UPN is the key of its
+    blob. The app scrubs it the same way, but this decides what gets logged."""
+    words = ('<url>' if '://' in word else word for word in str(text or '').split())
+    return re.sub(r'[\w+/=.%-]{24,}', '<token>', ' '.join(words))[:limit]
+
+
+# Far more than a report needs.
+CLIENT_ERROR_MAX_BYTES = 8192
+
+@app.route('/client-error', methods=['POST'])
+@limiter.limit('10 per minute', key_func=lambda: request.remote_addr)
+def report_client_error():
+    """A failure only a device can see, like its download from S3. Anyone can
+    send one, so nothing in it is taken as is."""
+    if (request.content_length or 0) > CLIENT_ERROR_MAX_BYTES:
+        return make_response('', 413)
+    try:
+        report = orjson.loads(request.get_data())
+    except orjson.JSONDecodeError:
+        return make_response('', 400)
+    if not isinstance(report, dict):
+        return make_response('', 400)
+
+    status = report.get('status')
+    package_id = str(report.get('package'))
+    fields = {
+        'step': scrub(report.get('step'), 20),
+        'status': status if isinstance(status, int) and 100 <= status < 600 else None,
+        'name': scrub(report.get('name'), 40),
+        'message': scrub(report.get('message'), 200),
+        'version': scrub(report.get('version'), 40),
+        'platform': scrub(report.get('platform'), 20),
+        'path': scrub(report.get('path'), 80),
+        'package': package_id if PACKAGE_ID.fullmatch(package_id) else None,
+        'user_agent': scrub(request.headers.get('User-Agent'), 200),
+    }
+    print(f'client-error: {orjson.dumps(fields).decode()}')
+
+    send_internal_notification({
+        'embeds': [
+            {
+                'title': 'App error',
+                'description': '\n'.join([
+                    f"Step: {fields['step']}" + (f" (HTTP {fields['status']})" if fields['status'] else ''),
+                    f"Error: {fields['name']}: {fields['message']}",
+                    f"App: {fields['platform']} {fields['version']}, {fields['path']}",
+                    f"Device: {fields['user_agent']}",
+                    f"Package ID: {fields['package']}",
+                ]),
+                'color': 0x9e4b4b
+            }
+        ]
+    })
+
+    return make_response('', 204)
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return jsonify({'error': 'Route not found.'}), 404
@@ -481,4 +577,5 @@ def page_not_found(e):
 
 @app.errorhandler(500)
 def internal_server_error(e):
+    log_fields(error=type(getattr(e, 'original_exception', None) or e).__name__)
     return jsonify({'error': 'Internal server error.'}), 500
