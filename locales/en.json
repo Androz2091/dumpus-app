@@ -378,6 +378,7 @@
       "unit_one": "message",
       "unit_other": "messages",
       "perDay": "That's <b>{{- value}} a day</b>, every day since {{- since}}.",
+      "perDay_day": "That's <b>{{- value}} a day</b>, every day since {{- since}}.",
       "busiest": "Busiest: {{- period}}",
       "weekOf": "week of {{- date}}"
     },
