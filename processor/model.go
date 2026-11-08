@@ -5,14 +5,16 @@ package processor
 // column affinity: for eg. the session dates are floats stored in TEXT columns,
 // which SQLite renders as `'1617712440.0'`. A nil pointer is NULL.
 type Model struct {
-	DMChannels    []DMChannel
-	GuildChannels []GuildChannel
-	Activity      []Activity
-	Guilds        []Guild
-	Payments      []Payment
-	VoiceSessions []VoiceSession
-	Sessions      []Session
-	Package       PackageData
+	DMChannels      []DMChannel
+	GuildChannels   []GuildChannel
+	GroupDMChannels []GroupDMChannel
+	GroupDMMembers  []GroupDMMember
+	Activity        []Activity
+	Guilds          []Guild
+	Payments        []Payment
+	VoiceSessions   []VoiceSession
+	Sessions        []Session
+	Package         PackageData
 }
 
 // Activity is a row of `activity`: an event count for one day, or one
@@ -48,6 +50,31 @@ type GuildChannel struct {
 	ChannelName               string
 	TotalMessageCount         int64
 	TotalVoiceChannelDuration int64
+}
+
+// GroupDMChannel is a row of `group_dm_channels_data`.
+type GroupDMChannel struct {
+	ChannelID string
+	// ChannelName is the name in the group's `channel.json`, nil when nobody
+	// named it.
+	ChannelName *string
+	// MemberCount counts the recipients but the owner, deleted accounts
+	// included.
+	MemberCount       int64
+	TotalMessageCount int64
+}
+
+// GroupDMMember is a row of `group_dm_members`: a member of a group DM with a
+// user id, the owner left out.
+type GroupDMMember struct {
+	ChannelID string
+	UserID    string
+	// UserName is a friend's username, else the name of the owner's DM with
+	// them, else nil. DisplayName and UserAvatarURL are a friend's, as a DM
+	// has them.
+	UserName      *string
+	DisplayName   *string
+	UserAvatarURL *string
 }
 
 // Guild is a row of `guilds`.

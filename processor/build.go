@@ -18,18 +18,20 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 		}
 	}
 
-	// DMs come before guild channels. A channel missing from the messages index
-	// is dropped from both tables, with its messages. The other channels, group
-	// DMs and those of servers the owner left, which exports write without
-	// their server, have no page, but their messages were sent all the same.
+	// DMs come before guild channels, then group DMs. A channel missing from
+	// the messages index is dropped from its table, with its messages. The
+	// other channels, those of servers the owner left, which exports write
+	// without their server, have no page, but their messages were sent all the
+	// same.
 	ordered := make([]*channelResult, 0, len(pf.channels))
-	for _, kind := range []channelKind{channelDM, channelGuild, channelOther} {
+	for _, kind := range []channelKind{channelDM, channelGuild, channelGroupDM, channelOther} {
 		for i := range pf.channels {
 			if pf.channels[i].kind == kind {
 				ordered = append(ordered, &pf.channels[i])
 			}
 		}
 	}
+	var groups []*channelResult
 	for _, c := range ordered {
 		name, ok := pf.labels[c.channelID]
 		if !ok {
@@ -59,6 +61,14 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 				ChannelName:       name,
 				TotalMessageCount: c.total,
 			})
+		case channelGroupDM:
+			m.GroupDMChannels = append(m.GroupDMChannels, GroupDMChannel{
+				ChannelID:         c.channelID,
+				ChannelName:       c.group.name,
+				MemberCount:       c.group.memberCount,
+				TotalMessageCount: c.total,
+			})
+			groups = append(groups, c)
 		case channelOther:
 			// No row of its own, only its messages.
 		}
@@ -70,6 +80,7 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 			})
 		}
 	}
+	m.GroupDMMembers = groupMembers(groups, friends, m.DMChannels)
 
 	// A guild's total counts every channel of it that had messages, those
 	// dropped above included.
@@ -108,6 +119,35 @@ func buildModel(packageID string, own owner, rels []relationship, pf *packageFil
 		ActivityStream:   stream,
 	}
 	return m
+}
+
+// groupMembers gives a friend their username, display name and avatar, the
+// last two as a DM gets them, and anyone else the name of the owner's DM with
+// them, when there is one: the export names nobody else.
+func groupMembers(groups []*channelResult, friends map[string]relationship, dms []DMChannel) []GroupDMMember {
+	dmNames := make(map[string]string, len(dms))
+	for _, d := range dms {
+		if d.DMUserID == nil {
+			continue
+		}
+		if _, seen := dmNames[*d.DMUserID]; !seen {
+			dmNames[*d.DMUserID] = d.UserName
+		}
+	}
+	var rows []GroupDMMember
+	for _, c := range groups {
+		for _, id := range c.group.memberIDs {
+			row := GroupDMMember{ChannelID: c.channelID, UserID: id}
+			if f, ok := friends[id]; ok {
+				row.UserName, row.DisplayName, row.UserAvatarURL = f.username, f.displayName, f.avatarURL
+			}
+			if name, ok := dmNames[id]; ok && row.UserName == nil {
+				row.UserName = &name
+			}
+			rows = append(rows, row)
+		}
+	}
+	return rows
 }
 
 // The app shows `channel_opened` counts only on a guild channel's page, and

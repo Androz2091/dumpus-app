@@ -80,6 +80,8 @@ const (
 	group     = "400000000000000005"
 	noMsgs    = "400000000000000007"
 	news      = "400000000000000008"
+	pairGroup = "400000000000000009"
+	bareGroup = "400000000000000010"
 	app       = "600000000000000001"
 	voiceChan = "700000000000000001"
 )
@@ -121,6 +123,17 @@ func channelFolder(l folders, id, channelJSON, messagesJSON string) []entry {
 
 func dmChannel(id string, recipients ...string) string {
 	return `{"id": "` + id + `", "type": 1, "recipients": ["` + strings.Join(recipients, `", "`) + `"]}`
+}
+
+// groupChannel is a group DM typed as real exports type it, `"GROUP_DM"`, or
+// as synthetic ones do, `3`. typ and name are raw JSON, and a group given no
+// recipients is written without the key, as real exports write some groups.
+func groupChannel(id, typ, name string, recipients ...string) string {
+	c := `{"id": "` + id + `", "type": ` + typ + `, "name": ` + name
+	if len(recipients) > 0 {
+		c += `, "recipients": ["` + strings.Join(recipients, `", "`) + `"]`
+	}
+	return c + "}"
 }
 
 func guildChannel(id, guild string) string {
@@ -179,6 +192,8 @@ func fullPackage(l folders) []entry {
 			"` + dmOther + `": "Direct Message with stranger",
 			"` + general + `": "general",
 			"` + group + `": "Group Chat",
+			"` + pairGroup + `": "Unnamed Group",
+			"` + bareGroup + `": "Unnamed Group",
 			"` + news + `": "news#0000-old",
 			"400000000000000006": null}`},
 	},
@@ -189,7 +204,13 @@ func fullPackage(l folders) []entry {
 			messages("2021-04-06 23:59:59.500", "2021-04-06 23:00:00.000")),
 		channelFolder(l, unindexed, guildChannel(unindexed, guildOne),
 			messages("2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00", "2021-04-06 01:00:00")),
-		channelFolder(l, group, dmChannel(group, ownerID, friend, stranger), messages("2021-04-06 12:00:00")),
+		// Exports write a deleted account's id as "Deleted User", and a group
+		// of two is still a group, not a DM.
+		channelFolder(l, group, groupChannel(group, `"GROUP_DM"`, `"Group Chat"`, ownerID, friend, "Deleted User"),
+			messages("2021-04-06 12:00:00")),
+		channelFolder(l, pairGroup, groupChannel(pairGroup, "3", "null", stranger, ownerID),
+			messages("2021-04-07 10:00:00", "2021-04-07 10:30:00")),
+		channelFolder(l, bareGroup, groupChannel(bareGroup, `"GROUP_DM"`, "null"), messages("2021-04-08 09:00:00")),
 		channelFolder(l, noMsgs, guildChannel(noMsgs, guildOne), ""),
 		channelFolder(l, news, guildChannel(news, guildTwo), messages("2021-04-06 12:00:00")),
 		[]entry{
@@ -236,6 +257,13 @@ func tables(m *Model) map[string][]string {
 		add("guild_channels_data", fmt.Sprintf("%s|%s|%s|%d|%d", r.ChannelID, ptr(r.GuildID), r.ChannelName,
 			r.TotalMessageCount, r.TotalVoiceChannelDuration))
 	}
+	for _, r := range m.GroupDMChannels {
+		add("group_dm_channels_data", fmt.Sprintf("%s|%s|%d|%d", r.ChannelID, ptr(r.ChannelName), r.MemberCount, r.TotalMessageCount))
+	}
+	for _, r := range m.GroupDMMembers {
+		add("group_dm_members", fmt.Sprintf("%s|%s|%s|%s|%s", r.ChannelID, r.UserID, ptr(r.UserName),
+			ptr(r.DisplayName), ptr(r.UserAvatarURL)))
+	}
 	for _, r := range m.Guilds {
 		members := "NULL"
 		if r.MemberCount != nil {
@@ -273,6 +301,8 @@ var messageSentRows = []string{
 	"message_sent|2021-04-06|23|2|" + general + "|" + guildOne + "|NULL|NULL|NULL",
 	"message_sent|2021-04-06|12|1|" + news + "|" + guildTwo + "|NULL|NULL|NULL",
 	"message_sent|2021-04-06|12|1|" + group + "|NULL|NULL|NULL|NULL",
+	"message_sent|2021-04-07|10|2|" + pairGroup + "|NULL|NULL|NULL|NULL",
+	"message_sent|2021-04-08|9|1|" + bareGroup + "|NULL|NULL|NULL|NULL",
 }
 
 var eventRows = []string{
@@ -303,13 +333,20 @@ func fullTables() map[string][]string {
 			// The cut drops the last five characters wherever "#0000" is.
 			news+"|"+guildTwo+"|news#000|1|0",
 		),
+		// An unnamed group has no name, whatever the index calls it.
+		"group_dm_channels_data": sorted(group+"|Group Chat|2|1", pairGroup+"|NULL|1|2", bareGroup+"|NULL|0|1"),
+		"group_dm_members": sorted(
+			group+"|"+friend+"|friend_one|Friend One|https://cdn.discordapp.com/avatars/"+friend+"/friendhash.jpg",
+			// Not a friend: the name of the owner's DM with them.
+			pairGroup+"|"+stranger+"|stranger|NULL|NULL",
+		),
 		// Guild One counts the channel missing from the index, and has the
 		// member count of its latest opening, not of its last line.
 		"guilds":         sorted(guildOne+"|Guild One|7|42", guildTwo+"|Guild Two|1|NULL"),
 		"payments":       sorted("p1|2022-03-04|999|usd|Nitro", "p4|2022-12-31|4.5|eur|Boost"),
 		"sessions":       {"90|1617703200.0|1617708600.0|Windows"},
 		"voice_sessions": {voiceChan + "|" + guildOne + "|44|1617739260.0|1617741900.0"},
-		"package_data": {"pkg-test|0.3.0|" + ownerID + "|owner_user|Owner Name|https://cdn.discordapp.com/avatars/" +
+		"package_data": {"pkg-test|0.4.0|" + ownerID + "|owner_user|Owner Name|https://cdn.discordapp.com/avatars/" +
 			ownerID + "/a_ownerhash.gif|false|analytics"},
 	}
 }

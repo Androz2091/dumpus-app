@@ -40,7 +40,7 @@ Each limit sits far above the maxima measured on real exports. Past one, the pro
 
 ## Parity with the Python worker
 
-Until October 2026 the API's worker processed packages in Python. The app still reads the databases it made, so the processor writes the same tables, columns and values.
+Until October 2026 the API's worker processed packages in Python. The app still reads the databases it made, so the processor writes the same tables, columns and values, and two tables of its own for group DMs.
 
 - The worker's quirks are kept: reactions never custom, activity timestamps cut to the minute at fixed positions and read as UTC, session and voice dates stored as TEXT like `'1617712440.0'`, its pairing loops, and the rows pandas groups with a null key dropped.
 - Messages count by the hour written in their timestamp, and channels missing from the messages index are dropped but count in their guild's total.
@@ -55,7 +55,9 @@ Until October 2026 the API's worker processed packages in Python. The app still 
 - `activity` also counts `channel_opened` per day for each channel of `guild_channels_data`, which the worker never read, since `package_version` `0.2.0`.
 - `guilds` has one more column, `member_count`: the guild's `guild_size_total` in its latest `channel_opened`, or NULL, since `0.3.0`.
 - `message_sent` also counts, with no guild, the messages of a channel that is neither a DM nor a guild channel, a group DM or a channel of a server the owner left, which exports write without its server, since `0.3.0`: the worker dropped them, though they were sent.
-- `package_version` is `0.3.0` instead of the worker's `0.1.0`, so that the app can tell a database without these.
+- Group DMs have tables of their own, since `0.4.0`: `group_dm_channels_data` holds each group's name in its `channel.json`, NULL when nobody named it, its member count, deleted accounts included, and its message count, and `group_dm_members` its members with a user id, a friend with their username, anyone else with the name of the owner's DM with them. A group DM is a channel typed `GROUP_DM` or 3, or, with no type, one with no guild listing other than two recipients.
+- A group DM of two isn't in `dm_channels_data`, where the worker wrote it as a DM with the other member under the group's name, since `0.4.0`.
+- `package_version` is `0.4.0` instead of the worker's `0.1.0`, so that the app can tell a database without these.
 
 ## License
 

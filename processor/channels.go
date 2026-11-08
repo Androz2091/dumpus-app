@@ -86,6 +86,7 @@ const (
 	channelDM channelKind = iota + 1
 	channelGuild
 	channelOther
+	channelGroupDM
 )
 
 type channelResult struct {
@@ -93,8 +94,16 @@ type channelResult struct {
 	channelID string
 	dmUserID  *string
 	guildID   *string
+	group     groupDM
 	total     int64
 	hours     map[int64]int64 // message count per wall-clock hour
+}
+
+// groupDM is what a group DM's `channel.json` gives its rows.
+type groupDM struct {
+	name        *string  // nil when nobody named the group
+	memberIDs   []string // the members with a user id, the owner left out
+	memberCount int64    // the recipients but the owner, deleted accounts included
 }
 
 type channelInput struct {
@@ -105,11 +114,13 @@ type channelInput struct {
 	messages     io.Reader
 }
 
-// A channel with exactly two recipients is a DM, else one with a guild is a
-// guild channel, else another, for eg. a group DM, and one whose recipients or
-// guild can't be read is ignored. Its issues are only reported once
-// `messages.json` is known to be well formed, which the reference reads first.
-// err is a read error.
+// A channel typed as a group DM is one, see groupType, and so is one with no
+// type, no guild and a list of other than two recipients. Otherwise a channel
+// with exactly two recipients is a DM, else one with a guild is a guild
+// channel, else another, for eg. a channel of a server the owner left, and one
+// whose recipients or guild can't be read is ignored. Its issues are only
+// reported once `messages.json` is known to be well formed, which the
+// reference reads first. err is a read error.
 func readChannel(in *channelInput, ownerID string, iss *issues) (channelResult, error) {
 	var found issues
 	res := classifyChannel(in, ownerID, &found)
@@ -138,42 +149,118 @@ func readChannel(in *channelInput, ownerID string, iss *issues) (channelResult, 
 
 func classifyChannel(in *channelInput, ownerID string, iss *issues) channelResult {
 	res := channelResult{channelID: in.channelID}
-	isDM := false
+	var recipients [][]byte
+	listed := false
 	if rv, has := in.channel.get("recipients"); has {
 		switch kindOf(rv) {
 		case kindArray:
-			var recipients [][]byte
+			listed = true
 			_ = eachElement(rv, func(v []byte) bool {
 				recipients = append(recipients, v)
 				return true
 			})
-			if len(recipients) == 2 {
-				isDM = true
-				id, ok := dmUserID(recipients, ownerID, in.channelPath, iss)
-				if !ok {
-					return res
-				}
-				res.dmUserID = id
-			}
 		case kindNull:
 			iss.add(in.channelPath, "recipients", ProblemNull, 1)
 		default:
 			iss.add(in.channelPath, "recipients", ProblemWrongType, 1)
 		}
 	}
-	if isDM {
-		res.kind = channelDM
-	} else if gv, has := in.channel.get("guild"); has {
+	gv, hasGuild := in.channel.get("guild")
+	group, typed := groupType(in.channel, in.channelPath, iss)
+	if !typed {
+		// This stands in for an export with no type, which hasn't been seen.
+		// A channel of a server the owner left has no recipients, so it stays
+		// another.
+		group = listed && len(recipients) != 2 && !hasGuild
+	}
+	switch {
+	case group:
+		res.kind, res.group = channelGroupDM, readGroupDM(in.channel, recipients, ownerID, in.channelPath, iss)
+	case len(recipients) == 2:
+		id, ok := dmUserID(recipients, ownerID, in.channelPath, iss)
+		if !ok {
+			return res
+		}
+		res.kind, res.dmUserID = channelDM, id
+	case hasGuild:
 		gm, ok := guildOf(gv, in.channelPath, iss)
 		if !ok {
 			return res
 		}
-		res.kind = channelGuild
-		res.guildID = gm
-	} else {
+		res.kind, res.guildID = channelGuild, gm
+	default:
 		res.kind = channelOther
 	}
 	return res
+}
+
+// groupType reads a channel's `type`; typed is false when it is absent or null.
+// A group DM is typed `GROUP_DM` in real exports, and 3 in synthetic ones,
+// maybe older ones too, whatever its recipients: a group can list two, one or
+// none.
+func groupType(channel members, path string, iss *issues) (group, typed bool) {
+	v, _ := channel.get("type")
+	switch kindOf(v) {
+	case kindInvalid, kindNull:
+		return false, false
+	case kindString:
+		s, _ := decodeString(v)
+		return s == "GROUP_DM", true
+	case kindNumber:
+		n, _ := decodeNumber(v)
+		return n.isInt && n.i == 3, true
+	default:
+		iss.add(path, "type", ProblemWrongType, 1)
+		return false, true
+	}
+}
+
+// readGroupDM reads a group's name from `channel.json`, since the messages index
+// gives every unnamed group the same placeholder, and an empty name is none.
+// Exports write every deleted account's id as the same localized "Deleted
+// User", so such a member counts but gets no row, and a member listed twice
+// counts once.
+func readGroupDM(channel members, recipients [][]byte, ownerID, path string, iss *issues) groupDM {
+	var g groupDM
+	switch name, present, ok := optionalString(channel, "name"); {
+	case !ok:
+		iss.add(path, "name", ProblemWrongType, 1)
+	case present && name != "":
+		g.name = &name
+	}
+	seen := make(map[string]bool, len(recipients))
+	for _, v := range recipients {
+		switch kindOf(v) {
+		case kindString:
+		case kindNull:
+			iss.add(path, "recipients[]", ProblemNull, 1)
+			continue
+		default:
+			iss.add(path, "recipients[]", ProblemWrongType, 1)
+			continue
+		}
+		id, _ := decodeString(v)
+		switch {
+		case id == ownerID, seen[id]:
+			continue
+		case isUserID(id):
+			seen[id] = true
+			g.memberIDs = append(g.memberIDs, id)
+		}
+		g.memberCount++
+	}
+	return g
+}
+
+// isUserID tells a user id, all digits, from what exports write in place of a
+// deleted account's id.
+func isUserID(s string) bool {
+	for _, r := range s {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return s != ""
 }
 
 // dmUserID picks the first recipient that isn't the owner. A DM with yourself
