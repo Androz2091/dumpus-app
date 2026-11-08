@@ -9,7 +9,7 @@ import Header from "~/components/layout/Header";
 import { useShareFormat } from "~/components/share/format";
 import useGroupDMData from "~/hooks/data/use-group-dm-data";
 import { useSelectedPackage } from "~/stores";
-import { groupName } from "~/utils/discord";
+import { groupName, groupSize } from "~/utils/discord";
 import { formatDate, formatHour, formatNumber } from "~/utils/format";
 import DailySentMessages from "./DailySentMessages";
 import Members from "./Members";
@@ -29,6 +29,7 @@ export default function GroupDetails({ groupKey }: { groupKey: string }) {
 
   const { hasData, group, members, stats, dailySentMessages } = data;
   const name = groupName(group, t);
+  const size = groupSize(group.member_count);
   const discordLink = groupDiscordLink(group.channel_id);
 
   return (
@@ -36,12 +37,10 @@ export default function GroupDetails({ groupKey }: { groupKey: string }) {
       <PageHeader title={name} discordLink={discordLink} />
       <ProfileHeader
         description={
-          group.member_count > 0
+          size
             ? t("groupDM.memberCount", {
-                count: group.member_count,
-                value: formatNumber(group.member_count, {
-                  notation: "standard",
-                }),
+                count: size,
+                value: formatNumber(size, { notation: "standard" }),
               })
             : null
         }

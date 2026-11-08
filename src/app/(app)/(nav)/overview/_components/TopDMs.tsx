@@ -9,7 +9,7 @@ import useTopConversationsData, {
   type GroupConversation,
 } from "~/hooks/data/use-top-conversations-data";
 import useUserDetails from "~/hooks/use-user-details";
-import { avatarURLFallback, groupName } from "~/utils/discord";
+import { avatarURLFallback, groupName, groupSize } from "~/utils/discord";
 import { formatNumber } from "~/utils/format";
 import { useTranslation } from "~/i18n/client";
 import DiscordImage from "~/components/DiscordImage";
@@ -56,6 +56,7 @@ function GroupCard({ group }: { group: GroupConversation }) {
   const { t } = useTranslation();
 
   const id = `group-${group.channel_id}`;
+  const size = groupSize(group.member_count);
 
   return (
     <AvatarCard
@@ -72,11 +73,8 @@ function GroupCard({ group }: { group: GroupConversation }) {
       }}
       image={<GroupDMIcon channelID={group.channel_id} className="w-full" />}
       detail={
-        group.member_count > 0
-          ? t("groupDM.memberCount", {
-              count: group.member_count,
-              value: formatNumber(group.member_count),
-            })
+        size
+          ? t("groupDM.memberCount", { count: size, value: formatNumber(size) })
           : undefined
       }
     />
