@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import LinkPending from "~/components/LinkPending";
+import PageEnter from "~/components/PageEnter";
 import Spinner from "~/components/Spinner";
 import { Icon } from "~/types";
 
@@ -96,13 +97,17 @@ export type WithRankProps = Props & {
 };
 
 function WithRank({ rank, className, ...rest }: WithRankProps) {
+  // A row that comes with its page enters with it, and one added later, for
+  // eg. by "Load more", enters on its own. `PageEnter` decides when the row
+  // mounts: a CSS rule keyed on the page's class would replay every row's
+  // animation once the page drops that class, and the list would blink.
   return (
-    <div className="flex row-enter items-center">
+    <PageEnter className="flex items-center">
       <div className="flex aspect-square h-full shrink-0 items-center justify-center text-2xl font-bold text-white">
         #{rank}
       </div>
       <DetailCard {...rest} className={clsx("flex-1", className)} />
-    </div>
+    </PageEnter>
   );
 }
 
