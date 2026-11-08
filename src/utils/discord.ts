@@ -11,9 +11,18 @@ export function isUserID(id: string) {
 }
 
 /**
- * A group DM's name: its own, else the names of its members, as in "Alex, Sam
- * and 3 others", else its size, as in "Group of 5". `names` are the members'
- * that have one, from `groupMemberNames`.
+ * A group DM's size with you in it, as Discord counts, since `member_count`
+ * leaves you out; a group you've left counts you too. Null when its export
+ * lists nobody.
+ */
+export function groupSize(memberCount: number) {
+  return memberCount > 0 ? memberCount + 1 : null;
+}
+
+/**
+ * A group DM's name: its own, else the names of its other members, as in
+ * "Alex, Sam and 3 others", else its size, as in "Group of 5". `names` are the
+ * members' that have one, from `groupMemberNames`.
  */
 export function groupName(
   group: Pick<GroupDmChannelsData, "channel_name" | "member_count"> & {
@@ -24,8 +33,9 @@ export function groupName(
   const { channel_name, member_count, names } = group;
   if (channel_name) return channel_name;
   if (names.length === 0) {
-    return member_count > 0
-      ? t("groupDM.groupOf", { value: formatNumber(member_count) })
+    const size = groupSize(member_count);
+    return size
+      ? t("groupDM.groupOf", { value: formatNumber(size) })
       : t("groupDM.group");
   }
 

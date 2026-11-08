@@ -10,7 +10,7 @@ import useTopConversationsData, {
 } from "~/hooks/data/use-top-conversations-data";
 import useUserDetails from "~/hooks/use-user-details";
 import { useAppStore } from "~/stores";
-import { avatarURLFallback, groupName } from "~/utils/discord";
+import { avatarURLFallback, groupName, groupSize } from "~/utils/discord";
 import { formatNumber } from "~/utils/format";
 import LoadMore from "../../_components/LoadMore";
 import DiscordImage from "~/components/DiscordImage";
@@ -61,6 +61,7 @@ function GroupCard({ group }: { group: GroupConversation }) {
   const { t } = useTranslation();
 
   const id = `group-${group.channel_id}`;
+  const size = groupSize(group.member_count);
 
   return (
     <DetailCard.WithRank
@@ -78,11 +79,8 @@ function GroupCard({ group }: { group: GroupConversation }) {
       // A group whose export lists no recipients has no count to give.
       description={[
         t("stats.messages", { value: formatNumber(group.message_count) }),
-        group.member_count > 0 &&
-          t("groupDM.memberCount", {
-            count: group.member_count,
-            value: formatNumber(group.member_count),
-          }),
+        size &&
+          t("groupDM.memberCount", { count: size, value: formatNumber(size) }),
       ]
         .filter(Boolean)
         .join(" · ")}
