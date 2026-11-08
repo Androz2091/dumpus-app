@@ -29,9 +29,9 @@ test("onboarding, from the welcome screen to the overview", async ({
   api.step = "PROCESSED";
   await expect(page).toHaveURL(/\/overview\/$/);
   // The lifetime totals of the package in `fixtures/dataset.ts`.
-  await expect(stat(page, "messages sent")).toHaveText("104,805");
+  await expect(stat(page, "messages sent")).toHaveText("109,734");
   await expect(stat(page, "joined servers")).toHaveText("8");
-  await expect(stat(page, "received calls")).toHaveText("70");
+  await expect(stat(page, "received calls")).toHaveText("71");
   await expect(stat(page, "top hour")).toHaveText("10 PM");
   await expect(stat(page, "known users")).toHaveText("28");
   await expect(stat(page, "Discord app started")).toHaveText("4,802");

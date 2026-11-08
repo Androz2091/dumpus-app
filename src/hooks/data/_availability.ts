@@ -82,3 +82,12 @@ export function fromVersion(sql: ReturnType<typeof useSQL>, version: string) {
 export function countsGuildMembers(sql: ReturnType<typeof useSQL>) {
   return fromVersion(sql, "0.3.0");
 }
+
+/**
+ * Whether the database has `group_dm_channels_data` and `group_dm_members`,
+ * which the processor writes from `package_version` 0.4.0 on: an older
+ * database has no such tables, and a query on them logs an error.
+ */
+export function countsGroupDMs(sql: ReturnType<typeof useSQL>) {
+  return fromVersion(sql, "0.4.0");
+}

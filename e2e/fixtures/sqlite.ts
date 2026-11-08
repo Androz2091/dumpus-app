@@ -74,6 +74,23 @@ const SCHEMA = `
     package_owner_avatar_url TEXT,
     package_is_partial BOOLEAN NOT NULL DEFAULT 0
   );
+  -- From 0.4.0 on: the app reads them only in a database stamped 0.4.0 or
+  -- later, and the datasets are stamped 0.1.0 unless a test says otherwise.
+  CREATE TABLE group_dm_channels_data (
+    channel_id TEXT NOT NULL,
+    channel_name TEXT,
+    member_count INTEGER NOT NULL,
+    total_message_count INTEGER NOT NULL,
+    PRIMARY KEY (channel_id)
+  );
+  CREATE TABLE group_dm_members (
+    channel_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    user_name TEXT,
+    display_name TEXT,
+    user_avatar_url TEXT,
+    PRIMARY KEY (channel_id, user_id)
+  );
 `;
 
 const INDEXES = `

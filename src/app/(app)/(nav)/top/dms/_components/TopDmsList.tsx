@@ -4,20 +4,20 @@ import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import NoDataAvailable from "~/components/NoDataAvailable";
 import DetailCard from "~/components/data/DetailCard";
-import useTopDMsData from "~/hooks/data/use-top-dms-data";
+import useTopConversationsData, {
+  type DMConversation,
+  type GroupConversation,
+} from "~/hooks/data/use-top-conversations-data";
 import useUserDetails from "~/hooks/use-user-details";
 import { useAppStore } from "~/stores";
-import { avatarURLFallback } from "~/utils/discord";
+import { avatarURLFallback, groupName } from "~/utils/discord";
 import { formatNumber } from "~/utils/format";
 import LoadMore from "../../_components/LoadMore";
 import DiscordImage from "~/components/DiscordImage";
+import GroupDMIcon from "~/components/GroupDMIcon";
 import { useTranslation } from "~/i18n/client";
 
-function DMCard({
-  dm,
-}: {
-  dm: NonNullable<ReturnType<ReturnType<typeof useTopDMsData>["getData"]>>[0];
-}) {
+function DMCard({ dm }: { dm: DMConversation }) {
   const { t } = useTranslation();
   const data = useUserDetails({ userID: dm.dm_user_id });
 
@@ -57,8 +57,43 @@ function DMCard({
   );
 }
 
+function GroupCard({ group }: { group: GroupConversation }) {
+  const { t } = useTranslation();
+
+  const id = `group-${group.channel_id}`;
+
+  return (
+    <DetailCard.WithRank
+      id={id}
+      href={{
+        pathname: "/top/dms/details",
+        query: {
+          id: group.key,
+          redirect: `/top/dms#${id}`,
+        },
+      }}
+      rank={group.rank}
+      title={groupName(group, t)}
+      // Shorter than a DM's "messages sent", to fit the member count at 375px.
+      // A group whose export lists no recipients has no count to give.
+      description={[
+        t("stats.messages", { value: formatNumber(group.message_count) }),
+        group.member_count > 0 &&
+          t("groupDM.memberCount", {
+            count: group.member_count,
+            value: formatNumber(group.member_count),
+          }),
+      ]
+        .filter(Boolean)
+        .join(" · ")}
+      leftSlot={<GroupDMIcon channelID={group.channel_id} className="w-10" />}
+      rightIcon={ChevronRightIcon}
+    />
+  );
+}
+
 export default function TopDMsList() {
-  const { getData, count } = useTopDMsData();
+  const { getData, count } = useTopConversationsData();
 
   const timeRange = useAppStore(({ config }) => config.timeRange);
   const selectedID = useAppStore(({ config }) => config.selectedID);
@@ -77,9 +112,13 @@ export default function TopDMsList() {
   return (
     <div className="desktop-container px-2 py-4 sm:py-8">
       <div className="grid gap-2 sm:grid-cols-2">
-        {data.map((dm) => (
-          <DMCard key={dm.rank} dm={dm} />
-        ))}
+        {data.map((row) =>
+          row.kind === "group" ? (
+            <GroupCard key={row.rank} group={row} />
+          ) : (
+            <DMCard key={row.rank} dm={row} />
+          ),
+        )}
       </div>
       {data.length < count && <LoadMore loadMore={fetchNextPage} />}
     </div>

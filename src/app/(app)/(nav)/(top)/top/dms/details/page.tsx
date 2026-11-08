@@ -5,10 +5,12 @@ import { useNetworkState } from "react-use";
 import ProfileHeader from "~/components/ProfileHeader";
 import { SimpleIconsDiscord } from "~/components/icons";
 import Header from "~/components/layout/Header";
+import { groupChannelID, isGroupKey } from "~/hooks/data/_shared";
 import useDMData from "~/hooks/data/use-dm-data";
 import useUserDetails from "~/hooks/use-user-details";
 import { avatarURLFallback, isUserID } from "~/utils/discord";
 import DailySentMessages from "./_components/DailySentMessages";
+import GroupDetails, { groupDiscordLink } from "./_components/GroupDetails";
 import PageHeader from "./_components/PageHeader";
 import Stats from "./_components/Stats";
 import NoDataAvailable from "~/components/NoDataAvailable";
@@ -22,11 +24,16 @@ import PageEnter from "~/components/PageEnter";
 import { useTranslation } from "~/i18n/client";
 
 function discordLinkOf(id: string) {
+  const channelID = groupChannelID(id);
+  if (channelID) return groupDiscordLink(channelID);
   return isUserID(id) ? `https://discord.com/users/${id}` : undefined;
 }
 
 export default function Page() {
   const id = useSearchParams()!.get("id")!;
+  // `DMDetails` reads the DM rows of any key, so a group's key goes to a
+  // page of its own.
+  const group = isGroupKey(id);
 
   return (
     <Deferred
@@ -34,12 +41,12 @@ export default function Page() {
         <DetailsSkeleton
           header={<PageHeader title="" discordLink={discordLinkOf(id)} />}
           roundImage
-          stats={3}
+          stats={group ? 5 : 3}
         />
       }
     >
       <PageEnter className="flex grow flex-col">
-        <DMDetails />
+        {group ? <GroupDetails groupKey={id} /> : <DMDetails />}
       </PageEnter>
     </Deferred>
   );
