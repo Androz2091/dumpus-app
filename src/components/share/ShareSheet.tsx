@@ -8,6 +8,7 @@ import clsx from "clsx";
 import CRC32 from "crc-32";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWindowSize } from "react-use";
+import { askForReviewAfterShare } from "~/capacitor/review";
 import Button from "~/components/Button";
 import useGenerateImg from "~/hooks/use-generate-img";
 import { useTranslation } from "~/i18n/client";
@@ -196,6 +197,7 @@ export default function ShareSheet() {
           files: [uri],
           dialogTitle: t("share.recap"),
         });
+        askForReviewAfterShare();
         return;
       }
       const file = new File([blob], name, { type: "image/png" });
