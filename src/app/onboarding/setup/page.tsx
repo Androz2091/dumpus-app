@@ -64,8 +64,10 @@ export default function Page() {
                   <div className="flex aspect-square h-8 items-center justify-center rounded-full bg-brand-300 font-bold text-gray-950">
                     {i + 1}
                   </div>
-                  <div className="text-lg font-bold text-white">{name}</div>
-                  <StepImage src={image} alt={name} />
+                  <div className="text-center text-lg font-bold text-white">
+                    {name}
+                  </div>
+                  {image && <StepImage src={image} alt={name} />}
                 </div>
               ))}
             </Tab.Panel>

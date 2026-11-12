@@ -85,8 +85,9 @@
       },
       "steps": {
         "settings": "Ouvrez vos paramètres Discord.",
-        "privacy": "Ouvre l'onglet \"Confidentialité & Sécurité\".",
-        "request": "Cliquez sur \"Demande de données\"."
+        "privacy": "Ouvrez l'onglet \"Données et confidentialité\".",
+        "request": "Cliquez sur \"Demande de données\".",
+        "select": "Cochez \"Compte\", ainsi que votre activité, vos messages et vos serveurs."
       }
     },
     "access": {
@@ -159,7 +160,7 @@
       "invalidLink": "Lien invalide.",
       "unknownError": "Une erreur inconnue est survenue.",
       "expiredLink": "Lien expiré.",
-      "missingUserData": "Votre export Discord ne contient pas vos données utilisateur. Quand vous redemandez vos données, vérifiez que l'option \"User data\" (données utilisateur) est cochée.",
+      "missingUserData": "Votre export Discord ne contient pas les données de votre compte. Quand vous redemandez vos données, cochez \"Compte\" dans la liste.",
       "comeBackLater": "Vous pouvez fermer et revenir plus tard.",
       "downloadBlocked": "Un DNS privé, un bloqueur de publicités ou un VPN peut bloquer le téléchargement. Si vous en utilisez un, désactivez-le, puis réessayez."
     }
