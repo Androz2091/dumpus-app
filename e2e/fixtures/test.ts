@@ -79,6 +79,16 @@ export async function loadPackage(page: Page) {
   await page.getByLabel("Discord link").fill(FAKE_PACKAGE_LINK);
   await page.getByRole("button", { name: "Explore!" }).click();
   await expect(page).toHaveURL(/\/overview\/$/);
+  await closeRecap(page);
+}
+
+/** Closes the recap that a device's first package opens on. */
+export async function closeRecap(page: Page) {
+  const recap = page.getByRole("dialog", { name: "Share your recap" });
+  await recap.getByRole("button", { name: "Close" }).click();
+  // It leaves the accessibility tree as it starts closing, while its cards,
+  // with the page's numbers, stay in the page until the transition ends.
+  await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 }
 
 /** Value of the stat card labelled `label`. */

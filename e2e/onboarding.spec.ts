@@ -1,5 +1,5 @@
 import { FAKE_PACKAGE_LINK } from "./fixtures/dataset";
-import { expect, stat, test } from "./fixtures/test";
+import { closeRecap, expect, stat, test } from "./fixtures/test";
 
 test("onboarding, from the welcome screen to the overview", async ({
   page,
@@ -28,6 +28,7 @@ test("onboarding, from the welcome screen to the overview", async ({
 
   api.step = "PROCESSED";
   await expect(page).toHaveURL(/\/overview\/$/);
+  await closeRecap(page);
   // The lifetime totals of the package in `fixtures/dataset.ts`.
   await expect(stat(page, "messages sent")).toHaveText("109,734");
   await expect(stat(page, "joined servers")).toHaveText("8");

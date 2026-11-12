@@ -127,14 +127,20 @@ function useRedirect({
 }) {
   const router = useRouter();
   const { init } = useSQLInit();
-  const [selectedID, getNextID] = useAppStore(
-    useShallow(({ config, database }) => [
+  const [selectedID, getNextID, packages, setShowSharePopup] = useAppStore(
+    useShallow(({ config, database, ui }) => [
       config.selectedID,
       database.getNextID,
+      config.packages,
+      ui.setShowSharePopup,
     ]),
   );
 
   const nextID = getNextID(selectedID);
+  // Read before `init` adds this one. A reprocess has its package already.
+  const firstPackage = packages.every(
+    ({ package_id }) => package_id === "demo",
+  );
 
   const { error } = useQuery({
     queryKey: ["package-loading", "redirect", packageID, reprocess],
@@ -150,6 +156,7 @@ function useRedirect({
       });
       afterInit();
       router.replace("/overview");
+      if (firstPackage) setShowSharePopup(true);
       return null;
     },
     enabled: !!initialData,
