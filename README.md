@@ -63,4 +63,4 @@ The screenshots and cards show a made-up account.
 - [DEVELOPERS.md](DEVELOPERS.md): run and build the app
 - [TRANSLATING.md](TRANSLATING.md): translate it on Crowdin
 
-Dumpus is the next version of the [Discord Data Package Explorer](https://ddpe.androz2091.fr), and is licensed under [GPL-3.0](LICENSE).
+Dumpus is licensed under [GPL-3.0](LICENSE).
