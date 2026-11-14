@@ -43,7 +43,6 @@
       "trust": "이 앱을 믿어도 될까요?",
       "trustContent": [
         "Dumpus는 100% 오픈 소스예요. [GitHub](https://github.com/Androz2091/dumpus-app)에서 코드를 볼 수 있고, 서버를 직접 호스팅할 수도 있어요.",
-        "외부 API 없이 브라우저에서만 동작하는 [웹 앱](https://ddpe.androz2091.fr)도 있어요. 기능은 더 적어요.",
         "이 앱은 외부 API에 읽을 수 있는 데이터를 저장하지 않고 동작해요. 그래도 궁금한 점이 있다면 contact@dumpus.app으로 편하게 문의하세요."
       ],
       "30DaysDelay": "이메일을 받기까지 최대 30일이 걸릴 수 있어요. 조금만 기다려 주세요!",

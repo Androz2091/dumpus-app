@@ -22,7 +22,6 @@
       "trust": "Perché dovrei fidarmi dell'app?",
       "trustContent": [
         "Dumpus è 100% open source. Puoi leggere il codice su [GitHub](https://github.com/Androz2091/dumpus-app) e persino hostare il tuo server.",
-        "Abbiamo anche un'[app web client-side](https://ddpe.androz2091.fr), con meno funzionalità ma senza API esterne.",
         "L'app funziona senza alcun dato leggibile memorizzato sull'API esterna. Se hai ancora domande, non esitare a contattarci a contact@dumpus.app."
       ],
       "30DaysDelay": "Tieni a mente che può richiedere fino a 30 giorni ricevere l'email. Sii paziente!",
