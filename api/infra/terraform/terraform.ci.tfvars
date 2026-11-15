@@ -19,6 +19,10 @@ image_tag = "bootstrap"
 diswho_base_url            = "https://diswho.androz2091.fr"
 dl_zip_whitelisted_domains = ""
 
+# Signs the Pub/Sub pushes of Google Play's notifications to /store/google
+# (Google Cloud project dumpus-play, subscription play-notifications-push).
+google_push_service_account = "play-push@dumpus-play.iam.gserviceaccount.com"
+
 # Fargate worker sizing. 2 vCPU + 8 GB is plenty headroom over the previous
 # Lambda's max (3 GB / 1.7 GB used) and bumps CPU enough that even heavy
 # packages finish well under any deadline.
