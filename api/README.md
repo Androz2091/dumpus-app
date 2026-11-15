@@ -281,11 +281,16 @@ What the App Store and Google Play report about the `supporter` purchase goes to
 * Apple sends App Store Server Notifications V2, `{"signedPayload"}`, checked against `src/AppleRootCA-G3.cer` with Apple's `app-store-server-library`, for the bundle `app.dumpus.app`, production or sandbox. It answers `200`, or `400` for a payload that doesn't verify.
 * Google Play sends real-time developer notifications through a Pub/Sub push, whose OIDC token must be signed by Google for `GOOGLE_PUSH_SERVICE_ACCOUNT` (Terraform's `google_push_service_account`) and the route's URL (`GOOGLE_PUSH_AUDIENCE` for a server elsewhere). It answers `204`, `400` for a body that isn't a push, `401` for a token that doesn't verify, or `503` while the service account isn't set.
 
-Setup, once:
+Set up once, in the consoles:
 
-1. App Store Connect, the app's App Information, App Store Server Notifications: `https://api.dumpus.app/store/apple` as the production and sandbox URLs, version 2. "Request a test notification" posts one.
-2. Google Cloud: a Pub/Sub topic with `google-play-developer-notifications@system.gserviceaccount.com` as a publisher, a service account, and a push subscription to `https://api.dumpus.app/store/google` that authenticates as it. Put its email in `google_push_service_account` (`terraform.ci.tfvars`) and run `infra-api` with `apply`.
-3. Play Console, Monetize with Play, Monetization setup: the topic, with "Get all notifications for subscriptions and one-time products" (the other choice leaves one-time purchases out). "Send test notification" posts one.
+1. App Store Connect, the app's App Information, App Store Server Notifications: `https://api.dumpus.app/store/apple` as the production and sandbox URLs, which the form sets to version 2. There's no test button there: the App Store Server API's [Request a Test Notification](https://developer.apple.com/documentation/appstoreserverapi/request-a-test-notification) sends one, with an In-App Purchase key.
+2. Google Cloud, project `dumpus-play`:
+   * the topic `play-notifications`, with `google-play-developer-notifications@system.gserviceaccount.com` as a publisher
+   * the service account `play-push`, with no key and no role
+   * the push subscription `play-notifications-push`, to `https://api.dumpus.app/store/google`, authenticated as `play-push`, with no expiration: by default a subscription goes away after 31 days without a message, and purchases are rare
+
+   `play-push`'s email is `google_push_service_account` in `terraform.ci.tfvars`, which `infra-api` applies.
+3. Play Console, Monetize with Play, Monetization setup: the topic, with the notification content that includes all one-time products (the other choice leaves one-time purchases out). "Send test notification" posts one.
 
 ### [SQLite Database Documentation can be found here](./docs/sqlite_database_structure.md)
 
