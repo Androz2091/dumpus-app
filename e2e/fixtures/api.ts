@@ -22,6 +22,16 @@ const PNG = Buffer.from(
 
 export type Package = { dataset: Dataset; blob: Buffer; iv: string | null };
 
+/** The copy of a package the app read from its file, posted to S3. */
+export type Upload = {
+  packageId: string;
+  iv: string;
+  body: Buffer;
+  /** Once registered: the key the app sent, and the processor's version. */
+  key?: string;
+  version?: string;
+};
+
 type ProcessingStep = "LOCKED" | "DOWNLOADING" | "ANALYZING" | "PROCESSED";
 
 function json(route: Route, body: unknown, status = 200) {
@@ -76,6 +86,8 @@ export class FakeApi {
   downloadStatus: number | null = null;
   /** The presigned download gets no answer at all, as under a network block. */
   downloadBlocked = false;
+  /** The copies posted to S3, of the packages read from their file. */
+  readonly uploads: Upload[] = [];
 
   private readonly packages: Package[];
 
@@ -109,7 +121,11 @@ export class FakeApi {
       },
     );
     await context.route(`${API_ORIGIN}/**`, (route) => this.api(route));
-    await context.route(`${BLOB_ORIGIN}/**`, (route) => this.blob(route));
+    await context.route(`${BLOB_ORIGIN}/**`, (route) =>
+      route.request().method() === "POST"
+        ? this.upload(route)
+        : this.blob(route),
+    );
     for (const origin of AWS_ORIGINS) {
       await context.route(`${origin}/**`, (route) => empty(route, 403));
     }
@@ -177,16 +193,59 @@ export class FakeApi {
       return json(route, { error: "guild not found or bot lacks access" }, 404);
     }
 
+    // Same rule as `check_authorization_bearer()`: the bearer is the UPN, or a
+    // file's key, whose md5 is the package id.
+    const key = authorization?.split(" ")[1];
+    const authorized = !!key && md5(key) === id;
+    if (
+      resource === "process" &&
+      method === "POST" &&
+      action === "upload-url"
+    ) {
+      if (!authorized) return empty(route, 401);
+      const { iv } = request.postDataJSON();
+      return json(route, {
+        url: `${BLOB_ORIGIN}/`,
+        fields: { key: `packages/${id}.${iv}.bin`, policy: "e2e" },
+      });
+    }
+    if (resource === "process" && method === "POST" && action === "upload") {
+      if (!authorized) return empty(route, 401);
+      const { iv, packageVersion } = request.postDataJSON();
+      const upload = this.uploads.find(
+        (upload) => upload.packageId === id && upload.iv === iv,
+      );
+      if (!upload) return empty(route, 409);
+      Object.assign(upload, { key, version: packageVersion });
+      return json(route, { isAccepted: true });
+    }
+    // A registered copy's users, as Discord would answer for them.
+    const registered = this.uploads.some(
+      (upload) => upload.packageId === id && upload.version,
+    );
+    if (
+      resource === "process" &&
+      registered &&
+      method === "GET" &&
+      rest[0] === "user" &&
+      rest.length === 2
+    ) {
+      if (!authorized) return empty(route, 401);
+      return json(route, {
+        user_id: rest[1],
+        display_name: null,
+        avatar_url: `${CDN_ORIGIN}/embed/avatars/0.png`,
+        username: `user_${rest[1].slice(-4)}`,
+      });
+    }
+
     const pkg = this.packages.find(({ dataset }) => dataset.packageId === id);
     if (resource === "process" && pkg) {
       if (method === "GET" && action === "blob" && id === "demo") {
         return json(route, this.blobBody(pkg));
       }
 
-      // Same rule as `check_authorization_bearer()`: the bearer is the UPN
-      // whose md5 is the package id.
-      const upn = authorization?.split(" ")[1];
-      if (!upn || md5(upn) !== id) {
+      if (!authorized) {
         return action === "status"
           ? json(
               route,
@@ -247,6 +306,32 @@ export class FakeApi {
         premiumWhenJoined: 0,
       },
     };
+  }
+
+  /** S3's answer to a presigned POST: the form's `key` names the blob. */
+  private async upload(route: Route) {
+    const request = route.request();
+    const form = await new Response(
+      new Uint8Array(request.postDataBuffer() ?? []),
+      {
+        headers: { "content-type": request.headers()["content-type"] },
+      },
+    ).formData();
+    const [, packageId, iv] =
+      /^packages\/([0-9a-f]{32})\.([0-9a-f]{32})\.bin$/.exec(
+        String(form.get("key")),
+      ) ?? [];
+    const file = form.get("file");
+    if (!packageId || !(file instanceof Blob)) {
+      this.unexpected.push(`POST ${request.url()} with a malformed form`);
+      return empty(route, 400);
+    }
+    this.uploads.push({
+      packageId,
+      iv,
+      body: Buffer.from(await file.arrayBuffer()),
+    });
+    return empty(route, 204);
   }
 
   private blob(route: Route) {
