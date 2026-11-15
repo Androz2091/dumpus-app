@@ -41,6 +41,8 @@ class Upstream:
     def reset(self):
         self.files = {}
         self.click_targets = {}
+        # A status the storage answers every file with, as when it's down.
+        self.storage_status = None
         self.received = []
 
     def discord_link(self, name, body):
@@ -65,6 +67,8 @@ class Upstream:
             if not target:
                 return 404, {'Content-Type': 'text/html'}, b'<html>Not Found</html>'
             return 302, {'Location': f'{self.base}{target}?X-Goog-Signature=synthetic'}, b''
+        if path in self.files and self.storage_status:
+            return self.storage_status, {'Content-Type': 'text/html'}, b'<html>Unavailable</html>'
         if path in self.files:
             return 200, {'Content-Type': 'application/octet-stream'}, self.files[path]
         if path == '/webhook' and method == 'POST':

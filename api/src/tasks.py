@@ -43,8 +43,8 @@ def link_problem(link, timeout=None):
         print(f'Could not check the link: {type(e).__name__}')
         return 'UNKNOWN_ERROR'
     print(r.status_code, r.headers.get('content-type'))
-    # A busy upstream says nothing about the link.
-    if r.status_code == 429:
+    # A busy or failing upstream says nothing about the link.
+    if r.status_code == 429 or r.status_code >= 500:
         return 'UNKNOWN_ERROR'
     # Discord download URLs are signed and short-lived: click.discord.com
     # 302s to a Google Cloud Storage signed URL, which returns 4xx (most
