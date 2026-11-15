@@ -658,6 +658,57 @@ def report_client_error():
     return make_response('', 204)
 
 
+# What the stores report about purchases and refunds, posted to the internal
+# webhook: see `store.py`. Each store signs its calls, so these take no limit.
+@app.route('/store/apple', methods=['POST'])
+def apple_store_notification():
+    """App Store Server Notifications V2: {"signedPayload"}. 200 once posted,
+    400 for a payload that doesn't verify. Apple retries anything else."""
+    import store
+
+    body = request.get_json(silent=True)
+    signed_payload = body.get('signedPayload') if isinstance(body, dict) else None
+    if not isinstance(signed_payload, str):
+        log_fields(outcome='bad_request')
+        return make_response('', 400)
+    try:
+        event, post = store.apple_post(signed_payload)
+    except store.Unverified as e:
+        log_fields(outcome='unverified', reason=str(e))
+        return make_response('', 400)
+    send_internal_notification({'embeds': [post]})
+    log_fields(outcome='posted', event=event)
+    return make_response('', 200)
+
+
+@app.route('/store/google', methods=['POST'])
+def google_store_notification():
+    """A Pub/Sub push of a Play real-time developer notification. 204 once
+    posted or for another app's, 401 for a token that doesn't verify, 400 for a
+    body that isn't a push, 503 before `GOOGLE_PUSH_SERVICE_ACCOUNT` is set.
+    Pub/Sub pushes again after anything but a 2xx."""
+    import store
+
+    try:
+        result = store.google_post(request.headers.get('Authorization'), request.get_json(silent=True))
+    except store.NotSetUp:
+        log_fields(outcome='not_set_up')
+        return make_response('', 503)
+    except store.Unverified as e:
+        log_fields(outcome='unverified', reason=str(e))
+        return make_response('', 401)
+    except ValueError:
+        log_fields(outcome='bad_request')
+        return make_response('', 400)
+    if result is None:
+        log_fields(outcome='other_app')
+        return make_response('', 204)
+    event, post = result
+    send_internal_notification({'embeds': [post]})
+    log_fields(outcome='posted', event=event)
+    return make_response('', 204)
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return jsonify({'error': 'Route not found.'}), 404
