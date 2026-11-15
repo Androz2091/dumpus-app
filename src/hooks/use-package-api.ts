@@ -7,10 +7,11 @@ import type {
   PackageAPIProcessResponse,
   PackageAPIRemoveResponse,
   PackageAPIStatusResponse,
+  PackageAPIUploadURLResponse,
   PackageAPIUserResponse,
 } from "~/types/package-api";
 import { checkFailedDownload, inStep, StepError } from "~/utils/client-error";
-import { decryptPackageBlob } from "~/utils/crypto";
+import { decryptPackageBlob, encryptPackageBlob } from "~/utils/crypto";
 import { lookup } from "~/utils/lookups";
 
 export default function usePackageAPI({
@@ -136,6 +137,76 @@ export default function usePackageAPI({
     return { data: decrypted, errorMessageCode: null };
   }
 
+  /**
+   * Keeps a copy of a package the app read from its file, as the worker keeps
+   * one of a package read from a link: encrypted with its key, which the API
+   * never keeps. Once registered, the API looks up the package's users, and
+   * the app can download the package again if the device clears its storage.
+   */
+  async function store({
+    packageID,
+    UPNKey,
+    gzipped,
+    version,
+  }: {
+    packageID: string;
+    UPNKey: string;
+    gzipped: Uint8Array<ArrayBuffer>;
+    version: string;
+  }) {
+    const headers = {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${UPNKey}`,
+    };
+    const { encrypted, iv } = await inStep("upload", () =>
+      encryptPackageBlob(gzipped, UPNKey),
+    );
+
+    // The blob goes straight to S3, which API Gateway's 6MB cap would stop.
+    const form = await inStep("upload", () =>
+      api({
+        path: `/process/${packageID}/upload-url`,
+        method: "POST",
+        headers,
+        body: { iv },
+      }),
+    );
+    if (!form.ok) throw new StepError("upload", { status: form.status });
+    const { url, fields } = await inStep(
+      "upload",
+      () => form.json() as Promise<PackageAPIUploadURLResponse>,
+    );
+    const body = new FormData();
+    for (const [name, value] of Object.entries(fields))
+      body.append(name, value);
+    // S3 takes the fields before the file, which comes last.
+    body.append("file", new Blob([encrypted]));
+    const uploaded = await inStep("upload", () =>
+      fetch(url, {
+        method: "POST",
+        body,
+        referrerPolicy: "no-referrer",
+        signal: AbortSignal.timeout(120_000),
+      }),
+    );
+    if (!uploaded.ok) {
+      throw new StepError("upload", { status: uploaded.status });
+    }
+
+    const registered = await inStep("upload", () =>
+      api({
+        path: `/process/${packageID}/upload`,
+        method: "POST",
+        headers,
+        body: { iv, packageVersion: version },
+      }),
+    );
+    if (!registered.ok) {
+      throw new StepError("upload", { status: registered.status });
+    }
+  }
+
   async function remove({
     packageID,
     UPNKey,
@@ -203,5 +274,5 @@ export default function usePackageAPI({
     }
   }
 
-  return { process, status, data, remove, user, isAlive };
+  return { process, status, data, store, remove, user, isAlive };
 }

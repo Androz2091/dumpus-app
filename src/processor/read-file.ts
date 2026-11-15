@@ -19,7 +19,7 @@ export type ReadReply =
 
 export type ReadPackage = {
   /** The database, gzipped as the API serves one. */
-  gzipped: Uint8Array;
+  gzipped: Uint8Array<ArrayBuffer>;
   packageID: string;
   version: string;
   /** What encrypts the database for the server, and asks the API for it. */
@@ -33,6 +33,8 @@ export class PackageReadError extends Error {
     message: string,
   ) {
     super(message);
+    // What an error report names it by.
+    this.name = code;
   }
 }
 
@@ -71,7 +73,8 @@ export async function readPackageFile(file: File): Promise<ReadPackage> {
     });
     if (!reply.ok) throw new PackageReadError(reply.code, reply.message);
     return {
-      gzipped: gzip(reply.database),
+      // A new array of its own length, which `ArrayBuffer` types.
+      gzipped: gzip(reply.database) as Uint8Array<ArrayBuffer>,
       packageID: reply.packageID,
       version: reply.version,
       key,

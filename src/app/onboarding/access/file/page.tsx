@@ -8,6 +8,7 @@ import Button from "~/components/Button";
 import EmptyState from "~/components/EmptyState";
 import RenderMarkdown from "~/components/RenderMarkdown";
 import { DEFAULT_PACKAGE_API_URL } from "~/constants";
+import usePackageAPI from "~/hooks/use-package-api";
 import useSQLInit from "~/hooks/use-sql-init";
 import { useTranslation } from "~/i18n/client";
 import {
@@ -16,17 +17,22 @@ import {
   readPackageFile,
 } from "~/processor/read-file";
 import { useAppStore } from "~/stores";
+import { reportClientError } from "~/utils/client-error";
 import { createLogger } from "~/utils/logger";
 
 const logger = createLogger({ tag: "package file" });
 
 type State =
-  { step: "idle" } | { step: "reading" } | { step: "error"; message: string };
+  | { step: "idle" }
+  | { step: "reading" }
+  | { step: "storing" }
+  | { step: "error"; message: string };
 
 export default function Page() {
   const { t } = useTranslation();
   const router = useRouter();
   const { init } = useSQLInit();
+  const api = usePackageAPI({ baseURL: DEFAULT_PACKAGE_API_URL });
   const [selectedID, getNextID, packages, setShowSharePopup] = useAppStore(
     useShallow(({ config, database, ui }) => [
       config.selectedID,
@@ -53,6 +59,23 @@ export default function Page() {
     );
     try {
       const pkg = await readPackageFile(file);
+      setState({ step: "storing" });
+      try {
+        await api.store({
+          packageID: pkg.packageID,
+          UPNKey: pkg.key,
+          gzipped: pkg.gzipped,
+          version: pkg.version,
+        });
+      } catch (err) {
+        // The package opens without it, only with no profile pictures.
+        logger.error("couldn't store the package's copy", err);
+        reportClientError({
+          error: err,
+          step: "upload",
+          packageID: pkg.packageID,
+        });
+      }
       await init({
         id: getNextID(selectedID),
         initData: {
@@ -68,6 +91,7 @@ export default function Page() {
       if (firstPackage) setShowSharePopup(true);
     } catch (err) {
       logger.error("couldn't read the package file", err);
+      reportClientError({ error: err, step: "read" });
       setState({
         step: "error",
         message:
@@ -81,7 +105,7 @@ export default function Page() {
   const choose = (
     <Button
       className="w-full"
-      disabled={state.step === "reading"}
+      disabled={state.step === "reading" || state.step === "storing"}
       onClick={() => input.current?.click()}
     >
       {state.step === "error"
@@ -104,13 +128,13 @@ export default function Page() {
           if (file) void read(file);
         }}
       />
-      {state.step === "reading" ? (
+      {state.step === "reading" || state.step === "storing" ? (
         <div className="max-w-xs text-center" aria-live="polite">
           <h1 className="text-xl font-bold text-white">
-            {t("onboarding.access.methods.file.reading")}
+            {t(`onboarding.access.methods.file.${state.step}`)}
           </h1>
           <p className="mt-2 text-gray-400">
-            {t("onboarding.access.methods.file.readingHint")}
+            {t(`onboarding.access.methods.file.${state.step}Hint`)}
           </p>
           <div className="mt-4 h-1 w-full animate-pulse rounded-full bg-brand-300 motion-reduce:animate-none" />
         </div>

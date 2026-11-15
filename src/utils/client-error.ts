@@ -8,6 +8,9 @@ export type FailureStep =
   | "download"
   | "decrypt"
   | "import"
+  // A package read from its file: reading it, and storing its copy.
+  | "read"
+  | "upload"
   | "open"
   | "switch"
   | "crash"

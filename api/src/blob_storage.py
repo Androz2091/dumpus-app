@@ -78,6 +78,18 @@ def presigned_url(package_id: str, ttl_seconds: int = 300, iv: str | None = None
     )
 
 
+def presigned_post(package_id: str, iv: str, max_bytes: int, ttl_seconds: int = 300) -> dict:
+    """Return a short-lived form the app POSTs a package's encrypted blob
+    with, straight to S3: `{"url", "fields"}`. S3 refuses a body over
+    max_bytes."""
+    return _client().generate_presigned_post(
+        Bucket=_bucket(),
+        Key=_key(package_id, iv),
+        Conditions=[["content-length-range", 1, max_bytes]],
+        ExpiresIn=ttl_seconds,
+    )
+
+
 def exists(package_id: str, iv: str | None = None) -> bool:
     """True if a blob has been uploaded for this package."""
     from botocore.exceptions import ClientError

@@ -71,12 +71,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "package_data" {
 }
 
 # CORS so the frontend (web.dumpus.app and dev) can fetch the presigned URL
-# from the browser. Only GET is allowed.
+# from the browser, and POST the copy of a package it read from its file to a
+# presigned form. A presigned URL or form is the only way in.
 resource "aws_s3_bucket_cors_configuration" "package_data" {
   bucket = aws_s3_bucket.package_data.id
 
   cors_rule {
-    allowed_methods = ["GET"]
+    allowed_methods = ["GET", "POST"]
     allowed_origins = ["*"]
     allowed_headers = ["*"]
     expose_headers  = ["ETag", "Content-Length"]

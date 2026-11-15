@@ -205,6 +205,28 @@ Status codes:
 Demo (`/process/demo/blob`) is unauthenticated and lazy-seeds the blob on
 the first call after deploy.
 
+### Store a package read on the device
+
+* `POST /process/<package_id>/upload-url`
+* `POST /process/<package_id>/upload`
+
+For a package the app read from its file. The app encrypts its gzipped
+SQLite as the worker does, with a random key of its own in place of the UPN:
+the bearer is that key, and the package id its MD5. The first call takes
+`{"iv": "<16 bytes in hex>"}` and answers a presigned POST,
+`{"url", "fields"}`: the app posts the fields, then the blob as `file`,
+straight to S3, which takes up to 64 MB for 5 minutes. The second call takes
+`{"iv", "packageVersion"}` once the blob is there, and answers
+`{"isAccepted": true}`: the package is then a processed one, which `/status`,
+`/blob` and the user lookups serve.
+
+Status codes:
+* `200`: the form, or the package registered (again, after a lost answer).
+* `400`: no iv of 16 bytes in hex, or no version like `2.3.0`.
+* `401`: the key in the Authorization header doesn't match the package id.
+* `409`: no blob for this iv yet.
+* `429`: past 20 an hour from one address on one Lambda instance.
+
 ### Fetch a package user
 
 * `GET /process/<package_id>/user/<user_id>`
