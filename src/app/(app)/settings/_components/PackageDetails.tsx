@@ -2,21 +2,20 @@
 
 import { useTranslation } from "~/i18n/client";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/solid";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Button from "~/components/Button";
 import Section from "~/components/Section";
 import DetailCard from "~/components/data/DetailCard";
+import useDeletePackage from "~/hooks/use-delete-package";
 import usePackageAPI from "~/hooks/use-package-api";
-import { useAppStore, useSelectedPackage } from "~/stores";
+import { useSelectedPackage } from "~/stores";
 import { formatDate } from "~/utils/format";
 import useCopy from "../_hooks/use-copy";
 
 export default function PackageDetails() {
   const { t } = useTranslation();
-  const router = useRouter();
   const selectedPackage = useSelectedPackage();
-  const deletePackage = useAppStore(({ config }) => config.deletePackage);
+  const deletePackage = useDeletePackage();
   const api = usePackageAPI({ baseURL: selectedPackage?.backendURL });
   const copy = useCopy();
   const [deleting, setDeleting] = useState(false);
@@ -36,10 +35,7 @@ export default function PackageDetails() {
       });
     }
 
-    deletePackage({
-      id,
-      router,
-    });
+    await deletePackage(id);
     setDeleting(false);
   }
 
