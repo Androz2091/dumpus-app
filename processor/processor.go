@@ -49,6 +49,10 @@ type Options struct {
 	// Workers is the number of goroutines decoding the activity stream and
 	// reading the other files. Zero means `GOMAXPROCS`.
 	Workers int
+	// Progress, when set, hears of the compressed bytes read of the entries
+	// the package needs, out of all of theirs: how far the reading is. It can
+	// be called from several goroutines at once.
+	Progress func(done, total int64)
 
 	// limits replaces the default limits, field by field; set by tests.
 	limits limits
@@ -110,6 +114,7 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 	if err := p.locate(ctx, workers); err != nil {
 		return nil, err
 	}
+	p.watch(opts.Progress)
 	rep.Inputs.User = maskPath(l.user)
 	userData, ok, err := p.readWhole(p.get(l.user))
 	if err != nil {

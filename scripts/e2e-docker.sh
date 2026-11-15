@@ -9,6 +9,10 @@ version=$(node -p "require('@playwright/test/package.json').version")
 # corepack.
 pnpm=$(node -p "require('./package.json').packageManager")
 
+# The image has no Go: the processor's WebAssembly build, in `public/`, is made
+# here, and the build in the container keeps it.
+node ./scripts/build-processor.cjs
+
 # A volume keeps the Linux node_modules, and the pnpm store with them, apart
 # from the host's. pnpm would also leave a `node-compile-cache` folder in the
 # project.

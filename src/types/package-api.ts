@@ -71,6 +71,12 @@ export type PackageAPIBlobResponse = Prettify<{
   ttl: number;
 }>;
 
+// A presigned POST: `fields` go in the form before the file.
+export type PackageAPIUploadURLResponse = Prettify<{
+  url: string;
+  fields: Record<string, string>;
+}>;
+
 export type PackageAPIRemoveResponse = Prettify<{
   isDeleted: boolean;
   errorMessageCode: "UNKNOWN_PACKAGE_ID" | "UNAUTHORIZED";

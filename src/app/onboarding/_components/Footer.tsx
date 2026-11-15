@@ -11,6 +11,7 @@ import { useTranslation } from "~/i18n/client";
 const GET_DATA_LINK_PATHNAMES = [
   "/access",
   "/access/link",
+  "/access/file",
   "/access/email",
 ].map((v) => `/onboarding${v}`);
 

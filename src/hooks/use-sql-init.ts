@@ -139,6 +139,7 @@ export default function useSQLInit() {
       packageLink: string;
       UPNKey: string;
       backendURL: string;
+      source?: "file";
     };
   }) {
     // By its key: a link rebuilt from it may not be the text once pasted.
@@ -191,6 +192,7 @@ export default function useSQLInit() {
         UPNKey: initData.UPNKey,
         dateAdded,
         backendURL: initData.backendURL,
+        ...(initData.source && { source: initData.source }),
         ...packageData,
       };
       if (existingPackage) {

@@ -94,6 +94,7 @@
       "description": "Choose your favorite method.",
       "method": "Method {{n}}",
       "noPackageYet": "No package yet?",
+      "recommended": "Recommended",
       "methods": {
         "link": {
           "title": "Enter your Discord link",
@@ -111,6 +112,20 @@
             "startWith": "Link must start with {{url}}",
             "emptyKey": "UPN key can't be empty",
             "noBackend": "No Dumpus backend answers at this URL"
+          }
+        },
+        "file": {
+          "title": "Open your package file",
+          "description": "Select the `package.zip` you downloaded from Discord's email. Dumpus reads it on this device: the file isn't uploaded.",
+          "choose": "Choose the file",
+          "reading": "Reading your package...",
+          "readingHint": "It can take a minute on a phone. Keep Dumpus open.",
+          "storing": "Saving an encrypted copy...",
+          "storingHint": "It's encrypted with a key kept on this device.",
+          "errors": {
+            "notZip": "This isn't a zip file. Select the package.zip from Discord's email, as you downloaded it.",
+            "unknown": "Dumpus couldn't read this file. Make sure it's the package.zip from Discord's email.",
+            "tryAgain": "Choose another file"
           }
         },
         "email": {

@@ -24,6 +24,11 @@ type Package = {
   backendURL: string;
   /** The processor major.minor the banner no longer offers a reprocess for. */
   reprocessDismissedVersion?: string;
+  /**
+   * "file" for a package read on the device: no link, so nothing to read
+   * again from Discord, and `UPNKey` is the key it was stored with.
+   */
+  source?: "file";
 } & PackageData;
 
 type State = {

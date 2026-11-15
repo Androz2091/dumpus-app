@@ -7,6 +7,8 @@ on:
       - "public/**"
       - "locales/**"
       - "e2e/**"
+      - "processor/**"
+      - "scripts/build-processor.cjs"
       - "scripts/list-locales.cjs"
       - "package.json"
       - "pnpm-lock.yaml"
@@ -41,8 +43,22 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # The build compiles the processor for the browser, to read a package
+      # file on the device: `scripts/build-processor.cjs`.
+      - uses: actions/setup-go@v7
+        with:
+          go-version: "1.26.x"
+          cache-dependency-path: processor/go.sum
+
+      # What the server writes for a package, which `e2e/file.spec.ts` checks
+      # the device writes too.
+      - name: Build dumpus-processor
+        env:
+          CGO_ENABLED: "0"
+        run: go -C processor build -trimpath -buildvcs=false -o "$RUNNER_TEMP/dumpus-processor" ./cmd/dumpus-processor
+
       - name: Build and run the e2e suite
-        run: pnpm test:e2e
+        run: DUMPUS_PROCESSOR="$RUNNER_TEMP/dumpus-processor" pnpm test:e2e
 
       - name: Upload the Playwright report
         if: failure()

@@ -391,6 +391,88 @@ def get_package_blob(package_id):
     }), 200
 
 
+# A package the app read from its file. The app encrypts its database as the
+# worker encrypts one, with a random key of its own in place of a link's UPN,
+# posts it straight to S3 with a presigned form, then registers it. From then on
+# the package is a processed one: its users can be looked up, and the app can
+# download it again. The key authenticates the calls as a UPN does.
+UPLOAD_MAX_BYTES = 64 * 1024 * 1024
+UPLOAD_IV = re.compile(r'[0-9a-f]{32}')
+UPLOAD_VERSION = re.compile(r'\d+\.\d+\.\d+')
+
+
+def upload_body():
+    body = request.get_json(silent=True)
+    return body if isinstance(body, dict) else {}
+
+
+@app.route('/process/<package_id>/upload-url', methods=['POST'])
+@limiter.limit('20 per hour', key_func=lambda: request.remote_addr)
+def get_upload_url(package_id):
+    """Response: {"url", "fields"}, a presigned POST for the blob of this iv.
+
+    Errors: 401 (bad bearer), 400 (no iv of 16 bytes in hex)."""
+    import blob_storage
+
+    (is_auth, _) = check_authorization_bearer(request, package_id)
+    if not is_auth:
+        return make_response('', 401)
+    iv = upload_body().get('iv')
+    if not isinstance(iv, str) or not UPLOAD_IV.fullmatch(iv):
+        log_fields(outcome='bad_request')
+        return make_response('', 400)
+    post = blob_storage.presigned_post(package_id, iv, UPLOAD_MAX_BYTES)
+    return jsonify({'url': post['url'], 'fields': post['fields']}), 200
+
+
+@app.route('/process/<package_id>/upload', methods=['POST'])
+@limiter.limit('20 per hour', key_func=lambda: request.remote_addr)
+def register_upload(package_id):
+    """Body: {"iv", "packageVersion"}, once the blob is in the bucket. The
+    package reads as processed from then on. Response: {"isAccepted": true}.
+
+    Errors: 401 (bad bearer), 400 (bad body), 409 (no blob for this iv)."""
+    import blob_storage
+
+    (is_auth, _) = check_authorization_bearer(request, package_id)
+    if not is_auth:
+        return make_response('', 401)
+    body = upload_body()
+    iv, version = body.get('iv'), body.get('packageVersion')
+    if not (isinstance(iv, str) and UPLOAD_IV.fullmatch(iv)
+            and isinstance(version, str) and UPLOAD_VERSION.fullmatch(version)):
+        log_fields(outcome='bad_request')
+        return make_response('', 400)
+    if not blob_storage.exists(package_id, iv):
+        log_fields(outcome='no_blob')
+        return make_response('', 409)
+
+    session = Session()
+    try:
+        # Registered already: a retry after a lost answer.
+        if fetch_package_status(package_id, session):
+            log_fields(outcome='existing')
+            return jsonify({'isAccepted': True}), 200
+        session.add(PackageProcessStatus(
+            package_id=package_id, step='PROCESSED', progress=100, package_version=version))
+        session.add(SavedPackageData(package_id=package_id, iv=iv))
+        session.commit()
+    finally:
+        session.close()
+
+    log_fields(outcome='registered')
+    send_internal_notification({
+        'embeds': [
+            {
+                'title': 'New package read from its file',
+                'description': f'Package ID: {package_id}',
+                'color': 0x1F8BFF
+            }
+        ]
+    })
+    return jsonify({'isAccepted': True}), 200
+
+
 @app.route('/process/<package_id>', methods=['DELETE'])
 def cancel_package(package_id):
 

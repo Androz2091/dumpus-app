@@ -33,6 +33,10 @@ type pkg struct {
 	data    map[*zip.File]dataRange  // where the compressed data of each allowed entry lies, see locate
 	shared  map[*zip.File]*wholeRead // the entries several roles name, see share
 	skipped atomic.Bool              // an entry, folder or line was left out: the package is partial
+
+	progress func(done, total int64) // see Options.Progress
+	read     atomic.Int64            // the compressed bytes read of the located entries
+	toRead   int64                   // and all of them
 }
 
 type dataRange struct{ start, end int64 }
@@ -150,6 +154,32 @@ func checkRanges(ranges []dataRange) error {
 	return nil
 }
 
+// watch has progress hear of the compressed bytes read from now on, out of
+// those of the located entries.
+func (p *pkg) watch(progress func(done, total int64)) {
+	if progress == nil {
+		return
+	}
+	for _, d := range p.data {
+		p.toRead += d.end - d.start
+	}
+	p.progress = progress
+}
+
+// countedReader adds what it reads to the package's progress.
+type countedReader struct {
+	r io.Reader
+	p *pkg
+}
+
+func (c countedReader) Read(b []byte) (int, error) {
+	n, err := c.r.Read(b)
+	if n > 0 {
+		c.p.progress(c.p.read.Add(int64(n)), c.p.toRead)
+	}
+	return n, err
+}
+
 // skip reports an entry the processor leaves out, a duplicate or past a limit,
 // which makes the package partial.
 func (p *pkg) skip(f *zip.File, problem Problem) {
@@ -194,7 +224,11 @@ func (p *pkg) open(f *zip.File, checksum bool) (*entryReader, error) {
 	if !ok {
 		return nil, fmt.Errorf("%s: read before it was located", maskPath(f.Name))
 	}
-	return newEntryReader(f, io.NewSectionReader(p.r, d.start, d.end-d.start), checksum)
+	var raw io.Reader = io.NewSectionReader(p.r, d.start, d.end-d.start)
+	if p.progress != nil {
+		raw = countedReader{raw, p}
+	}
+	return newEntryReader(f, raw, checksum)
 }
 
 // entryReader inflates a zip entry, reading its compressed data through a

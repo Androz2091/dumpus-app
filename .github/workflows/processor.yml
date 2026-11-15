@@ -124,3 +124,10 @@ jobs:
             echo "building $target"
             GOOS="${target%/*}" GOARCH="${target#*/}" go build -o /dev/null ./cmd/dumpus-processor
           done
+
+      # The app reads a package file on the device with this build.
+      - name: Build for the browser
+        env:
+          GOOS: js
+          GOARCH: wasm
+        run: go build -o /dev/null ./cmd/dumpus-wasm

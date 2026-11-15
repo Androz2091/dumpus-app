@@ -94,6 +94,7 @@
       "description": "Choisissez votre méthode préférée.",
       "method": "Méthode {{n}}",
       "noPackageYet": "Pas encore de paquet ?",
+      "recommended": "Recommandé",
       "methods": {
         "link": {
           "title": "Entrez votre lien Discord",
@@ -111,6 +112,20 @@
             "startWith": "Le lien doit commencer par {{url}}",
             "emptyKey": "La clé UPN ne peut pas être vide",
             "noBackend": "Aucun backend Dumpus ne répond à cette URL"
+          }
+        },
+        "file": {
+          "title": "Ouvrir le fichier de votre paquet",
+          "description": "Sélectionnez le `package.zip` téléchargé depuis l'e-mail de Discord. Dumpus le lit sur cet appareil : le fichier n'est pas envoyé.",
+          "choose": "Choisir le fichier",
+          "reading": "Lecture de votre paquet...",
+          "readingHint": "Cela peut prendre une minute sur un téléphone. Gardez Dumpus ouvert.",
+          "storing": "Enregistrement d'une copie chiffrée...",
+          "storingHint": "Elle est chiffrée avec une clé gardée sur cet appareil.",
+          "errors": {
+            "notZip": "Ce n'est pas un fichier zip. Sélectionnez le package.zip de l'e-mail de Discord, tel que vous l'avez téléchargé.",
+            "unknown": "Dumpus n'a pas pu lire ce fichier. Vérifiez qu'il s'agit bien du package.zip de l'e-mail de Discord.",
+            "tryAgain": "Choisir un autre fichier"
           }
         },
         "email": {

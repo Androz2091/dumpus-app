@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -366,8 +367,19 @@ func diffTables(t *testing.T, got, want map[string][]string) {
 }
 
 func TestFullPackage(t *testing.T) {
-	res := processWith(t, fullPackage(english), Options{Workers: 3})
+	var mu sync.Mutex
+	var done, total int64
+	progress := func(d, all int64) {
+		mu.Lock()
+		defer mu.Unlock()
+		done, total = max(done, d), all
+	}
+	res := processWith(t, fullPackage(english), Options{Workers: 3, Progress: progress})
 	diffTables(t, tables(res.Model), fullTables())
+	// A read that skips the count would leave the app's percentage short.
+	if done != total || total == 0 {
+		t.Errorf("progress ends at %d of %d bytes", done, total)
+	}
 	if len(res.Report.Issues) != 0 || len(res.Report.MissingFiles) != 0 {
 		t.Errorf("report: issues %+v, missing %+v", res.Report.Issues, res.Report.MissingFiles)
 	}
