@@ -271,6 +271,22 @@ Current error message codes:
 
 For what only the device can see, like its download from S3 or its decryption. It takes JSON sent as plain text, so that no CORS preflight runs, with `step`, `status`, `name`, `message`, `details`, `version`, `platform`, `path` and `package`, all optional. After a download that got no answer, `details` says what the device could still reach, for eg. `link=opaque:0:230ms s3-region=TypeError:12ms`: the `link` is the same URL without CORS. Free text is scrubbed of URLs and long tokens, so a report can't put a link's key in the logs. It answers `204`, `400` for a body it can't read, `413` past 8 KB, or `429` past 10 a minute from one address on one Lambda instance.
 
+### Post store purchases and refunds
+
+* `POST /store/apple`
+* `POST /store/google`
+
+What the App Store and Google Play report about the `supporter` purchase goes to the internal webhook (`WH_URL`), with the platform: for eg. "New supporter (iOS)" with its price and country, "Refund requested (iOS)", "Refunded (Android)". A store's own test notification posts too. Each store signs its calls, and one that doesn't verify posts nothing:
+
+* Apple sends App Store Server Notifications V2, `{"signedPayload"}`, checked against `src/AppleRootCA-G3.cer` with Apple's `app-store-server-library`, for the bundle `app.dumpus.app`, production or sandbox. It answers `200`, or `400` for a payload that doesn't verify.
+* Google Play sends real-time developer notifications through a Pub/Sub push, whose OIDC token must be signed by Google for `GOOGLE_PUSH_SERVICE_ACCOUNT` (Terraform's `google_push_service_account`) and the route's URL (`GOOGLE_PUSH_AUDIENCE` for a server elsewhere). It answers `204`, `400` for a body that isn't a push, `401` for a token that doesn't verify, or `503` while the service account isn't set.
+
+Setup, once:
+
+1. App Store Connect, the app's App Information, App Store Server Notifications: `https://api.dumpus.app/store/apple` as the production and sandbox URLs, version 2. "Request a test notification" posts one.
+2. Google Cloud: a Pub/Sub topic with `google-play-developer-notifications@system.gserviceaccount.com` as a publisher, a service account, and a push subscription to `https://api.dumpus.app/store/google` that authenticates as it. Put its email in `google_push_service_account` (`terraform.ci.tfvars`) and run `infra-api` with `apply`.
+3. Play Console, Monetize with Play, Monetization setup: the topic, with "Get all notifications for subscriptions and one-time products" (the other choice leaves one-time purchases out). "Send test notification" posts one.
+
 ### [SQLite Database Documentation can be found here](./docs/sqlite_database_structure.md)
 
 ## Database migrations

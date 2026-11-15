@@ -8,6 +8,9 @@ locals {
     QUEUE_BACKEND              = "sqs"
     SQS_QUEUE_URL              = aws_sqs_queue.packages.url
 
+    # Who signs Google Play's notifications to /store/google, see `store.py`.
+    GOOGLE_PUSH_SERVICE_ACCOUNT = var.google_push_service_account
+
     # Sensitive values are NOT in env. The Lambda's secrets_loader.py reads
     # them from Secrets Manager at startup using the ARNs below.
     SECRETS_ARN_MAP = jsonencode({

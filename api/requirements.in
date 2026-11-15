@@ -2,6 +2,8 @@
 # command at the top of `requirements.txt`. It keeps the current pins unless
 # `--upgrade` is added.
 apig-wsgi
+# Checks the signature of the App Store's server notifications.
+app-store-server-library
 boto3
 cryptography
 Flask

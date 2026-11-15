@@ -162,6 +162,12 @@ variable "wh_url" {
   default     = ""
 }
 
+variable "google_push_service_account" {
+  description = "Email of the service account the Pub/Sub push subscription for Google Play's real-time developer notifications signs with. Blank: `/store/google` answers 503."
+  type        = string
+  default     = ""
+}
+
 variable "discord_bot_token" {
   description = "Discord bot token. Used by /widget to fetch guild info via the bot API."
   type        = string
