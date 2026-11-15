@@ -45,6 +45,7 @@ The screenshots and cards show a made-up account.
 
 - You paste the link from Discord's email. Our server downloads the package, turns it into a database with [`dumpus-processor`](processor) in about 4 seconds (15 for a large package), and deletes the zip.
 - It stores that database encrypted with a key from your link, and deletes the link once processing starts, so what it keeps can't be read without your link. The app decrypts it on your device.
+- Or you open the zip itself, which never leaves your device: the app turns it into the same database, and our server keeps it encrypted the same way, with a key made on your device.
 - **Delete current package** in the settings deletes it from your device and from our server. Encrypted copies are deleted after 90 days anyway.
 - It's all open source, and you can [run your own server](api/README.md#self-hosting).
 

@@ -4,6 +4,7 @@
 
 - Node.js >= `v22.13.0`
 - pnpm `12`, the version `packageManager` pins in `package.json`. Corepack runs it from `0.36.0` on (`npm i -g corepack@latest` updates an older one)
+- Go `1.26`: `pnpm dev` and the builds compile [`processor/`](./processor) to WebAssembly first, for the app to read a package file on the device. Without Go, the app works but can't read a file
 - Visual Studio Code
 
 If you plan on developing more specific parts of the app, follow their respective guides:
