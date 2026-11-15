@@ -8,6 +8,7 @@
 
 type ReadRequest = import("./read-file").ReadRequest;
 type ReadReply = import("./read-file").ReadReply;
+type ReadProgress = import("./read-file").ReadProgress;
 
 type Processor = {
   version: string;
@@ -17,6 +18,7 @@ type Processor = {
     readAt: (offset: number, length: number) => Uint8Array,
     key: string,
     onRows: (table: string, query: string, rows: string) => void,
+    onProgress: (percent: number) => void,
   ): string;
 };
 
@@ -35,7 +37,10 @@ declare const Go: new () => {
   const BASE = "/wasm/processor/";
   const scope = self as unknown as {
     onmessage: ((event: MessageEvent<ReadRequest>) => void) | null;
-    postMessage(message: ReadReply, transfer?: Transferable[]): void;
+    postMessage(
+      message: ReadReply | ReadProgress,
+      transfer?: Transferable[],
+    ): void;
   };
 
   let processor: Promise<Processor> | undefined;
@@ -105,6 +110,7 @@ declare const Go: new () => {
                 }
               }
             },
+            (percent) => scope.postMessage({ progress: percent }),
           ),
         );
       for (const statement of statements.values()) statement.free();

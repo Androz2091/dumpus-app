@@ -17,6 +17,9 @@ export type ReadReply =
     }
   | { ok: false; code: string; message: string };
 
+/** How much of what the package needs is read, as it goes. */
+export type ReadProgress = { progress: number };
+
 export type ReadPackage = {
   /** The database, gzipped as the API serves one. */
   gzipped: Uint8Array<ArrayBuffer>;
@@ -57,16 +60,22 @@ function newKey() {
 
 /**
  * Reads a package file on the device, in a worker, into the database the app
- * opens. The file never leaves the device.
+ * opens. The file never leaves the device. onProgress hears how much of it is
+ * read, in percent.
  */
-export async function readPackageFile(file: File): Promise<ReadPackage> {
+export async function readPackageFile(
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<ReadPackage> {
   const key = newKey();
   // Built by `pnpm script:build-processor` from `./worker.ts`.
   const worker = new Worker("/wasm/processor/worker.js");
   try {
     const reply = await new Promise<ReadReply>((resolve, reject) => {
-      worker.onmessage = (event: MessageEvent<ReadReply>) =>
-        resolve(event.data);
+      worker.onmessage = ({ data }: MessageEvent<ReadReply | ReadProgress>) => {
+        if ("progress" in data) onProgress?.(data.progress);
+        else resolve(data);
+      };
       worker.onerror = (event) =>
         reject(new PackageReadError("UNKNOWN_ERROR", event.message));
       worker.postMessage({ file, key } satisfies ReadRequest);

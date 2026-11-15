@@ -17,6 +17,10 @@ export function formatNumber(
   }).format(n);
 }
 
+export function formatPercent(fraction: number) {
+  return Intl.NumberFormat(locale(), { style: "percent" }).format(fraction);
+}
+
 export function formatMoney(
   n?: number | null,
   { currency = "USD" }: { currency?: string } = {},

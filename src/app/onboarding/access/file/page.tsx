@@ -18,13 +18,15 @@ import {
 } from "~/processor/read-file";
 import { useAppStore } from "~/stores";
 import { reportClientError } from "~/utils/client-error";
+import { formatPercent } from "~/utils/format";
 import { createLogger } from "~/utils/logger";
 
 const logger = createLogger({ tag: "package file" });
 
 type State =
   | { step: "idle" }
-  | { step: "reading" }
+  // percent is null until the processor starts reading.
+  | { step: "reading"; percent: number | null }
   | { step: "storing" }
   | { step: "error"; message: string };
 
@@ -52,13 +54,15 @@ export default function Page() {
       });
       return;
     }
-    setState({ step: "reading" });
+    setState({ step: "reading", percent: null });
     // Read before `init` adds this one.
     const firstPackage = packages.every(
       ({ package_id }) => package_id === "demo",
     );
     try {
-      const pkg = await readPackageFile(file);
+      const pkg = await readPackageFile(file, (percent) =>
+        setState({ step: "reading", percent }),
+      );
       setState({ step: "storing" });
       try {
         await api.store({
@@ -136,7 +140,28 @@ export default function Page() {
           <p className="mt-2 text-gray-400">
             {t(`onboarding.access.methods.file.${state.step}Hint`)}
           </p>
-          <div className="mt-4 h-1 w-full animate-pulse rounded-full bg-brand-300 motion-reduce:animate-none" />
+          {state.step === "reading" && state.percent !== null ? (
+            <>
+              <div
+                role="progressbar"
+                aria-label={t("onboarding.access.methods.file.reading")}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={state.percent}
+                className="mt-4 h-1 w-full overflow-hidden rounded-full bg-gray-800"
+              >
+                <div
+                  className="h-full rounded-full bg-brand-300 transition-[width] motion-reduce:transition-none"
+                  style={{ width: `${state.percent}%` }}
+                />
+              </div>
+              <p className="mt-2 text-sm text-gray-400 tabular-nums">
+                {formatPercent(state.percent / 100)}
+              </p>
+            </>
+          ) : (
+            <div className="mt-4 h-1 w-full animate-pulse rounded-full bg-brand-300 motion-reduce:animate-none" />
+          )}
         </div>
       ) : state.step === "error" ? (
         <>
