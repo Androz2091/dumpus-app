@@ -45,6 +45,11 @@ const ROUTES: Record<string, Omit<RouteData, "label">> = {
     progress: 2.5,
     previous: "/access",
   },
+  "/access/file": {
+    next: null,
+    progress: 2.5,
+    previous: "/access",
+  },
   "/access/email": {
     next: null,
     progress: 2.5,

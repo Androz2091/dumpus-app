@@ -32,9 +32,11 @@ export default function ReprocessBanner() {
         UPNKey: selectedPackage.UPNKey,
       }),
     // A package added over 30 days ago was submitted before that, so the API's
-    // answer is already known. The demo has no key to ask with.
+    // answer is already known. The demo has no key to ask with, and a package
+    // read from its file has no link to read again.
     enabled:
       selectedPackage?.package_id !== "demo" &&
+      selectedPackage?.source !== "file" &&
       openedAt - Date.parse(selectedPackage?.dateAdded) < THIRTY_DAYS,
     // Each call is a Lambda and a database connection: once per app start,
     // however many times the overview opens and even when the call fails.

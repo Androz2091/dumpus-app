@@ -113,6 +113,18 @@
             "noBackend": "Aucun backend Dumpus ne répond à cette URL"
           }
         },
+        "file": {
+          "title": "Ouvrir le fichier de votre paquet",
+          "description": "Sélectionnez le `package.zip` téléchargé depuis l'e-mail de Discord. Dumpus le lit sur cet appareil : le fichier n'est pas envoyé.",
+          "choose": "Choisir le fichier",
+          "reading": "Lecture de votre paquet...",
+          "readingHint": "Cela peut prendre une minute sur un téléphone. Gardez Dumpus ouvert.",
+          "errors": {
+            "notZip": "Ce n'est pas un fichier zip. Sélectionnez le package.zip de l'e-mail de Discord, tel que vous l'avez téléchargé.",
+            "unknown": "Dumpus n'a pas pu lire ce fichier. Vérifiez qu'il s'agit bien du package.zip de l'e-mail de Discord.",
+            "tryAgain": "Choisir un autre fichier"
+          }
+        },
         "email": {
           "title": "Transférez l'email (bientôt)",
           "content": [
