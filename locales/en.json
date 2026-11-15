@@ -94,6 +94,7 @@
       "description": "Choose your favorite method.",
       "method": "Method {{n}}",
       "noPackageYet": "No package yet?",
+      "recommended": "Recommended",
       "methods": {
         "link": {
           "title": "Enter your Discord link",

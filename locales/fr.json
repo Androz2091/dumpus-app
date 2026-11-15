@@ -94,6 +94,7 @@
       "description": "Choisissez votre méthode préférée.",
       "method": "Méthode {{n}}",
       "noPackageYet": "Pas encore de paquet ?",
+      "recommended": "Recommandé",
       "methods": {
         "link": {
           "title": "Entrez votre lien Discord",
