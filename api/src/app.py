@@ -120,7 +120,7 @@ def check_authorization_bearer(req, package_id):
         log_fields(auth='missing')
         return (False, None)
 
-    auth_token = auth_header.split(' ')[1]
+    auth_token = auth_header.partition(' ')[2]
     expected_package_id = extract_package_id_from_upn(auth_token)
 
     if not expected_package_id or package_id != expected_package_id:
@@ -212,9 +212,12 @@ def reprocess_package(package_id, link, res, session):
 @app.route('/process', methods=['POST'])
 def process_link():
 
-    link = request.json['package_link']
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        body = {}
+    link = body.get('package_link')
 
-    if not link or (not check_discord_link(link) and not check_whitelisted_link(link)):
+    if not isinstance(link, str) or not link or (not check_discord_link(link) and not check_whitelisted_link(link)):
         log_fields(outcome='invalid_link')
         res = get_base_process_response()
         res['errorMessageCode'] = 'INVALID_LINK'
@@ -231,7 +234,7 @@ def process_link():
 
     existing_package_process_status = fetch_package_status(package_id, session)
     if existing_package_process_status and not existing_package_process_status.is_errored and not existing_package_process_status.is_cancelled and not is_abandoned(existing_package_process_status):
-        if request.json.get('reprocess') is True and existing_package_process_status.step == 'PROCESSED':
+        if body.get('reprocess') is True and existing_package_process_status.step == 'PROCESSED':
             return reprocess_package(package_id, link, res, session)
 
         log_fields(outcome='existing')
@@ -265,7 +268,16 @@ def process_link():
     session.add(package_process_status)
     session.commit()
 
-    queue_package(package_process_status, package_id, link, session)
+    id = package_process_status.id
+    try:
+        queue_package(package_process_status, package_id, link, session)
+    except Exception:
+        # No worker started: sending the link again must queue it, not find it.
+        session.rollback()
+        session.query(PackageProcessStatus).filter_by(id=id).delete()
+        session.commit()
+        session.close()
+        raise
 
     return jsonify(res), 200
 

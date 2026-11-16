@@ -140,6 +140,19 @@ def test_a_package_whose_worker_died_shows_an_error_and_can_be_sent_again(client
     assert len(sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)['Messages']) == 2
 
 
+def test_a_package_the_queue_refused_can_be_sent_again(client, queue, upstream, postgres, monkeypatch):
+    sqs, queue_url = queue
+    link, _ = upstream.discord_link('full', packages.build('full'))
+
+    monkeypatch.setenv('SQS_QUEUE_URL', f'{queue_url}-gone')
+    assert client.post('/process', json={'package_link': link}).status_code == 500
+    assert postgres.rows('SELECT id FROM package_process_status') == []
+
+    monkeypatch.setenv('SQS_QUEUE_URL', queue_url)
+    assert client.post('/process', json={'package_link': link}).get_json()['isAccepted'] is True
+    assert len(sqs.receive_message(QueueUrl=queue_url, MaxNumberOfMessages=10)['Messages']) == 1
+
+
 def test_a_report_from_a_device_keeps_links_and_keys_out_of_the_logs(api, client, capsys, monkeypatch):
     sent = []
     monkeypatch.setattr(api.app, 'send_internal_notification', sent.append)
@@ -173,6 +186,20 @@ def test_a_report_the_api_cannot_read_is_refused_rather_than_failing(client):
     assert post('[' * 5000) == 400
     # Half an emoji, as an error's message cut short can end.
     assert post('{"message": "\\ud83d"}') == 400
+
+
+def test_a_request_the_api_cannot_read_is_refused_rather_than_failing(client):
+    def process(**kwargs):
+        response = client.post('/process', **kwargs)
+        return response.status_code, response.get_json()['errorMessageCode']
+
+    assert process(json={}) == (200, 'INVALID_LINK')
+    assert process(json={'package_link': 5}) == (200, 'INVALID_LINK')
+    assert process(json=['link']) == (200, 'INVALID_LINK')
+    assert process(data='not json', content_type='application/json') == (200, 'INVALID_LINK')
+
+    status = client.get(f"/process/{package_id('x')}/status", headers={'Authorization': 'Bearer'})
+    assert status.status_code == 401
 
 
 def test_no_connection_stays_open_between_calls(client, submit, postgres):
