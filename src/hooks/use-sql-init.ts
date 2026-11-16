@@ -129,6 +129,10 @@ export default function useSQLInit() {
     return bytes;
   }
 
+  /**
+   * `init` without its guard, which opens once per component: for a screen
+   * that opens another package and stays, as after a deletion.
+   */
   async function open({
     id,
     initData,
@@ -223,5 +227,5 @@ export default function useSQLInit() {
     }
   }
 
-  return { init };
+  return { init, open };
 }
