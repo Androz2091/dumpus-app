@@ -28,14 +28,12 @@ export default function PackageDetails() {
 
     const { package_id, UPNKey, id } = selectedPackage;
 
-    if (package_id !== "demo") {
-      await api.remove({
-        packageID: package_id,
-        UPNKey,
-      });
-    }
-
-    await deletePackage(id);
+    await deletePackage(
+      id,
+      package_id === "demo"
+        ? undefined
+        : () => api.remove({ packageID: package_id, UPNKey }),
+    );
     setDeleting(false);
   }
 

@@ -16,7 +16,7 @@ export default function ExitDemoBanner() {
 
   async function handler() {
     setLoading(true);
-    await deletePackage(id);
+    if (!(await deletePackage(id))) setLoading(false);
   }
 
   if (!demo) return null;
