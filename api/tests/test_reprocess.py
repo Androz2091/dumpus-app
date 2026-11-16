@@ -140,6 +140,19 @@ def test_an_expired_link_starts_nothing_and_uses_nothing_up(client, submit, upst
     assert status(client, package)['packageVersion'] != '0.2.0'
 
 
+def test_a_storage_that_fails_says_nothing_about_the_link(client, submit, upstream, postgres):
+    package = processed_by_an_older_version(postgres, submit)
+    upstream.storage_status = 503
+
+    answer = reprocess(client, package)
+
+    assert (answer['isAccepted'], answer['errorMessageCode']) == (False, 'UNKNOWN_ERROR')
+    assert len(postgres.rows('SELECT id FROM package_process_status')) == 1
+
+    upstream.storage_status = None
+    assert reprocess(client, package)['isAccepted'] is True
+
+
 def test_a_link_nothing_answers_for_stays_out_of_the_logs(api, client, submit, upstream, postgres, capfd, monkeypatch):
     package = processed_by_an_older_version(postgres, submit)
     new_link, new_upn = upstream.discord_link('new', packages.build('full'))
