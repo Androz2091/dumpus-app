@@ -32,6 +32,25 @@ from util import (
 
 from wh import send_internal_notification
 
+def status_problem(status_code):
+    """The error code for a package link answered with `status_code`, or None
+    for a 200."""
+    # A busy or failing upstream says nothing about the link.
+    if status_code == 429 or status_code >= 500:
+        return 'UNKNOWN_ERROR'
+    # Discord download URLs are signed and short-lived: click.discord.com
+    # 302s to a Google Cloud Storage signed URL, which returns 4xx (most
+    # commonly 400) once the signature TTL is up. Surface that as
+    # EXPIRED_LINK so the user sees a useful message instead of the
+    # generic UNKNOWN_ERROR fallback.
+    if 400 <= status_code < 500:
+        print(f'Link is expired (upstream returned {status_code}).')
+        return 'EXPIRED_LINK'
+    if status_code != 200:
+        print('The link does not point to a valid file.')
+        return 'INVALID_LINK'
+    return None
+
 def link_problem(link, timeout=None):
     """Why `link` can't be downloaded, as an error code, or None when it can.
     A failed request's message quotes the link, whose UPN is the key of the
@@ -43,18 +62,10 @@ def link_problem(link, timeout=None):
         print(f'Could not check the link: {type(e).__name__}')
         return 'UNKNOWN_ERROR'
     print(r.status_code, r.headers.get('content-type'))
-    # A busy or failing upstream says nothing about the link.
-    if r.status_code == 429 or r.status_code >= 500:
-        return 'UNKNOWN_ERROR'
-    # Discord download URLs are signed and short-lived: click.discord.com
-    # 302s to a Google Cloud Storage signed URL, which returns 4xx (most
-    # commonly 400) once the signature TTL is up. Surface that as
-    # EXPIRED_LINK so the user sees a useful message instead of the
-    # generic UNKNOWN_ERROR fallback.
-    if 400 <= r.status_code < 500:
-        print(f'Link is expired (upstream returned {r.status_code}).')
-        return 'EXPIRED_LINK'
-    if r.status_code != 200 or 'content-type' not in r.headers or 'application/octet-stream' not in r.headers['content-type']:
+    problem = status_problem(r.status_code)
+    if problem:
+        return problem
+    if 'application/octet-stream' not in r.headers.get('content-type', ''):
         print('The link does not point to a valid file.')
         return 'INVALID_LINK'
     return None
@@ -78,6 +89,12 @@ def download_file(package_status_id, package_id, link, session):
     start = time.time()
     try:
         r = requests.get(link, allow_redirects=True, stream=True)
+        # The storage can still answer with an error page after the check,
+        # and that page isn't the package.
+        problem = status_problem(r.status_code)
+        if problem:
+            print(f'download answered HTTP {r.status_code}')
+            raise Exception(problem)
         with open(path, 'wb') as f:
             for chunk in r.iter_content(chunk_size=10*1024):
                 f.write(chunk)
