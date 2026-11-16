@@ -35,6 +35,20 @@ const extremitiesCache = new WeakMap<
   [string | null, string | null]
 >();
 
+/**
+ * Moves `date` back `months` months, to that month's last day when it is
+ * shorter: six months before August 31 is February 28, not March 3.
+ */
+function moveMonthsBack(date: Date, months: number) {
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() - months);
+  const lastDay = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
+}
+
 function readExtremities(db: Database): [string | null, string | null] {
   const cached = extremitiesCache.get(db);
   if (cached) return cached;
@@ -85,10 +99,10 @@ export const createDatabaseSlice: CreateSlice<DatabaseSlice> = (set, get) => ({
         startDate.setUTCDate(startDate.getUTCDate() - 4 * 7);
         break;
       case "6months":
-        startDate.setUTCMonth(startDate.getUTCMonth() - 6);
+        moveMonthsBack(startDate, 6);
         break;
       case "year":
-        startDate.setUTCFullYear(startDate.getUTCFullYear() - 1);
+        moveMonthsBack(startDate, 12);
         break;
       case "lifetime":
         startDate.setTime(startDateLimit.getTime());
