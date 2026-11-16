@@ -105,11 +105,19 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
       });
 
       store.when().approved(async (transaction) => {
-        // Can only be one product bought for now
-        const productID = transaction.products[0].id as ProductKey;
+        // On iOS the plugin also approves the app itself (product
+        // `app.dumpus.app`) as soon as it reads the app's receipt, which
+        // every download has: only the Supporter purchase makes someone
+        // premium.
+        if (
+          !transaction.products.some(({ id }) => id === PRODUCT_SUPPORTER_KEY)
+        ) {
+          await transaction.finish();
+          return;
+        }
 
         emitter.emit("purchases:transaction:approved", {
-          key: productID,
+          key: PRODUCT_SUPPORTER_KEY,
         });
         // Read before closing the dialog: a purchase made in it gets a
         // thank-you, one approved in the background at start-up doesn't.
@@ -117,7 +125,7 @@ export const createPurchasesSlice: CreateSlice<PurchasesSlice> = (
         get().config.setPremium(true);
         get().ui.setShowInAppPurchasesDialog(false);
         if (boughtInDialog || get().purchases.restoring) {
-          notify(productID);
+          notify(PRODUCT_SUPPORTER_KEY);
         }
         await transaction.finish();
       });
