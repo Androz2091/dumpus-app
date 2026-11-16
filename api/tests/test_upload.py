@@ -31,3 +31,24 @@ def test_a_registered_copy_is_served_as_a_processed_package(client):
     blob = client.get(f'/process/{package}/blob', headers=auth).get_json()
     assert blob['iv'] == iv
     assert requests.get(blob['url']).content == copy
+
+
+def test_a_copy_registers_after_its_link_failed(client, upstream):
+    link, key = upstream.discord_link('expired', b'')
+    upstream.click_targets.pop(key)
+    package = package_id(key)
+    auth = {'Authorization': f'Bearer {key}'}
+    client.post('/process', json={'package_link': link})
+    assert client.get(f'/process/{package}/status', headers=auth).get_json()['errorMessageCode'] == 'EXPIRED_LINK'
+
+    iv = os.urandom(16).hex()
+    copy = os.urandom(4096)
+    form = client.post(f'/process/{package}/upload-url', json={'iv': iv}, headers=auth).get_json()
+    assert requests.post(form['url'], data=form['fields'], files={'file': copy}).ok
+    register = {'iv': iv, 'packageVersion': '2.3.0'}
+    assert client.post(f'/process/{package}/upload', json=register, headers=auth).get_json() == {'isAccepted': True}
+
+    status = client.get(f'/process/{package}/status', headers=auth).get_json()
+    assert (status['isErrored'], status['isDataAvailable']) == (False, True)
+    blob = client.get(f'/process/{package}/blob', headers=auth).get_json()
+    assert requests.get(blob['url']).content == copy

@@ -461,8 +461,10 @@ def register_upload(package_id):
 
     session = Session()
     try:
-        # Registered already: a retry after a lost answer.
-        if fetch_package_status(package_id, session):
+        # Registered already: a retry after a lost answer. A run from a link
+        # that failed or hasn't finished doesn't hold this copy.
+        package_status = fetch_package_status(package_id, session)
+        if package_status and package_status.step == 'PROCESSED':
             log_fields(outcome='existing')
             return jsonify({'isAccepted': True}), 200
         session.add(PackageProcessStatus(
