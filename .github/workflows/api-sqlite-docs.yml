@@ -7,7 +7,7 @@ on:
     paths:
       - "processor/model.go"
       - "processor/build.go"
-      - "processor/sqlitedb/sqlitedb.go"
+      - "processor/sqlschema/sqlschema.go"
   workflow_dispatch:
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
           python <<'PY'
           from openai import OpenAI
 
-          sources = ['model.go', 'build.go', 'sqlitedb/sqlitedb.go']
+          sources = ['model.go', 'build.go', 'sqlschema/sqlschema.go']
           content = ''.join(open(f'../processor/{path}').read() for path in sources)
 
           client = OpenAI()
