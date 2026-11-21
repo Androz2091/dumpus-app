@@ -19,7 +19,9 @@ on:
 
 jobs:
   deploy_ios:
-    runs-on: macos-latest
+    # From April 2027 the App Store takes only builds made with Xcode 27 or
+    # later, and macos-latest (macOS 26) has Xcode 26 at most.
+    runs-on: xcode-27
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
