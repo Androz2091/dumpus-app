@@ -13,13 +13,17 @@ type ReadProgress = import("./read-file").ReadProgress;
 type Processor = {
   version: string;
   schema(): string;
+  /**
+   * `undefined` when the Go runtime died during the call: out of memory, or a
+   * panic outside the call's goroutine, which `process` can't recover.
+   */
   process(
     size: number,
     readAt: (offset: number, length: number) => Uint8Array,
     key: string,
     onRows: (table: string, query: string, rows: string) => void,
     onProgress: (percent: number) => void,
-  ): string;
+  ): string | undefined;
 };
 
 // A worker's globals, which the app's TypeScript, made for pages, lacks.
@@ -44,10 +48,34 @@ declare const Go: new () => {
   };
 
   let processor: Promise<Processor> | undefined;
+  // The end of what Go printed, where a dying runtime says why.
+  let printed = "";
+
+  function whyStopped() {
+    const lines = printed
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    return (
+      lines.find((line) => /^(panic|fatal error):/.test(line)) ?? lines.at(-1)
+    );
+  }
 
   function loadProcessor() {
     processor ??= (async () => {
       importScripts(`${BASE}wasm_exec.js`, `${BASE}sql-wasm.js`);
+      // `wasm_exec.js`'s stand-in file system, where Go's output goes.
+      const fs = (
+        globalThis as unknown as {
+          fs: { writeSync(fd: number, buf: Uint8Array): number };
+        }
+      ).fs;
+      const writeSync = fs.writeSync.bind(fs);
+      const decoder = new TextDecoder();
+      fs.writeSync = (fd, buf) => {
+        printed = (printed + decoder.decode(buf)).slice(-4096);
+        return writeSync(fd, buf);
+      };
       const go = new Go();
       let instance: WebAssembly.Instance;
       try {
@@ -84,35 +112,37 @@ declare const Go: new () => {
       const statements = new Map<string, import("sql.js").Statement>();
       const dropped: Record<string, number> = {};
       const reader = new FileReaderSync();
-      const result: { packageId?: string; error?: string; message?: string } =
-        JSON.parse(
-          dumpus.process(
-            file.size,
-            (offset, length) =>
-              new Uint8Array(
-                reader.readAsArrayBuffer(file.slice(offset, offset + length)),
-              ),
-            key,
-            (table, query, rows) => {
-              let statement = statements.get(table);
-              if (!statement) {
-                statement = db.prepare(query);
-                statements.set(table, statement);
-              }
-              for (const row of JSON.parse(rows)) {
-                try {
-                  statement.run(row);
-                } catch (err) {
-                  statement.reset();
-                  // As on the server, a row the schema refuses is left out.
-                  if (!/constraint failed/i.test(String(err))) throw err;
-                  dropped[table] = (dropped[table] ?? 0) + 1;
-                }
-              }
-            },
-            (percent) => scope.postMessage({ progress: percent }),
+      const output = dumpus.process(
+        file.size,
+        (offset, length) =>
+          new Uint8Array(
+            reader.readAsArrayBuffer(file.slice(offset, offset + length)),
           ),
-        );
+        key,
+        (table, query, rows) => {
+          let statement = statements.get(table);
+          if (!statement) {
+            statement = db.prepare(query);
+            statements.set(table, statement);
+          }
+          for (const row of JSON.parse(rows)) {
+            try {
+              statement.run(row);
+            } catch (err) {
+              statement.reset();
+              // As on the server, a row the schema refuses is left out.
+              if (!/constraint failed/i.test(String(err))) throw err;
+              dropped[table] = (dropped[table] ?? 0) + 1;
+            }
+          }
+        },
+        (percent) => scope.postMessage({ progress: percent }),
+      );
+      if (output === undefined) {
+        throw new Error(`the processor stopped: ${whyStopped() ?? "silently"}`);
+      }
+      const result: { packageId?: string; error?: string; message?: string } =
+        JSON.parse(output);
       for (const statement of statements.values()) statement.free();
       if (result.error || !result.packageId) {
         db.close();

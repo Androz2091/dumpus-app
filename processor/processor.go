@@ -108,6 +108,7 @@ func processPackage(ctx context.Context, r io.ReaderAt, size int64, opts Options
 	p.share(l.user, l.activity, l.serversIndex, l.messagesIndex, l.payments)
 	if l.user == "" {
 		rep.MissingFiles = append(rep.MissingFiles, MissingFile{Role: RoleUser, Path: "Account/user.json"})
+		rep.Shape = p.shape()
 		return nil, ErrMissingUserData
 	}
 	p.budget(p.readOrder(&l), lim.inflateBudget(size))

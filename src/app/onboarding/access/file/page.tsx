@@ -2,7 +2,7 @@
 
 import { XCircleIcon } from "@heroicons/react/24/solid";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import Button from "~/components/Button";
 import EmptyState from "~/components/EmptyState";
@@ -45,6 +45,10 @@ export default function Page() {
   );
   const input = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<State>({ step: "idle" });
+  // Leaving the page ends its read: the worker holds the package in memory,
+  // and the read would otherwise open it wherever the user went.
+  const reading = useRef<AbortController | null>(null);
+  useEffect(() => () => reading.current?.abort(), []);
 
   async function read(file: File) {
     if (!(await isZip(file))) {
@@ -55,13 +59,17 @@ export default function Page() {
       return;
     }
     setState({ step: "reading", percent: null });
+    reading.current = new AbortController();
+    const { signal } = reading.current;
     // Read before `init` adds this one.
     const firstPackage = packages.every(
       ({ package_id }) => package_id === "demo",
     );
     try {
-      const pkg = await readPackageFile(file, (percent) =>
-        setState({ step: "reading", percent }),
+      const pkg = await readPackageFile(
+        file,
+        (percent) => setState({ step: "reading", percent }),
+        signal,
       );
       setState({ step: "storing" });
       try {
@@ -80,6 +88,7 @@ export default function Page() {
           packageID: pkg.packageID,
         });
       }
+      signal.throwIfAborted();
       await init({
         id: getNextID(selectedID),
         initData: {
@@ -94,6 +103,8 @@ export default function Page() {
       // The first package opens on its recap, as one read from a link does.
       if (firstPackage) setShowSharePopup(true);
     } catch (err) {
+      // The page was left: nothing failed, and no one is there to tell.
+      if (signal.aborted) return;
       logger.error("couldn't read the package file", err);
       reportClientError({ error: err, step: "read" });
       setState({
