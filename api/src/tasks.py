@@ -165,6 +165,13 @@ def read_package_version(sqlite_path):
 # dumpus-processor is stopped past this, many times what the largest exports take.
 PROCESSOR_TIMEOUT_SECONDS = 600
 
+def report_shape(report_path):
+    try:
+        with open(report_path, 'rb') as f:
+            return orjson.dumps(orjson.loads(f.read()).get('shape')).decode()
+    except (OSError, orjson.JSONDecodeError) as e:
+        return f'unreadable ({type(e).__name__})'
+
 def process_with_go(package_status_id, package_id, link, session):
     """Turn the downloaded package into the app's database with
     dumpus-processor (`processor/` in this repo), then save it.
@@ -187,6 +194,9 @@ def process_with_go(package_status_id, package_id, link, session):
              '--package-id', package_id, '--report', report_path],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=PROCESSOR_TIMEOUT_SECONDS)
         if result.returncode == 3:
+            # The report's shape counts the package's entries by kind, with no
+            # name: an export without "Account", or `user.json` elsewhere.
+            print(f'no user.json, package shape: {report_shape(report_path)}')
             raise Exception('MISSING_USER_DATA')
         if result.returncode not in (0, 4):
             raise Exception(f'dumpus-processor exited {result.returncode}')

@@ -108,6 +108,33 @@ func (e *entries) userEntry() string {
 	return e.first(userEntryRe.MatchString)
 }
 
+func (e *entries) shape() *Shape {
+	s := &Shape{Entries: len(e.files), UserFiles: []int{}}
+	tops := map[string]bool{}
+	for _, f := range e.files {
+		if top, _, nested := strings.Cut(f.Name, "/"); nested {
+			tops[top] = true
+		}
+		switch {
+		case strings.EqualFold(f.Name[strings.LastIndexByte(f.Name, '/')+1:], "user.json"):
+			s.UserFiles = append(s.UserFiles, strings.Count(f.Name, "/"))
+		case channelEntryRe.MatchString(f.Name):
+			s.Channels++
+		case guildEntryRe.MatchString(f.Name):
+			s.Guilds++
+		default:
+			for _, a := range activityStreams {
+				if a.re.MatchString(f.Name) {
+					s.Activity++
+					break
+				}
+			}
+		}
+	}
+	s.TopFolders = len(tops)
+	return s
+}
+
 func (e *entries) messagesRoot() string {
 	sample := e.first(channelEntryRe.MatchString)
 	if sample == "" {

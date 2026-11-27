@@ -2,8 +2,11 @@ package processor
 
 import (
 	"cmp"
+	"fmt"
 	"regexp"
 	"slices"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -24,10 +27,39 @@ type Report struct {
 	Issues    []Issue `json:"issues"`
 	Counts    Counts  `json:"counts"`
 	TimingsMS Timings `json:"timings_ms"`
+	// Shape is set when the package has no `user.json` where one is read: it
+	// tells an export without "Account" from one laid out another way.
+	Shape *Shape `json:"shape,omitempty"`
 }
 
 func newReport() *Report {
 	return &Report{MissingFiles: []MissingFile{}, Issues: []Issue{}}
+}
+
+// Shape counts a package's zip entries by kind, without their names.
+type Shape struct {
+	Entries    int `json:"entries"`
+	TopFolders int `json:"top_folders"`
+	// UserFiles has the depth of each entry named `user.json` in any case;
+	// only depth 1, as in `Account/user.json`, is read.
+	UserFiles []int `json:"user_files"`
+	Channels  int   `json:"channels"`
+	Guilds    int   `json:"guilds"`
+	Activity  int   `json:"activity"`
+}
+
+// String is the shape in one line.
+func (s *Shape) String() string {
+	user := "no user.json"
+	if len(s.UserFiles) > 0 {
+		depths := make([]string, len(s.UserFiles))
+		for i, d := range s.UserFiles {
+			depths[i] = strconv.Itoa(d)
+		}
+		user = "user.json at depth " + strings.Join(depths, ",")
+	}
+	return fmt.Sprintf("%d entries in %d top folders, %s, %d channels, %d servers, %d activity files",
+		s.Entries, s.TopFolders, user, s.Channels, s.Guilds, s.Activity)
 }
 
 // Inputs are the masked paths of the entries found, per role; a role without

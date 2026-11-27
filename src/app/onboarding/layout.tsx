@@ -73,7 +73,8 @@ function getRouteData(
   pathname: string,
   t: ReturnType<typeof useTranslation>["t"],
 ): RouteData {
-  pathname = pathname.replace(ROUTE_PREFIX, "");
+  // `/onboarding` without its slash, which the host serves as it is, is `/`.
+  pathname = pathname.replace(ROUTE_PREFIX, "") || "/";
   if (pathname !== "/") {
     pathname = pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   }

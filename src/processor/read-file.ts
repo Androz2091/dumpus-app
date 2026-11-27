@@ -61,17 +61,23 @@ function newKey() {
 /**
  * Reads a package file on the device, in a worker, into the database the app
  * opens. The file never leaves the device. onProgress hears how much of it is
- * read, in percent.
+ * read, in percent. Aborting `signal` ends the worker and rejects with its
+ * reason.
  */
 export async function readPackageFile(
   file: File,
   onProgress?: (percent: number) => void,
+  signal?: AbortSignal,
 ): Promise<ReadPackage> {
+  signal?.throwIfAborted();
   const key = newKey();
   // Built by `pnpm script:build-processor` from `./worker.ts`.
   const worker = new Worker("/wasm/processor/worker.js");
   try {
     const reply = await new Promise<ReadReply>((resolve, reject) => {
+      signal?.addEventListener("abort", () => reject(signal.reason), {
+        once: true,
+      });
       worker.onmessage = ({ data }: MessageEvent<ReadReply | ReadProgress>) => {
         if ("progress" in data) onProgress?.(data.progress);
         else resolve(data);

@@ -99,6 +99,9 @@ func process(size int64, r io.ReaderAt, secret string, onRows, onProgress js.Val
 	res, err := processor.Process(context.Background(), r, size,
 		processor.Options{PackageID: packageID, Workers: 1, Progress: progress})
 	if err != nil {
+		if res.Report.Shape != nil {
+			return fail(res.Report.Error, res.Report.Shape.String())
+		}
 		return fail(res.Report.Error, err.Error())
 	}
 	for _, ins := range sqlschema.Inserts(res.Model) {
